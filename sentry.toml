@@ -1,0 +1,12 @@
+[project]
+name = "meu-projeto"
+
+[draun]
+specs_path = ".draun/specs"
+
+[pytest]
+command = "pytest"
+
+[analysis]
+run_tests_by_default = false
+timeout_seconds = 300

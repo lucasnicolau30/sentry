@@ -1,0 +1,5 @@
+.sentry/sentry.db
+.sentry/reports/
+.sentry/runs/
+.sentry/test-plans/
+.draun/

@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+src/sentry/__init__.py
+src/sentry/cli.py
+src/sentry/adapters/__init__.py
+src/sentry/domain/__init__.py
+src/sentry/interfaces/__init__.py
+src/sentry/ports/__init__.py
+src/sentry_test.egg-info/PKG-INFO
+src/sentry_test.egg-info/SOURCES.txt
+src/sentry_test.egg-info/dependency_links.txt
+src/sentry_test.egg-info/entry_points.txt
+src/sentry_test.egg-info/top_level.txt
+tests/test_cli.py
