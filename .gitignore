@@ -3,3 +3,7 @@
 .sentry/runs/
 .sentry/test-plans/
 .draun/
+
+__pycache__/
+*.py[cod]
+*.egg-info/
