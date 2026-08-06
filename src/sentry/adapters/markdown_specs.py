@@ -14,3 +14,13 @@ class MarkdownSpecAdapter:
             elif line.startswith('- E:'): data['E']=line.split(':',1)[1].strip()
         if current: result.append(SpecScenario(current,data.get('Dado',''),data.get('Quando',''),data.get('Então','')))
         return tuple(result)
+    def behaviors(self):
+        text=self.path.read_text(encoding='utf-8'); result=[]; inside=False
+        for line in text.splitlines():
+            if line.startswith('### Behaviors'):
+                inside=True; continue
+            if inside and line.startswith('### '): break
+            if inside and line.startswith('- **'):
+                name=line.strip('- **').split('**')[0].strip()
+                if name: result.append(name)
+        return tuple(result)

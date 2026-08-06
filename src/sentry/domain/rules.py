@@ -24,14 +24,13 @@ def evaluate(context:EvaluationContext,severities:dict[str,Severity]|None=None)-
     if failed: add('test-failing','Há testes falhando na execução.','Corrigir ou atualizar os testes falhos antes de aprovar.',impact='A mudança não possui evidência de comportamento correto.')
     if context.changed_coverage is None and context.changed_files and context.coverage_available: add('coverage-missing','Não foi possível calcular a cobertura do código alterado.','Gerar e fornecer dados do coverage.py.')
     elif context.changed_coverage == 0: add('changed-code-uncovered','Código alterado sem cobertura.','Adicionar teste para o código alterado.')
-    for item in context.requirements_without_scenarios: add('requirement-without-scenario',f'Requisito sem cenário: {item}','Descrever um cenário verificável para o requisito.')
+    for item in context.requirements_without_scenarios: add('requirement-without-scenario',f'Requisito sem cenário: {item}',f'Peça ao agente de IA para gerar o cenário "{item}" na spec com a estrutura: "### Cenário: <nome>" seguido de "- Dado: <pré-condição>", "- Quando: <ação>", "- Então: <resultado esperado>" e, se necessário, "- E: <condição ou resultado complementar>".')
     for item in context.scenarios_without_tests: add('scenario-without-test',f'Cenário sem teste associado: {item}','Adicionar ou associar um teste ao cenário.')
     for item in context.error_paths_without_tests: add('error-path-without-test',f'Caminho de erro sem teste: {item}','Adicionar teste para validação, exceção ou autorização.')
     for item in context.frontend_error_states_missing: add('frontend-error-state-missing',f'Estado de erro frontend não definido: {item}','Definir e testar o estado de erro da interface.')
     for item in context.inconsistent_contracts: add('contract-inconsistent',f'Contrato inconsistente: {item}','Alinhar contrato entre frontend e backend.')
     if not findings and (not context.coverage_available or context.changed_coverage is None): status=VerdictStatus.INCONCLUSIVE
     elif any(f.severity==Severity.CRITICAL for f in findings): status=VerdictStatus.REJECTED
-    elif any(f.severity==Severity.HIGH for f in findings): status=VerdictStatus.REJECTED
     elif findings: status=VerdictStatus.WARNING
     else: status=VerdictStatus.APPROVED
     return tuple(findings), Verdict(status,'Veredito calculado pelas regras determinísticas aplicadas.',tuple(f.rule for f in findings),{'findings':len(findings)})

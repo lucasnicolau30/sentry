@@ -1,0 +1,60 @@
+from __future__ import annotations
+import ast
+import re
+from pathlib import Path
+
+SOURCE_EXTENSIONS = {".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".kt", ".kts", ".cs", ".go", ".rs", ".php"}
+TEST_PATTERNS = ("test_", ".test.", ".spec.", "_test.", "_spec.")
+
+def _module_names(path: str) -> set[str]:
+    file = Path(path)
+    stem = file.with_suffix("").as_posix().replace("/", ".").replace("\\", ".")
+    return {stem, file.stem}
+
+def _imports(path: Path) -> set[str]:
+    text = path.read_text(encoding="utf8")
+    if path.suffix == ".py":
+        tree = ast.parse(text)
+        values = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                values.update(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                values.add(node.module)
+        return values
+    values = set(re.findall(r"(?:from|import|use)\s+['\"]?([A-Za-z0-9_./-]+)", text))
+    values.update(re.findall(r"require\(\s*['\"]([^'\"]+)['\"]\s*\)", text))
+    values.update(re.findall(r"(?:package|namespace)\s+([A-Za-z0-9_.]+)", text))
+    return values
+
+def _is_test(path: Path) -> bool:
+    name = path.name.lower()
+    return name.startswith("test_") or any(pattern in name for pattern in TEST_PATTERNS[1:])
+
+def select_impacted_tests(root: Path, changed_files: tuple[str, ...], executed: bool = False) -> dict:
+    changed_sources = [name for name in changed_files if Path(name).suffix.lower() in SOURCE_EXTENSIONS]
+    changed_modules = set().union(*(_module_names(name) for name in changed_sources)) if changed_sources else set()
+    impacted = []
+    unrelated = []
+    limitations = []
+    test_paths = sorted(path for extension in SOURCE_EXTENSIONS for path in (root / "tests").rglob(f"*{extension}")) if (root / "tests").exists() else ()
+    for path in test_paths:
+        if not _is_test(path):
+            continue
+        try:
+            imports = _imports(path)
+            related = any(
+                module in imported
+                or imported.endswith("/" + module.split(".")[-1])
+                or imported.split("/")[-1] == module.split(".")[-1]
+                for module in changed_modules for imported in imports
+            )
+            item = {"path": str(path.relative_to(root)), "related": related, "executed": executed}
+            (impacted if related else unrelated).append(item)
+        except (OSError, SyntaxError) as error:
+            limitations.append(f"{path.relative_to(root)}: {error}")
+    if changed_files and not changed_sources:
+        limitations.append("arquivos alterados nao possuem extensao suportada")
+    elif changed_sources and not test_paths:
+        limitations.append("nenhum arquivo de teste encontrado")
+    return {"impacted": impacted, "unrelated": unrelated, "limitations": limitations}
