@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sentry-test"
-version = "0.2.0"
+version = "1.0.0"
 description = "Test quality intelligence for change-oriented reviews"
 readme = "README.md"
-requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "Sentry contributors" }]
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Lucas Nicolau Ferreira" }]
 
 [project.scripts]
-sentry = "sentry.cli:main"
+sentry = "sentrytest.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

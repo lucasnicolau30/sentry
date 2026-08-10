@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  testes:
+    # Windows e Linux juntos de proposito: o Sentry manipula caminho o tempo
+    # todo (diff do Git, cobertura, rastreabilidade), e separador e' a classe
+    # de bug que so aparece no outro sistema.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # O Sentry le o diff do Git: com o clone raso padrao (depth 1) nao ha
+          # historico para comparar, e a analise sai sem arquivos alterados.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Instalar
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install pytest coverage
+
+      - name: Suíte
+        run: python -m pytest -q
+
+  autoanalise:
+    # O Sentry se analisa. Roda depois da suite, so no Linux: o objetivo aqui
+    # nao e' portabilidade, e' o veredito sobre a propria mudanca.
+    needs: testes
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install pytest coverage
+
+      - name: Analisar a própria mudança
+        # Codigo de saida: 0 aprovado, 1 com ressalvas, 2 reprovado,
+        # 3 inconclusivo. So `reprovado` derruba o build -- ressalva e
+        # inconclusivo aparecem no relatorio sem bloquear a PR.
+        run: |
+          sentry run --spec all --run-tests || codigo=$?
+          echo "veredito (exit ${codigo:-0})"
+          exit $(( ${codigo:-0} == 2 ? 1 : 0 ))
+
+      - name: Publicar o relatório
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentry-report
+          path: .sentry/reports/latest.md
+
+  pacote:
+    # Constroi e instala num ambiente limpo: garante que o wheel sai valido e
+    # que o comando `sentry` existe depois de instalado.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Construir
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: Instalar o wheel e conferir o comando
+        run: |
+          python -m pip install dist/*.whl
+          sentry --version

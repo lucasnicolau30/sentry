@@ -1,8 +1,8 @@
 [project]
-name = "meu-projeto"
+name = "sentry"
 
-[draun]
-specs_path = ".draun/specs"
+[specs]
+path = ".sentry/specs"
 
 [pytest]
 command = "pytest"
@@ -10,3 +10,4 @@ command = "pytest"
 [analysis]
 run_tests_by_default = false
 timeout_seconds = 300
+exclude = ["frontend/"]

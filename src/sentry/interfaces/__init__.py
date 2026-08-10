@@ -1,1 +1,0 @@
-"""Interfaces de entrada da aplicação."""

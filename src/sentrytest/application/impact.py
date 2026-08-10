@@ -5,14 +5,21 @@ from pathlib import Path
 
 SOURCE_EXTENSIONS = {".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".kt", ".kts", ".cs", ".go", ".rs", ".php"}
 TEST_PATTERNS = ("test_", ".test.", ".spec.", "_test.", "_spec.")
+# Diretorios que existem no caminho mas nao no nome importavel: `src/pkg/mod.py`
+# e importado como `pkg.mod`. Sem descartar o prefixo, nenhum teste de projeto com
+# layout src/ -- a convencao Python padrao -- casa com o que mudou.
+SOURCE_ROOTS = ("src", "lib", "app")
 
 def _module_names(path: str) -> set[str]:
     file = Path(path)
-    stem = file.with_suffix("").as_posix().replace("/", ".").replace("\\", ".")
-    return {stem, file.stem}
+    parts = file.with_suffix("").as_posix().split("/")
+    names = {".".join(parts), file.stem}
+    if len(parts) > 1 and parts[0] in SOURCE_ROOTS:
+        names.add(".".join(parts[1:]))
+    return names
 
 def _imports(path: Path) -> set[str]:
-    text = path.read_text(encoding="utf8")
+    text = path.read_text(encoding="utf-8")
     if path.suffix == ".py":
         tree = ast.parse(text)
         values = set()
@@ -31,6 +38,14 @@ def _is_test(path: Path) -> bool:
     name = path.name.lower()
     return name.startswith("test_") or any(pattern in name for pattern in TEST_PATTERNS[1:])
 
+def _path_segments(value: str) -> set[str]:
+    return {segment for segment in re.split(r"[./]", value) if segment}
+
+def _related(module: str, imported: str) -> bool:
+    if "/" in module or "/" in imported:
+        return bool(_path_segments(module) & _path_segments(imported))
+    return module == imported or imported.startswith(module + ".") or module.startswith(imported + ".")
+
 def select_impacted_tests(root: Path, changed_files: tuple[str, ...], executed: bool = False) -> dict:
     changed_sources = [name for name in changed_files if Path(name).suffix.lower() in SOURCE_EXTENSIONS]
     changed_modules = set().union(*(_module_names(name) for name in changed_sources)) if changed_sources else set()
@@ -43,12 +58,7 @@ def select_impacted_tests(root: Path, changed_files: tuple[str, ...], executed: 
             continue
         try:
             imports = _imports(path)
-            related = any(
-                module in imported
-                or imported.endswith("/" + module.split(".")[-1])
-                or imported.split("/")[-1] == module.split(".")[-1]
-                for module in changed_modules for imported in imports
-            )
+            related = any(_related(module, imported) for module in changed_modules for imported in imports)
             item = {"path": str(path.relative_to(root)), "related": related, "executed": executed}
             (impacted if related else unrelated).append(item)
         except (OSError, SyntaxError) as error:

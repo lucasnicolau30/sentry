@@ -1,10 +1,13 @@
-.sentry/sentry.db
-.sentry/reports/
-.sentry/runs/
-.sentry/test-plans/
 .draun/
+.claude/
 
 __pycache__/
 *.py[cod]
 *.egg-info/
 .coverage
+.sentry/sentry.db
+.sentry/runs/
+.sentry/test-plans/
+.sentry/specs/
+.sentry/reports/*
+!.sentry/reports/latest.md

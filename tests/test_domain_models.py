@@ -1,6 +1,6 @@
 import json
 import pytest
-from sentry.domain.models import Evidence, InfrastructureError, Layer, Priority, Run, TestCase as DomainTestCase, TestStatus as DomainTestStatus, TestType as DomainTestType, to_dict, to_json
+from sentrytest.domain.models import Evidence, InfrastructureError, Layer, Priority, Run, TestCase as DomainTestCase, TestStatus as DomainTestStatus, TestType as DomainTestType, to_dict, to_json
 
 def test_test_case_serializes_versioned_and_deterministically():
     case=DomainTestCase("TC-1","login",Layer.BACKEND,(),{"user":"ana"},"POST /login","200",Priority.HIGH,DomainTestType.CONTRACT,DomainTestStatus.COVERED)

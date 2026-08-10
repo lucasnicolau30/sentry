@@ -11,12 +11,17 @@ CONTRACT_VERSION = "1.0"
 class StrEnum(str, Enum):
     def __str__(self) -> str: return self.value
 
-class Layer(StrEnum): BACKEND="backend"; FRONTEND="frontend"; INTEGRATION="integração"
+# v1.0 cobre apenas backend: o produto nao aceita declarar camada que nao sabe
+# verificar, para nao produzir caso preso em "nao coberto" para sempre.
+class Layer(StrEnum): BACKEND="backend"; INTEGRATION="integração"
 class Priority(StrEnum): CRITICAL="crítica"; HIGH="alta"; MEDIUM="média"; LOW="baixa"
-class TestType(StrEnum): UNIT="unitário"; INTEGRATION="integração"; CONTRACT="contrato"; E2E="E2E"
+class TestType(StrEnum): UNIT="unitário"; INTEGRATION="integração"; CONTRACT="contrato"
 class TestStatus(StrEnum): COVERED="coberto"; PARTIAL="parcial"; NOT_COVERED="não coberto"; FAILED="falhou"; NOT_RUN="não executado"
 class Severity(StrEnum): CRITICAL="crítica"; HIGH="alta"; MEDIUM="média"; LOW="baixa"
 class VerdictStatus(StrEnum): APPROVED="aprovado"; WARNING="aprovado com ressalvas"; REJECTED="reprovado"; INCONCLUSIVE="inconclusivo"
+# "nao aplicavel" e distinto de "nao coberta": o primeiro diz que a dimensao nao
+# existe neste projeto, o segundo que existe e esta descoberta.
+class DimensionStatus(StrEnum): COVERED="coberta"; PARTIAL="parcial"; NOT_COVERED="não coberta"; NOT_APPLICABLE="não aplicável"
 
 @dataclass(frozen=True)
 class Evidence:
@@ -42,6 +47,9 @@ class TestCase:
     status: TestStatus
     related_test: str | None = None
     evidences: tuple[Evidence, ...] = ()
+    # Nome legivel do "## Caso:" no CASES.md, preservado com acento. O `id` (TC-XX-slug)
+    # normaliza acento para virar caminho de arquivo seguro e nao serve para exibicao.
+    name: str = ""
 
 @dataclass(frozen=True)
 class Finding:
