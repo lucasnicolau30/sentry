@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #000000;
+  --bg-alt: #0e0e0e;
+  --text: #a8a29a;
+  --text-h: #f7f3ea;
+  --border: #262624;
+  --accent: #f7f3ea;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: var(--text-h);
+  margin: 0;
+}
