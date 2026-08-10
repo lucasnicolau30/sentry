@@ -1,5 +1,13 @@
 # Sentry
 
+[![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat&logo=pytest&logoColor=white)
+![Markdown](https://img.shields.io/badge/Markdown-000000?style=flat&logo=markdown&logoColor=white)
+![TOML](https://img.shields.io/badge/TOML-9C4121?style=flat&logo=toml&logoColor=white)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat&logo=githubactions&logoColor=white)](https://github.com/lucasnicolau30/sentry/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/sentry-test.svg?style=flat&label=PyPI&color=3775A9&logo=pypi&logoColor=white)](https://pypi.org/project/sentry-test/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](LICENSE)
+
 CLI de qualidade de teste orientada a mudança. O `sentry` cria a pasta da spec, valida a matriz de casos em markdown, roda a suíte, lê o diff e a cobertura, e emite um veredito auditável — e deixa o fluxo escrito para o agente de IA que for implementar a mudança.
 
 Markdown é a fonte da intenção: a CLI parseia e valida `CASES.md` e `PROMPT.md` — ela nunca os escreve. O agente de IA faz a redação; o Sentry garante estrutura, rastreabilidade e veredito.

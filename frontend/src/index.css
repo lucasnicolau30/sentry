@@ -3,10 +3,11 @@
 :root {
   --bg: #000000;
   --bg-alt: #0e0e0e;
-  --text: #a8a29a;
-  --text-h: #f7f3ea;
+  --text: #ffffff;
+  --text-h: #ffffff;
   --border: #262624;
-  --accent: #f7f3ea;
+  --accent: #22c55e;
+  --mono: Arial, Helvetica, sans-serif;
   color-scheme: dark;
 }
 
@@ -18,12 +19,173 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  letter-spacing: -0.015em;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 h1, h2, h3 {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--mono);
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--text-h);
   margin: 0;
+}
+
+.docs-btn {
+  width: 96px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(to right, #14532d, var(--accent), #14532d, #14532d, var(--accent), #14532d);
+  background-size: 250%;
+  background-position: left;
+  color: var(--accent);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition-duration: 1s;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.docs-btn::before {
+  position: absolute;
+  content: "Docs";
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 97%;
+  height: 90%;
+  border-radius: 6px;
+  transition-duration: 1s;
+  background-color: rgba(0, 0, 0, 0.842);
+  background-size: 200%;
+}
+
+.docs-btn:hover {
+  background-position: right;
+  transition-duration: 1s;
+}
+
+.docs-btn:hover::before {
+  background-position: right;
+  transition-duration: 1s;
+}
+
+.docs-btn:active {
+  transform: scale(0.95);
+}
+
+.github-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #14532d, var(--accent), #14532d, #14532d, var(--accent), #14532d);
+  background-size: 250%;
+  background-position: left;
+  color: var(--accent);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition-duration: 1s;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.github-btn::before {
+  position: absolute;
+  content: "";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88%;
+  height: 88%;
+  border-radius: 9999px;
+  transition-duration: 1s;
+  background-color: rgba(0, 0, 0, 0.842);
+  background-size: 200%;
+}
+
+.github-btn svg {
+  position: relative;
+  z-index: 1;
+}
+
+.github-btn:hover {
+  background-position: right;
+  transition-duration: 1s;
+}
+
+.github-btn:hover::before {
+  background-position: right;
+  transition-duration: 1s;
+}
+
+.github-btn:active {
+  transform: scale(0.95);
+}
+
+.lang-btn {
+  min-width: 104px;
+  height: 34px;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(to right, #14532d, var(--accent), #14532d, #14532d, var(--accent), #14532d);
+  background-size: 250%;
+  background-position: left;
+  color: var(--accent);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition-duration: 1s;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.lang-btn::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  content: attr(data-label);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 97%;
+  height: 90%;
+  border-radius: 6px;
+  transition-duration: 1s;
+  background-color: rgba(0, 0, 0, 0.842);
+  background-size: 200%;
+}
+
+.lang-btn:hover {
+  background-position: right;
+  transition-duration: 1s;
+}
+
+.lang-btn:hover::before {
+  background-position: right;
+  transition-duration: 1s;
+}
+
+.lang-btn:active {
+  transform: scale(0.95);
 }

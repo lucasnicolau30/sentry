@@ -1,4 +1,5 @@
 import { FeatureCard } from "./FeatureCard";
+import arrowIcon from "../assets/arrow-icon.png";
 
 const iconProps = {
   width: 20,
@@ -62,9 +63,15 @@ const features = [
   },
   {
     icon: <LayersIcon />,
-    title: "Consistência de frontend",
+    title: (
+      <span className="inline-flex items-center gap-1.5">
+        Rastreabilidade caso
+        <img src={arrowIcon} alt="" aria-hidden="true" className="h-3 w-auto" />
+        teste
+      </span>
+    ),
     description:
-      "Verifica se componentes do mesmo papel reutilizam a base compartilhada, não só se o backend está coberto.",
+      "Cada caso do CASES.md se liga ao teste real por um marcador de comentário, sem isso o Sentry não inventa que foi coberto.",
   },
 ];
 
@@ -72,9 +79,29 @@ export function FeatureGrid() {
   return (
     <section className="mx-auto max-w-5xl px-6 py-10">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {features.map((feature) => (
-          <FeatureCard key={feature.title} {...feature} />
+        {features.map((feature, index) => (
+          <FeatureCard key={index} {...feature} />
         ))}
+      </div>
+
+      <div className="mt-6 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-5 py-3 text-sm">
+        <div>
+          <span className="text-[var(--accent)]">sentry@cli</span>
+          <span className="text-[var(--text)]">:~</span>
+          <span className="ml-2 text-[var(--text)]">&gt; pronto para carregar qualidade.</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <svg width="60" height="16" viewBox="0 0 60 16" fill="none" aria-hidden="true">
+            <path
+              d="M0 8h14l4-6 6 12 4-6h32"
+              stroke="var(--accent)"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
+        </div>
       </div>
     </section>
   );
