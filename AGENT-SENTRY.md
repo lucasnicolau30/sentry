@@ -80,6 +80,36 @@ Cobertura aceita `lcov`, `cobertura` XML e o JSON do coverage.py, detectados
 pelo conteúdo. Caminhos de erro são detectados por AST em Python e por padrão
 sintático nas demais stacks — a diferença aparece como limitação no relatório.
 
+## Python: prefira pytest à suíte do unittest
+
+O Sentry embrulha o comando em `coverage run` e coleta a contagem via
+`--junitxml` **quando reconhece o pytest** — nas três grafias equivalentes:
+`pytest`, `python -m pytest` e o executável do venv (`.venv/bin/pytest`).
+
+Qualquer outro comando é executado exatamente como declarado, sem instrumentação
+e sem flag injetada. Isso inclui `python -m unittest`: ele roda, mas o Sentry não
+tem de onde tirar contagem nem cobertura, e o veredito sai `não executado` —
+ausência de evidência, não reprovação. Para medir uma suíte `unittest`, declare o
+relatório que ela gera:
+
+```toml
+[test]
+command = "python -m unittest discover"
+junit_xml = "reports/junit.xml"   # gerado por unittest-xml-reporting, p.ex.
+```
+
+Em Django, rode a suíte por pytest em vez de `manage.py test` — é o que dá
+cobertura medida sem configuração extra:
+
+```toml
+[test]
+command = "python -m pytest"   # com pytest-django instalado
+```
+
+Com `DJANGO_SETTINGS_MODULE` no `pytest.ini`/`pyproject.toml`, ou inline
+(`python -m pytest --ds=myproject.settings`). O `manage.py test` cai no caminho
+genérico: roda, mas não mede.
+
 ## Limites
 
 - Só verifica backend (`Camada: backend | integração`); frontend é recusado de

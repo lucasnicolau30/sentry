@@ -116,21 +116,42 @@ PYTEST_INFRA_EXITS = {
     5: "nenhum teste coletado",
 }
 
+def _pytest_invocation(args: list[str]) -> list[str] | None:
+    """Reconhece as formas de invocar o pytest e devolve os argumentos ja
+    normalizados para `-m pytest ...`. None quando o comando nao e' pytest.
+
+    `pytest -x`, `python -m pytest -x` e `.venv/bin/pytest -x` sao o mesmo
+    runner escrito de tres jeitos. Casar so com o literal `pytest` fazia as
+    outras duas cairem no caminho generico: perdiam o `coverage run` (logo, sem
+    cobertura) e mesmo assim recebiam `--junitxml`.
+    """
+    if not args:
+        return None
+    head = Path(args[0]).name.lower().removesuffix(".exe")
+    if head == "pytest":
+        return ["pytest", *args[1:]]
+    if (head.startswith("python") or head == "py") and args[1:3] == ["-m", "pytest"]:
+        return ["pytest", *args[3:]]
+    return None
+
+
 class SuiteAdapter:
     """Executa a suite declarada pelo projeto, seja ela pytest ou nao.
 
     Com `junit_xml` declarado, o projeto ja configurou o proprio reporter
     (jest-junit, gotestsum, surefire, coverlet...) e o Sentry apenas le o
-    arquivo; injetar `--junitxml` quebraria o comando dele. Sem declaracao,
-    mantem o caminho Python: embrulha em `coverage run` e injeta a flag.
+    arquivo. Sem declaracao, `--junitxml` so e' injetado quando o comando
+    reconhecidamente e' pytest -- e' flag dele, e passa-la a um `unittest` ou a
+    um `go test` quebraria o comando do usuario por erro de linha de comando.
     """
 
     def __init__(self, root: Path, command: str = "pytest", junit_xml: str | None = None):
         self.root = root
         self.junit_xml = junit_xml
         args = command.split()
-        self.is_pytest = bool(args) and args[0] == "pytest"
-        self.command = [sys.executable, "-m", "coverage", "run", "-m", *args] if self.is_pytest else args
+        invocation = _pytest_invocation(args)
+        self.is_pytest = invocation is not None
+        self.command = [sys.executable, "-m", "coverage", "run", "-m", *invocation] if invocation else args
 
     def _classify(self, returncode: int, ran: bool) -> str | None:
         if self.is_pytest:
@@ -139,7 +160,13 @@ class SuiteAdapter:
         # honesto e' a evidencia: sem nenhum teste contabilizado, nao ha prova de
         # que a suite rodou -- isso e' ambiente, nao qualidade do codigo.
         if not ran:
-            return f"nenhum teste contabilizado (codigo de saida {returncode})"
+            detail = f"nenhum teste contabilizado (codigo de saida {returncode})"
+            if not self.junit_xml:
+                # Sem junit_xml e fora do pytest nao ha de onde tirar contagem: o
+                # fallback por regex so entende o resumo do pytest. Dizer "ambiente"
+                # e parar esconderia a acao que resolve.
+                detail += "; declare [test] junit_xml em sentry.toml para o Sentry ler o relatorio da sua suite"
+            return detail
         return None
 
     def run(self, coverage_file: Path, timeout_seconds: int = 300) -> tuple[TestExecution, float | None]:
@@ -151,10 +178,16 @@ class SuiteAdapter:
                 command = list(self.command)
             else:
                 report_path = Path(temp_dir) / "junit.xml"
-                command = [*self.command, "--junitxml", str(report_path)]
+                # Fora do pytest o arquivo nunca sera escrito; `_counts_from_junitxml`
+                # devolve None e a contagem cai no fallback por regex.
+                command = [*self.command, "--junitxml", str(report_path)] if self.is_pytest else list(self.command)
             try:
                 result = subprocess.run(command, cwd=self.root, capture_output=True, timeout=timeout_seconds, **DECODING)
-            except (FileNotFoundError, subprocess.TimeoutExpired) as error:
+            # OSError cobre o executavel ausente (FileNotFoundError) e tambem o
+            # comando invalido -- `[test] command` em branco chega aqui como lista
+            # vazia e o SO recusa com WinError 87. Configuracao ruim e' infraestrutura,
+            # nao motivo para derrubar a analise inteira com excecao.
+            except (OSError, subprocess.TimeoutExpired) as error:
                 execution = TestExecution(command_str, infrastructure_error=str(error), status=TestStatus.NOT_RUN, duration_seconds=time.perf_counter() - started)
                 return execution, None
             duration = time.perf_counter() - started

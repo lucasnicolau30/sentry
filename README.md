@@ -164,7 +164,7 @@ path = ".sentry/specs"
 
 [test]                    # qualquer executor que exporte JUnit XML
 command = "npx jest"
-junit_xml = "reports/junit.xml"   # sem isto, o Sentry injeta --junitxml (pytest)
+junit_xml = "reports/junit.xml"   # obrigatório fora do pytest: é a única fonte de contagem
 
 [tests]                   # onde procurar testes
 paths = ["tests"]         # padrão: tests, test, spec, __tests__
@@ -218,6 +218,8 @@ A **verificação** depende do formato de intercâmbio que sua suíte exporta, n
 | Análise de impacto | 12 extensões de código-fonte |
 
 A detecção de caminho de erro fora de Python é menos precisa que AST, e o relatório registra essa diferença como limitação — nunca a esconde.
+
+Em Python, o **pytest** é o único runner instrumentado automaticamente: o Sentry o reconhece em `pytest`, `python -m pytest` e no executável do venv, embrulha em `coverage run` e coleta a contagem sozinho. Em Django, prefira `command = "python -m pytest"` com `pytest-django` a `manage.py test`. Qualquer outro comando — inclusive `python -m unittest` — roda **exatamente como declarado**, sem flag injetada: para medi-lo, declare o `junit_xml` que sua suíte gera, senão o veredito sai `não executado` por ausência de evidência.
 
 Camada `frontend` é recusada de propósito: sem adaptador que a verifique, um caso declarado ficaria preso em `não coberto` para sempre.
 

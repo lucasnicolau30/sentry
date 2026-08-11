@@ -95,6 +95,72 @@ def test_fora_do_pytest_ausencia_de_teste_contabilizado_e_infraestrutura(tmp_pat
     # No pytest a tabela de codigos continua valendo, sem depender da evidencia.
     assert SuiteAdapter(tmp_path)._classify(5, ran=False) == "nenhum teste coletado"
 
+# cenario: comando nao-pytest sem junit declarado nao recebe a flag do pytest
+def test_suite_nao_pytest_sem_junit_declarado_nao_recebe_junitxml(tmp_path: Path):
+    """`python -m unittest` rejeita `--junitxml` com erro de linha de comando:
+    injetar a flag quebrava a suite do usuario e o veredito saia como problema
+    de ambiente, escondendo que o culpado era o proprio Sentry."""
+    import sys
+    (tmp_path / "test_ok.py").write_text(
+        "import unittest\n"
+        "class T(unittest.TestCase):\n"
+        "    def test_ok(self):\n"
+        "        self.assertTrue(True)\n",
+        encoding="utf-8",
+    )
+    adapter = SuiteAdapter(tmp_path, f"{sys.executable} -m unittest discover -p test_*.py")
+    assert adapter.is_pytest is False
+    test, percent = adapter.run(tmp_path / "cov.json")
+    assert "--junitxml" not in test.output
+    assert "erro de uso" not in test.output.lower()
+    assert percent is None
+    # Sem relatorio nao ha contagem, mas o recado agora aponta a acao que resolve.
+    assert "junit_xml" in (test.infrastructure_error or "")
+
+# cenario: pytest chamado como modulo continua sendo pytest
+def test_pytest_invocado_como_modulo_e_reconhecido(tmp_path: Path):
+    """`python -m pytest` e `.venv/bin/pytest` sao o mesmo runner que `pytest`.
+    Sem normalizar, perdiam `coverage run` e nao mediam cobertura nenhuma."""
+    import sys
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_ok.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
+    (tmp_path / "conftest.py").write_text("", encoding="utf-8")
+    adapter = SuiteAdapter(tmp_path, f"{sys.executable} -m pytest")
+    assert adapter.is_pytest is True
+    assert "-m coverage run -m pytest" in " ".join(adapter.command)
+    test, percent = adapter.run(tmp_path / "coverage.json")
+    assert test.passed >= 1
+    assert percent is not None
+
+# cenario: pytest invocado por caminho de executavel e reconhecido
+def test_pytest_por_caminho_de_executavel_e_reconhecido(tmp_path: Path):
+    """`.venv/bin/pytest` e `pytest.exe` sao o mesmo runner escrito com caminho.
+    Casar so com o literal fazia o venv perder `coverage run` silenciosamente."""
+    from sentrytest.adapters.local_tools import _pytest_invocation
+
+    assert _pytest_invocation([".venv/bin/pytest", "-x"]) == ["pytest", "-x"]
+    assert _pytest_invocation([r"C:\proj\.venv\Scripts\pytest.exe"]) == ["pytest"]
+    assert _pytest_invocation(["python3", "-m", "pytest", "-q"]) == ["pytest", "-q"]
+    # Nao e' pytest: precisa seguir intocado pelo caminho generico.
+    assert _pytest_invocation(["npx", "jest"]) is None
+    assert _pytest_invocation(["python", "-m", "unittest"]) is None
+    assert _pytest_invocation([]) is None
+
+    adapter = SuiteAdapter(tmp_path, ".venv/bin/pytest -x")
+    assert adapter.is_pytest is True
+    assert "-m coverage run -m pytest -x" in " ".join(adapter.command)
+
+# cenario: comando vazio vira erro de infraestrutura
+def test_comando_vazio_vira_erro_de_infraestrutura(tmp_path: Path):
+    """`[test] command` em branco chega ao subprocess como lista vazia e o SO
+    recusa. Configuracao ruim e' infraestrutura -- nao pode subir excecao e
+    derrubar a analise inteira antes de o relatorio ser escrito."""
+    adapter = SuiteAdapter(tmp_path, "")
+    test, percent = adapter.run(tmp_path / "cov.json")
+    assert test.status.value == "não executado"
+    assert test.infrastructure_error
+    assert percent is None
+
 # cenario: junit.xml corrompido cai no fallback por regex sem quebrar
 def test_counts_from_junitxml_returns_none_for_malformed_report(tmp_path: Path):
     """XML invalido ou sem <testsuite> precisa devolver None -- e' o sinal para
