@@ -127,7 +127,10 @@ def _pytest_invocation(args: list[str]) -> list[str] | None:
     """
     if not args:
         return None
-    head = Path(args[0]).name.lower().removesuffix(".exe")
+    # `\` so e' separador para o PurePath do Windows; num runner Linux analisando
+    # um comando escrito com caminho Windows, `Path(...).name` devolveria a string
+    # inteira. Normalizar antes torna o reconhecimento igual nas duas plataformas.
+    head = Path(args[0].replace("\\", "/")).name.lower().removesuffix(".exe")
     if head == "pytest":
         return ["pytest", *args[1:]]
     if (head.startswith("python") or head == "py") and args[1:3] == ["-m", "pytest"]:
@@ -172,6 +175,12 @@ class SuiteAdapter:
     def run(self, coverage_file: Path, timeout_seconds: int = 300) -> tuple[TestExecution, float | None]:
         command_str = " ".join(self.command)
         started = time.perf_counter()
+        # Comando vazio nao chega ao subprocess: cada plataforma reage de um jeito
+        # (POSIX estoura IndexError ao ler args[0]; Windows deixa o CreateProcess
+        # recusar com OSError), e nenhuma das duas mensagens diz o que fazer.
+        if not self.command:
+            execution = TestExecution(command_str, infrastructure_error="comando de teste vazio; declare [test] command em sentry.toml", status=TestStatus.NOT_RUN, duration_seconds=0.0)
+            return execution, None
         with tempfile.TemporaryDirectory() as temp_dir:
             if self.junit_xml:
                 report_path = self.root / self.junit_xml
@@ -183,10 +192,9 @@ class SuiteAdapter:
                 command = [*self.command, "--junitxml", str(report_path)] if self.is_pytest else list(self.command)
             try:
                 result = subprocess.run(command, cwd=self.root, capture_output=True, timeout=timeout_seconds, **DECODING)
-            # OSError cobre o executavel ausente (FileNotFoundError) e tambem o
-            # comando invalido -- `[test] command` em branco chega aqui como lista
-            # vazia e o SO recusa com WinError 87. Configuracao ruim e' infraestrutura,
-            # nao motivo para derrubar a analise inteira com excecao.
+            # OSError, e nao so FileNotFoundError: executavel sem permissao, caminho
+            # invalido e recusa do SO chegam aqui como irmaos. Configuracao ruim e'
+            # infraestrutura, nao motivo para derrubar a analise com excecao.
             except (OSError, subprocess.TimeoutExpired) as error:
                 execution = TestExecution(command_str, infrastructure_error=str(error), status=TestStatus.NOT_RUN, duration_seconds=time.perf_counter() - started)
                 return execution, None

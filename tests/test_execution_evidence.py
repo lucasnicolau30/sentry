@@ -152,13 +152,14 @@ def test_pytest_por_caminho_de_executavel_e_reconhecido(tmp_path: Path):
 
 # cenario: comando vazio vira erro de infraestrutura
 def test_comando_vazio_vira_erro_de_infraestrutura(tmp_path: Path):
-    """`[test] command` em branco chega ao subprocess como lista vazia e o SO
-    recusa. Configuracao ruim e' infraestrutura -- nao pode subir excecao e
-    derrubar a analise inteira antes de o relatorio ser escrito."""
+    """`[test] command` em branco nao pode chegar ao subprocess: no POSIX estoura
+    IndexError ao ler args[0] e no Windows o CreateProcess recusa com OSError --
+    excecoes diferentes, nenhuma delas dizendo o que fazer. E' configuracao, logo
+    infraestrutura, e nao pode derrubar a analise antes do relatorio."""
     adapter = SuiteAdapter(tmp_path, "")
     test, percent = adapter.run(tmp_path / "cov.json")
     assert test.status.value == "não executado"
-    assert test.infrastructure_error
+    assert "[test] command" in (test.infrastructure_error or "")
     assert percent is None
 
 # cenario: junit.xml corrompido cai no fallback por regex sem quebrar
