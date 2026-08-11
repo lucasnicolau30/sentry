@@ -57,9 +57,23 @@ def _apis(test_cases) -> dict:
 def _exceptions(error_paths: dict) -> dict:
     covered = len(error_paths.get("covered") or ())
     total = covered + len(error_paths.get("uncovered") or ())
-    return _from_counts(covered, total,
-                        f"{covered}/{total} caminhos de erro alterados executados por algum teste",
-                        "nenhum caminho de erro nas linhas alteradas")
+    unmeasured = len(error_paths.get("unmeasured") or ())
+    # Sem nenhum caminho medido, mas com caminhos existentes, "nao aplicavel" seria
+    # falso -- foi o defeito relatado: a tabela dizia "nenhum caminho de erro nas
+    # linhas alteradas" enquanto as Limitacoes contavam um. A dimensao existe; o
+    # que faltou foi o dado para avalia-la, e e' isso que o relatorio deve dizer.
+    if total == 0 and unmeasured:
+        return {"status": DimensionStatus.NOT_MEASURED.value,
+                "evidence": f"{unmeasured} caminho(s) de erro alterado(s) sem medicao de execucao",
+                "justification": "ver Limitações: sem dados de cobertura ou excluídos da medição pelo projeto"}
+    result = _from_counts(covered, total,
+                          f"{covered}/{total} caminhos de erro alterados executados por algum teste",
+                          "nenhum caminho de erro nas linhas alteradas")
+    if unmeasured:
+        # Medicao parcial: parte foi avaliada e parte nao. O status segue vindo do
+        # que se pode afirmar, mas a evidencia nao pode omitir o resto.
+        result["evidence"] += f"; {unmeasured} sem medicao de execucao (ver Limitações)"
+    return result
 
 
 def _security(fields, missing_classes) -> dict:

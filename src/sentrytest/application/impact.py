@@ -2,6 +2,7 @@ from __future__ import annotations
 import ast
 import re
 from pathlib import Path
+from .traceability import DEFAULT_TEST_PATHS, collect_test_files
 
 SOURCE_EXTENSIONS = {".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".kt", ".kts", ".cs", ".go", ".rs", ".php"}
 TEST_PATTERNS = ("test_", ".test.", ".spec.", "_test.", "_spec.")
@@ -46,14 +47,19 @@ def _related(module: str, imported: str) -> bool:
         return bool(_path_segments(module) & _path_segments(imported))
     return module == imported or imported.startswith(module + ".") or module.startswith(imported + ".")
 
-def select_impacted_tests(root: Path, changed_files: tuple[str, ...], executed: bool = False) -> dict:
+def select_impacted_tests(root: Path, changed_files: tuple[str, ...], executed: bool = False,
+                          test_paths: tuple[str, ...] = DEFAULT_TEST_PATHS) -> dict:
     changed_sources = [name for name in changed_files if Path(name).suffix.lower() in SOURCE_EXTENSIONS]
     changed_modules = set().union(*(_module_names(name) for name in changed_sources)) if changed_sources else set()
     impacted = []
     unrelated = []
     limitations = []
-    test_paths = sorted(path for extension in SOURCE_EXTENSIONS for path in (root / "tests").rglob(f"*{extension}")) if (root / "tests").exists() else ()
-    for path in test_paths:
+    # Mesma coleta da matriz de casos, e' o que impede o relatorio de se
+    # contradizer: varrendo um `tests/` fixo, o impacto declarava "nenhum arquivo
+    # de teste encontrado" no mesmo relatorio em que a matriz associava um teste
+    # que o projeto guarda ao lado do codigo, via [tests] paths.
+    found = collect_test_files(root, test_paths)
+    for path in found:
         if not _is_test(path):
             continue
         try:
@@ -65,6 +71,8 @@ def select_impacted_tests(root: Path, changed_files: tuple[str, ...], executed: 
             limitations.append(f"{path.relative_to(root)}: {error}")
     if changed_files and not changed_sources:
         limitations.append("arquivos alterados nao possuem extensao suportada")
-    elif changed_sources and not test_paths:
-        limitations.append("nenhum arquivo de teste encontrado")
+    elif changed_sources and not found:
+        # Nomear onde se procurou transforma um zero mudo em algo acionavel: ou o
+        # projeto guarda os testes noutro lugar, ou a declaracao esta errada.
+        limitations.append(f"nenhum arquivo de teste encontrado em: {', '.join(test_paths) or '(nenhum caminho declarado)'}")
     return {"impacted": impacted, "unrelated": unrelated, "limitations": limitations}

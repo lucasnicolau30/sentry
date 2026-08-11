@@ -21,7 +21,10 @@ class Severity(StrEnum): CRITICAL="crítica"; HIGH="alta"; MEDIUM="média"; LOW=
 class VerdictStatus(StrEnum): APPROVED="aprovado"; WARNING="aprovado com ressalvas"; REJECTED="reprovado"; INCONCLUSIVE="inconclusivo"
 # "nao aplicavel" e distinto de "nao coberta": o primeiro diz que a dimensao nao
 # existe neste projeto, o segundo que existe e esta descoberta.
-class DimensionStatus(StrEnum): COVERED="coberta"; PARTIAL="parcial"; NOT_COVERED="não coberta"; NOT_APPLICABLE="não aplicável"
+# `não verificada` nao e' um meio-termo entre coberta e nao coberta: e' a recusa a
+# afirmar qualquer uma das duas. A dimensao existe nesta mudanca, mas faltou o dado
+# que permitiria avalia-la -- dizer "nao aplicavel" ali afirmava que ela nao existia.
+class DimensionStatus(StrEnum): COVERED="coberta"; PARTIAL="parcial"; NOT_COVERED="não coberta"; NOT_APPLICABLE="não aplicável"; NOT_MEASURED="não verificada"
 
 @dataclass(frozen=True)
 class Evidence:

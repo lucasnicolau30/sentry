@@ -84,3 +84,58 @@ def test_dimensao_desabilitada_nao_aparece():
     resultado = _run(disabled=(SECURITY,))
     assert SECURITY not in resultado
     assert len(resultado) == len(ALL_DIMENSIONS) - 1
+
+
+# cenario: sem dados de cobertura a dimensao sai como nao verificada
+def test_sem_dados_de_cobertura_a_dimensao_sai_como_nao_verificada():
+    """O defeito relatado: `covered` e `uncovered` vazios levavam a dimensao a
+    concluir ausencia de caminho de erro, enquanto as Limitacoes do mesmo
+    relatorio contavam um. A dimensao existe; o que faltou foi o dado."""
+    error_paths = {"covered": (), "uncovered": (), "unmeasured": ("users/serializers.py:50 (raise)",)}
+    resultado = _run(error_paths=error_paths)[EXCEPTIONS]
+    assert resultado["status"] == "não verificada"
+    assert resultado["status"] not in ("não aplicável", "coberta")
+    assert "1" in resultado["evidence"] and "caminho" in resultado["evidence"]
+    assert "nenhum caminho de erro" not in resultado["evidence"]
+
+
+# cenario: ausencia real de caminho de erro continua nao aplicavel
+def test_ausencia_real_de_caminho_de_erro_continua_nao_aplicavel():
+    """"Nao aplicavel" precisa seguir significando que a dimensao nao existe nesta
+    mudanca -- e' o que impede o relatorio de punir projeto por eixo inexistente."""
+    for error_paths in ({}, {"covered": (), "uncovered": (), "unmeasured": ()}):
+        resultado = _run(error_paths=error_paths)[EXCEPTIONS]
+        assert resultado["status"] == "não aplicável"
+        assert "nenhum caminho de erro" in resultado["evidence"]
+
+
+# cenario: com cobertura o veredito de execucao permanece
+def test_com_cobertura_o_veredito_de_execucao_permanece():
+    """O conserto so pode alcancar o caso sem medicao: havendo dados, os tres
+    vereditos de execucao continuam saindo como antes."""
+    def status(covered, uncovered):
+        return _run(error_paths={"covered": covered, "uncovered": uncovered})[EXCEPTIONS]
+
+    assert status(("a:1 (raise)", "a:2 (except)"), ())["status"] == "coberta"
+    assert status((), ("a:1 (raise)", "a:2 (except)"))["status"] == "não coberta"
+    parcial = status(("a:1 (raise)",), ("a:2 (except)",))
+    assert parcial["status"] == "parcial"
+    assert "1/2" in parcial["evidence"]
+
+
+# cenario: caminho de erro excluido da medicao nao vira ausencia de caminho
+def test_caminho_excluido_da_medicao_nao_vira_ausencia_de_caminho():
+    """Exclusao declarada (`# pragma: no cover`) tambem esvaziava as duas listas,
+    produzindo a mesma afirmacao falsa por outro caminho. E quando parte foi
+    medida e parte nao, o status vem do que se pode afirmar, mas a evidencia nao
+    pode omitir o resto."""
+    so_excluido = _run(error_paths={"covered": (), "uncovered": (), "unmeasured": ("app.py:9 (raise)",)})[EXCEPTIONS]
+    assert so_excluido["status"] == "não verificada"
+    assert "nenhum caminho de erro" not in so_excluido["evidence"]
+
+    parcialmente_medido = _run(error_paths={
+        "covered": ("app.py:3 (raise)",), "uncovered": (), "unmeasured": ("app.py:9 (raise)",),
+    })[EXCEPTIONS]
+    assert parcialmente_medido["status"] == "coberta"
+    assert "1/1" in parcialmente_medido["evidence"]
+    assert "1 sem medicao" in parcialmente_medido["evidence"]

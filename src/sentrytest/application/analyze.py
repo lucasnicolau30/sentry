@@ -115,7 +115,7 @@ def _infrastructure_errors(execution,coverage,runner:str='pytest',coverage_forma
         errors.append(InfrastructureError('leitura de cobertura',coverage_format,coverage.error,False))
     return tuple(errors)
 
-def analyze(root:Path,slug:str|None=None,run_tests:bool|None=None)->Run:
+def analyze(root:Path,slug:str|None=None,run_tests:bool|None=None,base:str|None=None)->Run:
     initialize_project(root)
     config=load_config(root)
     # [test] e' a secao atual; [pytest] continua aceita para nao quebrar
@@ -149,7 +149,10 @@ def analyze(root:Path,slug:str|None=None,run_tests:bool|None=None)->Run:
         justified_classes.append(f"{item.field}/{item.class_name} — {item.reason}")
     # O vínculo requisito->caso é declarado no CASES.md, então não há o que inferir
     # por semelhança de nome: build_traceability só precisa casar caso com teste.
-    traceability=build_traceability(scenarios, root, test_paths=tuple(config.get('tests',{}).get('paths') or DEFAULT_TEST_PATHS)); git_change=_apply_exclusions(LocalGitAdapter(root).change(),_exclusions(config)); impact=select_impacted_tests(root, git_change.files, run_tests); run_id=str(uuid.uuid4()); tests=(); test_execution=None; contextual=None
+    # O mesmo `[tests] paths` alimenta a matriz e o impacto: sao duas leituras da
+    # mesma mudanca e discordar sobre quais arquivos existem contradizia o relatorio.
+    declared_test_paths=tuple(config.get('tests',{}).get('paths') or DEFAULT_TEST_PATHS)
+    traceability=build_traceability(scenarios, root, test_paths=declared_test_paths); declared_base=base or config.get('analysis',{}).get('base'); git_change=_apply_exclusions(LocalGitAdapter(root).change(declared_base),_exclusions(config)); impact=select_impacted_tests(root, git_change.files, run_tests, test_paths=declared_test_paths); run_id=str(uuid.uuid4()); tests=(); test_execution=None; contextual=None
     if run_tests:
         # O SuiteAdapter sempre grava seu proprio relatorio aqui; com
         # [coverage] path declarado, quem gera o que vale e' a suite do projeto
@@ -175,6 +178,14 @@ def analyze(root:Path,slug:str|None=None,run_tests:bool|None=None)->Run:
     if thresholds.changed_coverage is not None or thresholds.global_coverage is not None:
         configuration['thresholds']={'changed_coverage':thresholds.changed_coverage,'global_coverage':thresholds.global_coverage}
     infrastructure=_infrastructure_errors(tests[0] if tests else None,contextual if run_tests else None,test_command,config.get('coverage',{}).get('format') or 'coverage.py')
+    # Sem isto, uma base errada em CI produzia diff vazio e aprovacao: nada a
+    # medir e' indistinguivel de nada mudou. Nao e' repetivel -- o nome da
+    # referencia nao vai passar a existir numa nova tentativa.
+    #
+    # So quando a base foi declarada: analisar um diretorio que nao e' repositorio
+    # Git ja era possivel antes, e transformar isso em inconclusivo seria punir um
+    # uso legitimo por causa de um erro de configuracao de outra natureza.
+    if declared_base and git_change.error: infrastructure=(InfrastructureError('leitura do diff','git',git_change.error,False),*infrastructure)
     if infrastructure: configuration['infrastructure_errors']=[{'stage':e.stage,'cause':e.cause,'message':e.message,'retryable':e.retryable} for e in infrastructure]
     # Um diff so de documentacao/configuracao nao tem cobertura a calcular: sem
     # isto, `coverage-missing` acusa falha onde nao havia nada a medir.

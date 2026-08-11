@@ -34,6 +34,10 @@ def build_parser():
     run = sub.add_parser("run", help="a implementação corresponde à matriz?")
     run.add_argument("--spec")
     run.add_argument("--run-tests", action="store_true", default=None)
+    run.add_argument("--base", metavar="REF", help=(
+        "compara com esta referência Git a partir do ponto em que a branch divergiu "
+        "(ex.: --base origin/main). Sem ela, compara a árvore de trabalho com HEAD, "
+        "o que numa branch já commitada produz diff vazio"))
 
     sub.add_parser("report", help="exibe o último relatório")
     sub.add_parser("history", help="lista execuções anteriores")
@@ -187,7 +191,7 @@ def main(argv=None):
             print(f"Veredito: {result['verdict']['from']} -> {result['verdict']['to']}")
     elif args.command == "run":
         try:
-            run = analyze(root, args.spec, args.run_tests)
+            run = analyze(root, args.spec, args.run_tests, args.base)
             payload = json.loads(__import__("sentrytest.domain.models", fromlist=["to_json"]).to_json(run))
             write_reports(root, payload)
             print(f"Análise {run.id}: {run.verdict.status.value}")

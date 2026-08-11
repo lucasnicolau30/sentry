@@ -16,6 +16,17 @@ def default_config(project_name: str) -> str:
             '[test]\ncommand = "pytest"\n\n'
             '[analysis]\nrun_tests_by_default = false\ntimeout_seconds = 300\n')
 
+# As unicas linhas que o `init` escreve no .gitignore do projeto. Nomeadas aqui
+# porque quem monta o diff precisa delas: uma alteracao composta so por estas
+# linhas e' do Sentry, e nao mudanca do usuario a revisar.
+# specs sao dado local (nao versionado); reports/* fica fora exceto latest.md,
+# que fica rastreavel para aparecer no diff da PR sem precisar rodar o Sentry.
+# Git nao reinclui arquivo dentro de diretorio excluido, por isso o padrao e
+# ".../*" (conteudo) em vez de ".../" (o diretorio inteiro) antes da negacao.
+GITIGNORE_ENTRIES = ('.sentry/sentry.db', '.sentry/specs/', '.sentry/reports/*',
+                     '!.sentry/reports/latest.md', '.sentry/runs/', '.sentry/test-plans/')
+OBSOLETE_GITIGNORE_ENTRIES = frozenset({'.sentry/reports/'})
+
 # Cada versao lista os comandos DDL que faltam para chegar nela, a partir da
 # anterior. Todos IF NOT EXISTS: aplicar de novo num banco ja migrado nao falha,
 # e um banco criado do zero passa por todas as versoes em sequencia.
@@ -55,15 +66,9 @@ def initialize_project(root: Path) -> list[str]:
     config=root/'sentry.toml'
     if not config.exists(): config.write_text(default_config(root.resolve().name), encoding='utf-8'); created.append('sentry.toml')
     gitignore=root/'.gitignore'
-    # specs sao dado local (nao versionado); reports/* fica fora exceto latest.md,
-    # que fica rastreavel para aparecer no diff da PR sem precisar rodar o Sentry.
-    # Git nao reinclui arquivo dentro de diretorio excluido, por isso o padrao e
-    # ".../*" (conteudo) em vez de ".../" (o diretorio inteiro) antes da negacao.
-    entries=['.sentry/sentry.db','.sentry/specs/','.sentry/reports/*','!.sentry/reports/latest.md','.sentry/runs/','.sentry/test-plans/']
-    obsolete={'.sentry/reports/'}
     existing=gitignore.read_text(encoding='utf-8').splitlines() if gitignore.exists() else []
-    filtered=[line for line in existing if line not in obsolete]
-    missing=[entry for entry in entries if entry not in filtered]
+    filtered=[line for line in existing if line not in OBSOLETE_GITIGNORE_ENTRIES]
+    missing=[entry for entry in GITIGNORE_ENTRIES if entry not in filtered]
     if missing or filtered!=existing:
         gitignore.write_text('\n'.join(filtered+missing)+'\n',encoding='utf-8'); created.append('.gitignore')
     created += install_skills(root)

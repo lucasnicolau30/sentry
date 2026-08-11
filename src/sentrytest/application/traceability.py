@@ -90,13 +90,27 @@ def _strip_test_prefix(name: str) -> str:
     O prefixo e' convencao do framework e nao descreve o comportamento."""
     return _TEST_PREFIX.sub("", name, count=1)
 
-def _test_files(root: Path, test_paths: tuple[str, ...]) -> list[Path]:
+def collect_test_files(root: Path, test_paths: tuple[str, ...]) -> list[Path]:
+    """Os arquivos de teste do projeto, segundo `[tests] paths`.
+
+    Publica e' compartilhada de proposito: a matriz de casos e a analise de
+    impacto precisam partir do mesmo conjunto. Enquanto o impacto varria um
+    `tests/` fixo, o mesmo relatorio dizia "nenhum arquivo de teste encontrado"
+    e ao mesmo tempo associava um teste que a matriz tinha achado.
+    """
     found: set[Path] = set()
     for name in test_paths:
-        directory = root / name
-        if not directory.is_dir():
+        target = root / name
+        # Declarar um arquivo unico e' legitimo -- projeto com um so arquivo de
+        # teste, ou recorte deliberado -- e cair fora por nao ser diretorio
+        # devolveria de novo um zero silencioso.
+        if target.is_file():
+            if target.suffix.lower() in TEST_DEFINITIONS:
+                found.add(target)
             continue
-        for path in directory.rglob("*"):
+        if not target.is_dir():
+            continue
+        for path in target.rglob("*"):
             if path.suffix.lower() not in TEST_DEFINITIONS:
                 continue
             if any(part in _VENDOR for part in path.parts):
@@ -127,7 +141,7 @@ def build_traceability(specs: tuple[SpecScenario, ...], root: Path, behaviors: t
     issue_text_by_behavior = issue_text_by_behavior or {}
     tests: dict[str, list[str]] = {}
     test_functions: dict[str, list[str]] = {}
-    for path in _test_files(root, test_paths):
+    for path in collect_test_files(root, test_paths):
         try:
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):

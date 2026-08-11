@@ -43,12 +43,25 @@ def test_linha_alterada_sem_caminho_de_erro_e_ignorada(tmp_path: Path):
     assert result["limitations"] == []
 
 
+# cenario: dimensao nao verificada aparece no relatorio como ausencia de evidencia
 def test_sem_cobertura_registra_limitacao_em_vez_de_achado(tmp_path: Path):
-    """Sem evidencia de execucao a regra nao pode afirmar ausencia de teste."""
+    """Sem evidencia de execucao a regra nao pode afirmar ausencia de teste. Mas
+    tambem nao pode sumir com o caminho: as Limitacoes contavam um caminho de erro
+    que `covered` e `uncovered` vazios faziam a dimensao declarar inexistente. As
+    duas leituras do mesmo relatorio precisam concordar."""
+    from sentrytest.application.dimensions import EXCEPTIONS, evaluate_dimensions
+
     _write(tmp_path)
     result = select_error_paths(tmp_path, {"app.py": (3,)}, executed_lines=None)
     assert result["uncovered"] == ()
     assert "sem dados de cobertura" in result["limitations"][0]
+    assert result["unmeasured"] == ("app.py:3 (raise)",)
+
+    dimensao = next(item for item in evaluate_dimensions(
+        {"scenarios": []}, (), result, (), ()) if item["dimension"] == EXCEPTIONS)
+    assert dimensao["status"] == "não verificada"
+    assert "1 caminho" in dimensao["evidence"]
+    assert "Limitações" in dimensao["justification"]
 
 
 # cenario: caminho de erro e detectado fora de Python

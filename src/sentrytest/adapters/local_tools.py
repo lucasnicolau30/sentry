@@ -24,12 +24,31 @@ class LocalGitAdapter:
     def _run(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(["git", *args], cwd=self.root, capture_output=True, check=False, **DECODING)
 
+    def _merge_base(self, reference: str) -> str | None:
+        """O ponto em que a branch atual divergiu da referencia. None se a
+        referencia nao existe.
+
+        Comparar direto contra `main` responderia "o que difere de main", que
+        inclui o que entrou em main depois que a branch saiu -- a branch levaria a
+        culpa por mudanca alheia. Revisar uma branch e' revisar o que ela fez, e
+        isso comeca na divergencia.
+
+        Sem ancestral comum (historicos separados) a referencia ainda serve: o
+        Git a compara inteira, que e' o melhor disponivel ali.
+        """
+        result = self._run("merge-base", reference, "HEAD")
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+        return reference if self._run("rev-parse", "--verify", f"{reference}^{{commit}}").returncode == 0 else None
+
     def change(self, reference: str | None = None) -> GitChange:
         revision = self._run("rev-parse", "HEAD")
         if revision.returncode != 0:
             return GitChange(None, reference, (), error="diretorio nao e um repositorio Git")
         current = revision.stdout.strip()
-        base = reference or "HEAD"
+        base = self._merge_base(reference) if reference else "HEAD"
+        if base is None:
+            return GitChange(current, reference, (), error=f"referencia Git invalida: {reference}")
         # `--relative` limita o diff ao diretorio atual e emite caminhos relativos a
         # ele. Sem isso o Git responde relativo a raiz do repositorio, e rodar o
         # Sentry num subdiretorio (monorepo) produziria caminhos que nao resolvem.
@@ -46,20 +65,46 @@ class LocalGitAdapter:
         if untracked.returncode == 0:
             for name in untracked.stdout.splitlines():
                 statuses[name] = "A"
-        statuses = {name: value for name, value in statuses.items() if not is_generated_artifact(name)}
-        changed_lines = {}
+        # As linhas acrescentadas por arquivo, para decidir a autoria de alteracao
+        # em `sentry.toml` e `.gitignore` -- os dois arquivos que o Sentry escreve
+        # mas que o usuario edita depois.
+        added_lines: dict[str, list[str]] = {}
+        added_file = None
+        for line in diff.stdout.splitlines():
+            if line.startswith("+++ "):
+                added_file = line[6:] if line.startswith("+++ b/") else None
+            elif line.startswith("+") and not line.startswith("+++") and added_file:
+                added_lines.setdefault(added_file, []).append(line[1:])
+        statuses = {name: value for name, value in statuses.items()
+                    if not is_generated_artifact(name)
+                    and not _is_untouched_init_file(self.root, name, added_lines.get(name, []))}
+        # Um arquivo tem uma hunk por trecho alterado, e todas descrevem a mesma
+        # mudanca. Guardar por arquivo em vez de acumular deixava so a ultima
+        # visivel: mexer na linha 50 e na 370 do mesmo arquivo fazia a analise
+        # enxergar apenas a 370, e o caminho de erro da primeira sumia do relatorio.
+        accumulated: dict[str, set[int]] = {}
         current_file = None
         for line in diff.stdout.splitlines():
-            if line.startswith("+++ b/"):
-                current_file = line[6:]
+            if line.startswith("+++ "):
+                # `+++ /dev/null` e' arquivo removido: nao ha lado novo a atribuir.
+                # Sem zerar aqui, as hunks dele entrariam no arquivo anterior --
+                # erro que a sobrescrita escondia e que acumular tornaria permanente.
+                current_file = line[6:] if line.startswith("+++ b/") else None
             elif line.startswith("@@") and current_file:
                 if is_generated_artifact(current_file):
                     continue
                 match = re.search(r"\+(\d+)(?:,(\d+))?", line)
                 if match:
                     start_line = int(match.group(1))
+                    # Contagem omitida significa uma linha; `,0` e' remocao pura e
+                    # nao contribui linha nova, mas nao pode apagar as outras hunks.
                     count = int(match.group(2) or "1")
-                    changed_lines[current_file] = tuple(range(start_line, start_line + count))
+                    accumulated.setdefault(current_file, set()).update(range(start_line, start_line + count))
+        # `statuses` ja passou pelos dois filtros; reusa-lo aqui e' o que impede um
+        # arquivo excluido de voltar pela porta das linhas alteradas -- e' delas
+        # que saem cobertura alterada e caminhos de erro.
+        changed_lines = {name: tuple(sorted(lines)) for name, lines in accumulated.items()
+                         if lines and name in statuses}
         for name, value in statuses.items():
             if value == "A" and name not in changed_lines and name.endswith(".py"):
                 try:
@@ -68,6 +113,38 @@ class LocalGitAdapter:
                     continue
                 changed_lines[name] = tuple(range(1, line_count + 1))
         return GitChange(current, reference or "HEAD", tuple(statuses), diff=diff.stdout, statuses=statuses, changed_lines=changed_lines)
+
+def _is_untouched_init_file(root: Path, name: str, added: list[str]) -> bool:
+    """O arquivo alterado e' obra do `init` e so dele?
+
+    `sentry.toml` e `.gitignore` sao criados pelo Sentry mas editados depois pelo
+    usuario, entao nem "sempre excluir" nem "nunca excluir" servem: o primeiro
+    esconderia configuracao que o usuario mudou, o segundo -- o comportamento
+    relatado -- fazia a primeira analise de todo projeto contar como mudanca do
+    usuario os arquivos que o `init` acabara de escrever. Quem decide e' o
+    conteudo, nao o nome.
+    """
+    from ..init_project import GITIGNORE_ENTRIES, OBSOLETE_GITIGNORE_ENTRIES, default_config
+
+    try:
+        if name == "sentry.toml":
+            # Identico ao que o `init` escreveria: ninguem tocou nele desde entao.
+            return (root / name).read_text(encoding="utf-8") == default_config(root.resolve().name)
+        if name == ".gitignore":
+            # Aqui a comparacao e' por linha, nao pelo arquivo: o `init` acrescenta
+            # entradas a um arquivo que ja era do usuario. Excluir do diff so
+            # quando nenhuma linha alterada e' dele.
+            known = set(GITIGNORE_ENTRIES) | OBSOLETE_GITIGNORE_ENTRIES
+            # Arquivo novo e ainda nao rastreado nao tem hunk no diff; ai o
+            # conteudo inteiro e' a alteracao.
+            lines = added or (root / name).read_text(encoding="utf-8").splitlines()
+            return bool(lines) and all(line.strip() in known for line in lines if line.strip())
+    except (OSError, UnicodeDecodeError):
+        # Nao conseguir ler nao autoriza esconder: sem prova de que o conteudo e'
+        # o do `init`, a alteracao segue sendo do usuario e fica no diff.
+        return False
+    return False
+
 
 def is_generated_artifact(name: str) -> bool:
     # Artefato gerado nao e' mudanca do usuario: entra aqui tanto o que as
@@ -81,9 +158,12 @@ def _count(pattern: str, text: str) -> int:
     match = re.search(pattern, text)
     return int(match.group(1)) if match else 0
 
-def _counts_from_regex(output: str, returncode: int) -> tuple[int, int, int, int]:
+def _counts_from_regex(output: str) -> tuple[int, int, int, int]:
+    """Contagem lida da saida, sem inventar nada. Um `failed` fabricado a partir do
+    codigo de saida transformaria "nao consegui rodar" em "seu codigo reprovou" --
+    era isso que fazia `No module named 'pytest'` virar achado critico."""
     passed = _count(r"(\d+) passed", output)
-    failed = _count(r"(\d+) failed", output) or (0 if returncode == 0 else 1)
+    failed = _count(r"(\d+) failed", output)
     skipped = _count(r"(\d+) skipped", output)
     collected = _count(r"(\d+) collected", output)
     deselected = _count(r"(\d+) deselected", output)
@@ -116,25 +196,50 @@ PYTEST_INFRA_EXITS = {
     5: "nenhum teste coletado",
 }
 
-def _pytest_invocation(args: list[str]) -> list[str] | None:
-    """Reconhece as formas de invocar o pytest e devolve os argumentos ja
-    normalizados para `-m pytest ...`. None quando o comando nao e' pytest.
+def _interpreter_beside(executable: str) -> str | None:
+    """O interpretador irmao de um console script instalado. Num venv, `bin/pytest`
+    e `bin/python` (ou `Scripts\\pytest.exe` e `Scripts\\python.exe`) moram lado a
+    lado, e e' o irmao que o console script usa. None quando nao ha nenhum ali."""
+    directory = Path(executable.replace("\\", "/")).parent
+    for name in ("python.exe", "python", "python3"):
+        candidate = directory / name
+        if candidate.exists():
+            return str(candidate)
+    return None
 
-    `pytest -x`, `python -m pytest -x` e `.venv/bin/pytest -x` sao o mesmo
-    runner escrito de tres jeitos. Casar so com o literal `pytest` fazia as
-    outras duas cairem no caminho generico: perdiam o `coverage run` (logo, sem
-    cobertura) e mesmo assim recebiam `--junitxml`.
+
+def _pytest_invocation(args: list[str]) -> tuple[str | None, list[str]] | None:
+    """Reconhece as formas de invocar o pytest e devolve `(interpretador, argumentos
+    do pytest)`. None quando o comando nao e' pytest; interpretador None quando e'
+    pytest mas o ambiente nao e' deduzivel -- ai o comando declarado roda literalmente.
+
+    `pytest -x`, `python -m pytest -x` e `.venv/bin/pytest -x` sao o mesmo runner
+    escrito de tres jeitos. Casar so com o literal `pytest` fazia as outras duas
+    cairem no caminho generico: perdiam o `coverage run` (logo, sem cobertura) e
+    mesmo assim recebiam `--junitxml`.
+
+    Mas normalizar nao pode virar substituir: um caminho escrito no comando e' a
+    declaracao do usuario sobre em qual ambiente rodar. Trocar `.venv/Scripts/
+    python.exe` pelo interpretador do proprio Sentry rodava a suite no Python
+    global -- com outras dependencias instaladas, e em silencio.
     """
     if not args:
         return None
     # `\` so e' separador para o PurePath do Windows; num runner Linux analisando
     # um comando escrito com caminho Windows, `Path(...).name` devolveria a string
     # inteira. Normalizar antes torna o reconhecimento igual nas duas plataformas.
-    head = Path(args[0].replace("\\", "/")).name.lower().removesuffix(".exe")
+    first = args[0].replace("\\", "/")
+    head = Path(first).name.lower().removesuffix(".exe")
+    # Sem separador e' um nome a resolver no PATH, nao um ambiente declarado: ai o
+    # interpretador do Sentry e' a melhor resposta disponivel, e e' o que ja fazia.
+    declared = "/" in first
     if head == "pytest":
-        return ["pytest", *args[1:]]
+        # O console script nao aceita `-m coverage`; quem roda e' o interpretador
+        # ao lado dele. Sem esse irmao nao ha o que deduzir, e substituir seria de
+        # novo trocar o ambiente do usuario pelo nosso.
+        return (_interpreter_beside(args[0]) if declared else sys.executable), args[1:]
     if (head.startswith("python") or head == "py") and args[1:3] == ["-m", "pytest"]:
-        return ["pytest", *args[3:]]
+        return (args[0] if declared else sys.executable), args[3:]
     return None
 
 
@@ -154,11 +259,27 @@ class SuiteAdapter:
         args = command.split()
         invocation = _pytest_invocation(args)
         self.is_pytest = invocation is not None
-        self.command = [sys.executable, "-m", "coverage", "run", "-m", *invocation] if invocation else args
+        interpreter = invocation[0] if invocation else None
+        # Cobertura so existe quando o Sentry embrulha a execucao em `coverage run`.
+        # Reconhecer como pytest e medir cobertura sao coisas distintas: o comando
+        # declarado que roda literalmente continua sendo pytest -- vale a tabela de
+        # codigos de saida e a flag `--junitxml` -- mas nao passa pelo coverage.
+        self.measures_coverage = interpreter is not None
+        self.interpreter = interpreter or sys.executable
+        self.command = [interpreter, "-m", "coverage", "run", "-m", "pytest", *invocation[1]] if interpreter else args
 
     def _classify(self, returncode: int, ran: bool) -> str | None:
         if self.is_pytest:
-            return PYTEST_INFRA_EXITS.get(returncode)
+            known = PYTEST_INFRA_EXITS.get(returncode)
+            if known:
+                return known
+            if ran:
+                return None
+            # Codigo 0 ou 1 sem nenhum teste contabilizado nao e' o pytest falando:
+            # o pytest so sai 0/1 depois de coletar e rodar (nada coletado e' 5).
+            # Quem devolve 1 aqui e' o interpretador ou o `coverage run` -- runner
+            # ausente, ImportError na coleta, venv errado. Ambiente, nao qualidade.
+            return f"a suite nao contabilizou nenhum teste (codigo de saida {returncode}); verifique se o runner esta instalado no ambiente"
         # Fora do pytest nao existe tabela confiavel de codigos de saida. O sinal
         # honesto e' a evidencia: sem nenhum teste contabilizado, nao ha prova de
         # que a suite rodou -- isso e' ambiente, nao qualidade do codigo.
@@ -195,28 +316,40 @@ class SuiteAdapter:
             # OSError, e nao so FileNotFoundError: executavel sem permissao, caminho
             # invalido e recusa do SO chegam aqui como irmaos. Configuracao ruim e'
             # infraestrutura, nao motivo para derrubar a analise com excecao.
+            # OSError nao diz qual arquivo faltou (no Windows, "[WinError 2] o sistema
+            # nao pode encontrar o arquivo especificado" e so isso). Nomear o
+            # executavel e' o que separa "meu venv nao existe" de um erro qualquer.
             except (OSError, subprocess.TimeoutExpired) as error:
-                execution = TestExecution(command_str, infrastructure_error=str(error), status=TestStatus.NOT_RUN, duration_seconds=time.perf_counter() - started)
+                execution = TestExecution(command_str, infrastructure_error=f"{error} ao executar {command[0]}", status=TestStatus.NOT_RUN, duration_seconds=time.perf_counter() - started)
                 return execution, None
             duration = time.perf_counter() - started
             output = result.stdout + result.stderr
             counts = _counts_from_junitxml(report_path)
             if counts is None:
-                counts = _counts_from_regex(output, result.returncode)
+                counts = _counts_from_regex(output)
             passed, failed, skipped, not_run = counts
             if not not_run:
-                _, _, _, not_run = _counts_from_regex(output, result.returncode)
+                _, _, _, not_run = _counts_from_regex(output)
         percent = None
-        if self.is_pytest:
-            subprocess.run([sys.executable, "-m", "coverage", "json", "-o", str(coverage_file)], cwd=self.root, capture_output=True, **DECODING)
+        if self.measures_coverage:
+            # O mesmo interpretador que gravou o `.coverage`: o formato do arquivo de
+            # dados e' versionado, e ler com outro coverage pode simplesmente falhar.
+            subprocess.run([self.interpreter, "-m", "coverage", "json", "-o", str(coverage_file)], cwd=self.root, capture_output=True, **DECODING)
             if coverage_file.exists():
                 data = json.loads(coverage_file.read_text(encoding="utf-8"))
                 percent = data.get("totals", {}).get("percent_covered")
         infrastructure_error = self._classify(result.returncode, passed + failed + skipped > 0)
         if infrastructure_error:
-            status = TestStatus.NOT_RUN
+            # Sem execucao provada nao ha contagem a reportar: zerar evita que um
+            # relatorio inconclusivo exiba numero nenhum como se fosse veredito.
+            status, passed, failed, skipped = TestStatus.NOT_RUN, 0, 0, 0
+        elif result.returncode == 0:
+            status = TestStatus.COVERED
         else:
-            status = TestStatus.COVERED if result.returncode == 0 else TestStatus.FAILED
+            status = TestStatus.FAILED
+            # Aqui ha prova de execucao e a suite reprovou; se o resumo nao trouxe
+            # `N failed` (erro em teardown, por exemplo), uma reprovacao e' o piso.
+            failed = failed or 1
         execution = TestExecution(command_str, passed=passed, failed=failed, skipped=skipped, not_run=not_run, output=output[-4000:], infrastructure_error=infrastructure_error, status=status, duration_seconds=round(duration, 2))
         return execution, percent
 

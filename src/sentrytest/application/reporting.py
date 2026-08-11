@@ -143,6 +143,12 @@ def markdown_report(payload):
     # Evidencia bruta por ultimo: sustenta os achados de cima, mas nao e' o que
     # se le primeiro para decidir se o veredito faz sentido.
     lines += ["", "## Evidência", "", "### Arquivos alterados", ""]
+    # Contra o que se comparou muda inteiramente o que "alterado" significa. Sem
+    # declarar isso, uma analise de branch e uma analise da arvore de trabalho sao
+    # indistinguiveis no relatorio -- e nenhuma das duas e' auditavel.
+    reference = git_change.get("reference")
+    lines += [f"- Comparado com: `{reference}`" if reference and reference != "HEAD"
+              else "- Comparado com: árvore de trabalho contra `HEAD`", ""]
     lines += [f"- {path}" for path in files] or ["- Nenhum arquivo alterado detectado."]
     if execution:
         lines += ["", "### Execução de testes", "",

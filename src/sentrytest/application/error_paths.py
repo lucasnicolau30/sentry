@@ -87,6 +87,11 @@ def select_error_paths(
 
     heuristic: list[str] = []
     excluded_found: list[str] = []
+    # Caminhos que existem mas nao puderam ser avaliados -- por falta de dados de
+    # cobertura ou por exclusao declarada. Nao entram em covered nem em uncovered:
+    # nenhum dos dois seria verdade. Mas precisam ser contaveis, ou quem agrega
+    # conclui ausencia a partir de duas listas vazias.
+    unmeasured: list[str] = []
 
     for filename, lines in sorted((changed_lines or {}).items()):
         suffix = Path(filename).suffix.lower()
@@ -106,6 +111,12 @@ def select_error_paths(
             heuristic.append(filename)
 
         if executed_lines is None:
+            # O caminho existe e foi alterado; so nao ha como dizer se rodou. Sair
+            # daqui deixando apenas a limitacao escondia o fato de quem agrega:
+            # a dimensao de excecoes via as duas listas vazias e concluia que nao
+            # havia caminho de erro nenhum -- afirmacao falsa, e contradita pelas
+            # proprias Limitacoes do mesmo relatorio.
+            unmeasured.extend(f"{filename}:{line} ({error_lines[line]})" for line in touched)
             limitations.append(
                 f"{filename}: {len(touched)} caminho(s) de erro alterado(s) sem dados de "
                 "cobertura para confirmar execucao"
@@ -124,6 +135,9 @@ def select_error_paths(
                 uncovered.append(label)
 
     if excluded_found:
+        # Exclusao declarada tambem nao e' "nao existe caminho de erro": o projeto
+        # decidiu nao medir aquele caminho, e a dimensao precisa dizer isso.
+        unmeasured.extend(excluded_found)
         limitations.append(
             "caminho(s) de erro excluido(s) da medicao pelo projeto (`# pragma: no cover`): "
             + ", ".join(excluded_found)
@@ -136,4 +150,5 @@ def select_error_paths(
             "deteccao de caminho de erro por padrao sintatico (sem AST) em: "
             + ", ".join(sorted(set(heuristic)))
         )
-    return {"uncovered": tuple(uncovered), "covered": tuple(covered), "limitations": limitations}
+    return {"uncovered": tuple(uncovered), "covered": tuple(covered),
+            "unmeasured": tuple(unmeasured), "limitations": limitations}
