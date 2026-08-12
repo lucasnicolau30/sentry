@@ -142,14 +142,14 @@ def test_pytest_por_caminho_de_executavel_e_reconhecido(tmp_path: Path):
     import sys
     from sentrytest.adapters.local_tools import _pytest_invocation
 
-    assert _pytest_invocation([".venv/bin/pytest", "-x"]) == (None, ["-x"])
-    assert _pytest_invocation([r"C:\proj\.venv\Scripts\pytest.exe"]) == (None, [])
-    assert _pytest_invocation(["pytest", "-x"]) == (sys.executable, ["-x"])
-    assert _pytest_invocation(["python3", "-m", "pytest", "-q"]) == (sys.executable, ["-q"])
+    assert _pytest_invocation(tmp_path, [".venv/bin/pytest", "-x"]) == (None, ["-x"])
+    assert _pytest_invocation(tmp_path, [r"C:\proj\.venv\Scripts\pytest.exe"]) == (None, [])
+    assert _pytest_invocation(tmp_path, ["pytest", "-x"]) == (sys.executable, ["-x"])
+    assert _pytest_invocation(tmp_path, ["python3", "-m", "pytest", "-q"]) == (sys.executable, ["-q"])
     # Nao e' pytest: precisa seguir intocado pelo caminho generico.
-    assert _pytest_invocation(["npx", "jest"]) is None
-    assert _pytest_invocation(["python", "-m", "unittest"]) is None
-    assert _pytest_invocation([]) is None
+    assert _pytest_invocation(tmp_path, ["npx", "jest"]) is None
+    assert _pytest_invocation(tmp_path, ["python", "-m", "unittest"]) is None
+    assert _pytest_invocation(tmp_path, []) is None
 
     adapter = SuiteAdapter(tmp_path, "pytest -x")
     assert adapter.is_pytest is True
@@ -346,3 +346,100 @@ def test_executavel_pytest_sem_irmao_roda_como_declarado(tmp_path: Path):
     assert adapter.measures_coverage is False
     assert adapter.command == [str(executavel)]
     assert sys.executable not in adapter.command
+
+# cenario: caminho relativo com barra normal executa
+# cenario: as quatro grafias do mesmo executavel sao equivalentes
+def test_as_quatro_grafias_do_executavel_sao_equivalentes(tmp_path: Path):
+    """No Windows o CreateProcess nao resolve `venv/Scripts/python.exe`: barra
+    normal so vale em caminho absoluto, e relativo exige `\\` ou um `./`
+    explicito. Das quatro grafias do mesmo arquivo, era a unica que falhava --
+    o codigo normalizava as barras para *reconhecer* o runner, mas mandava a
+    string crua para *executar*."""
+    import sys
+    from sentrytest.domain.models import TestStatus
+
+    diretorio = _venv_falso(tmp_path / "venv")
+    interpretador = diretorio / ("python.exe" if sys.platform == "win32" else "python")
+    relativo = interpretador.relative_to(tmp_path).as_posix()
+    (tmp_path / "conftest.py").write_text("", encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_ok.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
+
+    grafias = (
+        str(interpretador),                       # absoluto, separador da plataforma
+        str(interpretador).replace("\\", "/"),    # absoluto, barra normal
+        relativo.replace("/", "\\"),              # relativo, barra invertida
+        relativo,                                 # relativo, barra normal -- o que quebrava
+    )
+    resultados = []
+    for grafia in grafias:
+        execution, _ = SuiteAdapter(tmp_path, f"{grafia} -m pytest").run(tmp_path / "cov.json")
+        assert execution.infrastructure_error is None, f"{grafia}: {execution.infrastructure_error}"
+        assert execution.status == TestStatus.COVERED
+        resultados.append(execution.passed)
+    # Mesmo arquivo escrito de quatro jeitos: os quatro resultados sao o mesmo.
+    assert resultados == [1, 1, 1, 1]
+
+# cenario: caminho relativo e resolvido contra a raiz do projeto
+def test_caminho_relativo_e_resolvido_contra_a_raiz_do_projeto(tmp_path: Path, monkeypatch):
+    """Caminho relativo e' resolvido contra o diretorio do processo que chama, e
+    nao contra o `cwd=` passado ao subprocess. Rodar a CLI de fora da raiz do
+    projeto procurava o venv no lugar errado -- ou, pior, achava outro."""
+    import sys
+
+    diretorio = _venv_falso(tmp_path / "projeto" / "venv")
+    raiz = tmp_path / "projeto"
+    relativo = (diretorio / ("python.exe" if sys.platform == "win32" else "python")).relative_to(raiz).as_posix()
+    (raiz / "conftest.py").write_text("", encoding="utf-8")
+    (raiz / "tests").mkdir()
+    (raiz / "tests" / "test_ok.py").write_text("def test_ok():\n    assert True\n", encoding="utf-8")
+
+    outro = tmp_path / "outro_lugar"
+    outro.mkdir()
+    monkeypatch.chdir(outro)
+
+    adapter = SuiteAdapter(raiz, f"{relativo} -m pytest")
+    assert Path(adapter.command[0]).is_absolute()
+    execution, _ = adapter.run(raiz / "cov.json")
+    assert execution.infrastructure_error is None
+    assert execution.passed == 1
+
+# cenario: nome puro continua resolvido pelo PATH
+# cenario: caminho declarado inexistente nomeia onde foi procurado
+def test_nome_puro_vai_ao_path_e_caminho_ausente_diz_onde_procurou(tmp_path: Path):
+    """Resolver contra a raiz vale so para caminho declarado: nome puro precisa
+    seguir intocado, ou deixa de ser procurado no PATH. E quando o caminho nao
+    existe, mostrar o ja resolvido diz onde se procurou, em vez de repetir a
+    string que o usuario escreveu."""
+    from sentrytest.adapters.local_tools import _resolved_executable
+    from sentrytest.domain.models import TestStatus
+
+    assert _resolved_executable(tmp_path, "pytest") == "pytest"
+    assert _resolved_executable(tmp_path, "npx") == "npx"
+
+    resolvido = _resolved_executable(tmp_path, ".venv/Scripts/python.exe")
+    assert Path(resolvido).is_absolute()
+    assert Path(resolvido).is_relative_to(tmp_path)
+
+    execution, _ = SuiteAdapter(tmp_path, ".venv/Scripts/python.exe -m pytest").run(tmp_path / "cov.json")
+    assert execution.status == TestStatus.NOT_RUN
+    assert str(tmp_path) in (execution.infrastructure_error or "")
+
+# cenario: suite nao-pytest com caminho relativo tambem e resolvida
+def test_suite_nao_pytest_com_caminho_relativo_tambem_e_resolvida(tmp_path: Path):
+    """O defeito e' da execucao, nao do reconhecimento do pytest: um `go test` ou
+    um script proprio declarado por caminho relativo quebrava igual."""
+    import sys
+
+    diretorio = _venv_falso(tmp_path / "ferramentas")
+    interpretador = diretorio / ("python.exe" if sys.platform == "win32" else "python")
+    relativo = interpretador.relative_to(tmp_path).as_posix()
+    (tmp_path / "runner.py").write_text("print('1 passed')\n", encoding="utf-8")
+
+    adapter = SuiteAdapter(tmp_path, f"{relativo} runner.py")
+    assert adapter.is_pytest is False
+    assert Path(adapter.command[0]).is_absolute()
+    execution, percent = adapter.run(tmp_path / "cov.json")
+    assert execution.infrastructure_error is None
+    assert execution.passed == 1
+    assert percent is None

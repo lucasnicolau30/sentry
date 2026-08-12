@@ -196,11 +196,34 @@ PYTEST_INFRA_EXITS = {
     5: "nenhum teste coletado",
 }
 
-def _interpreter_beside(executable: str) -> str | None:
+def _resolved_executable(root: Path, executable: str) -> str:
+    """O caminho declarado no comando, pronto para o sistema operacional executar.
+
+    Duas coisas separam "reconhecer" de "executar", e o codigo so fazia a primeira:
+
+    - No Windows o CreateProcess nao resolve `venv/Scripts/python.exe`. Barra
+      normal so funciona em caminho absoluto; relativo exige `\\` ou um `./`
+      explicito. Das quatro grafias do mesmo arquivo, era a unica que falhava.
+    - Caminho relativo e' resolvido contra o diretorio do processo que chama, nao
+      contra o `cwd=` passado ao subprocess. Rodar a CLI de fora da raiz do
+      projeto procurava o venv no lugar errado -- ou, pior, achava outro.
+
+    Resolver contra a raiz do projeto conserta os dois: vira caminho absoluto com
+    os separadores da plataforma. Nome puro (sem separador) segue intocado, que e'
+    o que mantem a resolucao pelo PATH.
+    """
+    normalized = executable.replace("\\", "/")
+    if "/" not in normalized:
+        return executable
+    candidate = Path(normalized)
+    return str(candidate if candidate.is_absolute() else (root / candidate))
+
+
+def _interpreter_beside(root: Path, executable: str) -> str | None:
     """O interpretador irmao de um console script instalado. Num venv, `bin/pytest`
     e `bin/python` (ou `Scripts\\pytest.exe` e `Scripts\\python.exe`) moram lado a
     lado, e e' o irmao que o console script usa. None quando nao ha nenhum ali."""
-    directory = Path(executable.replace("\\", "/")).parent
+    directory = Path(_resolved_executable(root, executable)).parent
     for name in ("python.exe", "python", "python3"):
         candidate = directory / name
         if candidate.exists():
@@ -208,7 +231,7 @@ def _interpreter_beside(executable: str) -> str | None:
     return None
 
 
-def _pytest_invocation(args: list[str]) -> tuple[str | None, list[str]] | None:
+def _pytest_invocation(root: Path, args: list[str]) -> tuple[str | None, list[str]] | None:
     """Reconhece as formas de invocar o pytest e devolve `(interpretador, argumentos
     do pytest)`. None quando o comando nao e' pytest; interpretador None quando e'
     pytest mas o ambiente nao e' deduzivel -- ai o comando declarado roda literalmente.
@@ -237,9 +260,9 @@ def _pytest_invocation(args: list[str]) -> tuple[str | None, list[str]] | None:
         # O console script nao aceita `-m coverage`; quem roda e' o interpretador
         # ao lado dele. Sem esse irmao nao ha o que deduzir, e substituir seria de
         # novo trocar o ambiente do usuario pelo nosso.
-        return (_interpreter_beside(args[0]) if declared else sys.executable), args[1:]
+        return (_interpreter_beside(root, args[0]) if declared else sys.executable), args[1:]
     if (head.startswith("python") or head == "py") and args[1:3] == ["-m", "pytest"]:
-        return (args[0] if declared else sys.executable), args[3:]
+        return (_resolved_executable(root, args[0]) if declared else sys.executable), args[3:]
     return None
 
 
@@ -257,7 +280,7 @@ class SuiteAdapter:
         self.root = root
         self.junit_xml = junit_xml
         args = command.split()
-        invocation = _pytest_invocation(args)
+        invocation = _pytest_invocation(root, args)
         self.is_pytest = invocation is not None
         interpreter = invocation[0] if invocation else None
         # Cobertura so existe quando o Sentry embrulha a execucao em `coverage run`.
@@ -266,7 +289,11 @@ class SuiteAdapter:
         # codigos de saida e a flag `--junitxml` -- mas nao passa pelo coverage.
         self.measures_coverage = interpreter is not None
         self.interpreter = interpreter or sys.executable
-        self.command = [interpreter, "-m", "coverage", "run", "-m", "pytest", *invocation[1]] if interpreter else args
+        # O defeito e' da execucao, nao do reconhecimento do pytest: qualquer runner
+        # declarado por caminho relativo sofre o mesmo, entao o caminho generico
+        # tambem passa pela resolucao.
+        self.command = ([interpreter, "-m", "coverage", "run", "-m", "pytest", *invocation[1]] if interpreter
+                        else [_resolved_executable(root, args[0]), *args[1:]] if args else [])
 
     def _classify(self, returncode: int, ran: bool) -> str | None:
         if self.is_pytest:
