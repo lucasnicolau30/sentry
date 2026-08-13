@@ -1,10 +1,12 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "../i18n/LanguageContext";
 import logo from "../assets/sentry-icon.png";
 import wordmark from "../assets/sentry-wordmark.png";
 
 export function Footer() {
   const { t } = useLanguage();
+  const location = useLocation();
+  const isDocs = location.pathname.startsWith("/docs");
 
   return (
     <footer className="border-t border-[var(--border)] bg-[var(--bg)]">
@@ -24,6 +26,14 @@ export function Footer() {
             <span className="text-[var(--accent)]">$</span> pip install sentry-test
           </p>
           <div className="flex items-center gap-4">
+            {isDocs && (
+              <Link
+                to="/"
+                className="tab-btn cursor-pointer transition-all duration-150 hover:text-[var(--accent)] active:scale-95"
+              >
+                {t("Início", "Home")}
+              </Link>
+            )}
             <a
               href="https://github.com/lucasnicolau30/sentry"
               target="_blank"
@@ -32,12 +42,14 @@ export function Footer() {
             >
               GitHub
             </a>
-            <Link
-              to="/docs"
-              className="tab-btn cursor-pointer transition-all duration-150 hover:text-[var(--accent)] active:scale-95"
-            >
-              Docs
-            </Link>
+            {!isDocs && (
+              <Link
+                to="/docs"
+                className="tab-btn cursor-pointer transition-all duration-150 hover:text-[var(--accent)] active:scale-95"
+              >
+                Docs
+              </Link>
+            )}
           </div>
         </div>
       </div>
