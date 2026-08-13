@@ -897,7 +897,7 @@ function SetupContent({
               <span className="text-[var(--text-h)]">coverage</span>, o{" "}
               <span className="text-[var(--text-h)]">init</span> avisa em vez de falhar. Para instalar junto, use a flag{" "}
               <span className="text-[var(--text-h)]">
-                <span className="text-[var(--accent)]">$</span> - - install
+                <span className="text-[var(--accent)]">$</span> --install
               </span>
               :
             </p>
@@ -907,7 +907,7 @@ function SetupContent({
               <span className="text-[var(--text-h)]">coverage</span> are missing,{" "}
               <span className="text-[var(--text-h)]">init</span> warns instead of failing. To install them too, use the{" "}
               <span className="text-[var(--text-h)]">
-                <span className="text-[var(--accent)]">$</span> - - install
+                <span className="text-[var(--accent)]">$</span> --install
               </span>{" "}
               flag:
             </p>
@@ -1264,14 +1264,20 @@ function WorkflowContent({
           {lang === "pt" ? (
             <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
               Roda a suíte, lê diff e cobertura, aplica as dez regras determinísticas e persiste o resultado.
-              Sem <span className="text-[var(--text-h)]">- - run-tests</span> não há cobertura, e o veredito tende a
-              inconclusivo:
+              Sem{" "}
+              <span className="text-[var(--text-h)]">
+                <span className="text-[var(--accent)]">$</span> --run-tests
+              </span>{" "}
+              não há cobertura, e o veredito tende a inconclusivo:
             </p>
           ) : (
             <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
               Runs the suite, reads diff and coverage, applies the ten deterministic rules and persists the result.
-              Without <span className="text-[var(--text-h)]">- - run-tests</span> there's no coverage, and the verdict tends toward
-              inconclusive:
+              Without{" "}
+              <span className="text-[var(--text-h)]">
+                <span className="text-[var(--accent)]">$</span> --run-tests
+              </span>{" "}
+              there's no coverage, and the verdict tends toward inconclusive:
             </p>
           )}
           <CodeBlock lines={[t("sentry run --spec cadastro-de-cliente --run-tests", "sentry run --spec customer-registration --run-tests")]} />
@@ -1330,7 +1336,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       description: (
         <>
           Prepara o repositório: <W>.sentry/</W>, <W>sentry.toml</W>, <W>.gitignore</W>, guia de agente e skills. Com{" "}
-          <W>- - install</W>, instala dependências ausentes.
+          <W>--install</W>, instala dependências ausentes.
         </>
       ),
     },
@@ -1339,7 +1345,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       command: "sentry new <nome> [--prompt \"...\"] [--json]",
       description: (
         <>
-          Cria a pasta da spec com slug derivado do nome. <W>- - json</W> emite template e vocabulário para o agente
+          Cria a pasta da spec com slug derivado do nome. <W>--json</W> emite template e vocabulário para o agente
           consumir.
         </>
       ),
@@ -1359,7 +1365,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       command: "sentry run [--spec <slug>|all] [--run-tests]",
       description: (
         <>
-          Executa a análise e persiste. Sem <W>- - run-tests</W> não há cobertura, e o veredito tende a inconclusivo.
+          Executa a análise e persiste. Sem <W>--run-tests</W> não há cobertura, e o veredito tende a inconclusivo.
         </>
       ),
     },
@@ -1382,7 +1388,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       command: "sentry clear [--keep-last N] [--yes]",
       description: (
         <>
-          Poda execuções e relatórios antigos. Sem <W>- - yes</W> apenas mostra o que sairia. Nunca toca em{" "}
+          Poda execuções e relatórios antigos. Sem <W>--yes</W> apenas mostra o que sairia. Nunca toca em{" "}
           <W>.sentry/specs/</W>.
         </>
       ),
@@ -1395,7 +1401,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       description: (
         <>
           Prepares the repository: <W>.sentry/</W>, <W>sentry.toml</W>, <W>.gitignore</W>, agent guide and skills. With{" "}
-          <W>- - install</W>, installs missing dependencies.
+          <W>--install</W>, installs missing dependencies.
         </>
       ),
     },
@@ -1404,7 +1410,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       command: "sentry new <name> [--prompt \"...\"] [--json]",
       description: (
         <>
-          Creates the spec folder with a slug derived from the name. <W>- - json</W> emits a template and vocabulary for
+          Creates the spec folder with a slug derived from the name. <W>--json</W> emits a template and vocabulary for
           the agent to consume.
         </>
       ),
@@ -1424,7 +1430,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       command: "sentry run [--spec <slug>|all] [--run-tests]",
       description: (
         <>
-          Runs the analysis and persists it. Without <W>- - run-tests</W> there's no coverage, and the verdict tends
+          Runs the analysis and persists it. Without <W>--run-tests</W> there's no coverage, and the verdict tends
           toward inconclusive.
         </>
       ),
@@ -1448,7 +1454,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       command: "sentry clear [--keep-last N] [--yes]",
       description: (
         <>
-          Prunes old runs and reports. Without <W>- - yes</W> it only shows what would be removed. Never touches{" "}
+          Prunes old runs and reports. Without <W>--yes</W> it only shows what would be removed. Never touches{" "}
           <W>.sentry/specs/</W>.
         </>
       ),

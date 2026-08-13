@@ -130,9 +130,8 @@ export function FeatureGrid() {
 
       <div className="mt-5 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-5 py-3 text-sm">
         <div>
-          <span className="text-[var(--accent)]">sentry@cli</span>
-          <span className="text-[var(--text)]">:~</span>
-          <span className="ml-2 text-[var(--text)]">&gt; {t("pronto para carregar qualidade.", "ready to load quality.")}</span>
+          <span className="text-[var(--accent)]">sentry@cli:~&gt;</span>
+          <span className="ml-2 text-[var(--text)]">{t("pronto para carregar qualidade.", "ready to load quality.")}</span>
         </div>
         <div className="flex items-center gap-3">
           <svg width="60" height="16" viewBox="0 0 60 16" fill="none" aria-hidden="true">

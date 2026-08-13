@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "../i18n/LanguageContext";
-import logo from "../assets/sentry-icon-white.png";
+import logo from "../assets/sentry-icon.png";
 import wordmark from "../assets/sentry-wordmark.png";
 
 const GlobeIcon = () => (
@@ -76,12 +76,12 @@ export function Nav() {
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
         {isHome ? (
           <div className="flex items-center gap-2.5">
-            <img src={logo} alt="" aria-hidden="true" className="h-[37px] w-[37px] object-contain" />
+            <img src={logo} alt="" aria-hidden="true" className="h-[48px] w-[48px] object-contain" />
             <img src={wordmark} alt="Sentry" className="h-[26px] w-auto object-contain" />
           </div>
         ) : (
           <Link to="/" className="flex items-center gap-2.5">
-            <img src={logo} alt="" aria-hidden="true" className="h-[37px] w-[37px] object-contain" />
+            <img src={logo} alt="" aria-hidden="true" className="h-[48px] w-[48px] object-contain" />
             <img src={wordmark} alt="Sentry" className="h-[26px] w-auto object-contain" />
           </Link>
         )}
