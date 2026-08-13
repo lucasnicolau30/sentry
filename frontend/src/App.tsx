@@ -1,27 +1,34 @@
-import { useState } from "react";
+import { Routes, Route } from "react-router-dom";
 import { Nav } from "./components/Nav";
 import { Hero } from "./components/Hero";
+import { HowItWorks } from "./components/HowItWorks";
 import { FeatureGrid } from "./components/FeatureGrid";
+import { CommandShowcase } from "./components/CommandShowcase";
 import { Footer } from "./components/Footer";
 import { DocsPage } from "./components/DocsPage";
 
-function App() {
-  const [view, setView] = useState<"home" | "docs">("home");
+function HomePage() {
+  return (
+    <>
+      <Hero />
+      <HowItWorks />
+      <FeatureGrid />
+      <CommandShowcase />
+    </>
+  );
+}
 
+function App() {
   return (
     <div className="flex min-h-screen flex-col bg-[var(--bg)]">
-      <Nav onDocsClick={() => setView("docs")} onLogoClick={() => setView("home")} />
+      <Nav />
       <main className="flex-1">
-        {view === "home" ? (
-          <>
-            <Hero />
-            <FeatureGrid />
-          </>
-        ) : (
-          <DocsPage />
-        )}
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/docs" element={<DocsPage />} />
+        </Routes>
       </main>
-      <Footer onDocsClick={() => setView("docs")} />
+      <Footer />
     </div>
   );
 }

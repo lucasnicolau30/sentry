@@ -1,6 +1,27 @@
 import { InstallCommand } from "./InstallCommand";
+import { TerminalWindow } from "./TerminalWindow";
+import { useLanguage } from "../i18n/LanguageContext";
+
+const heroLines = {
+  pt: [
+    { text: "sentry run --spec cadastro-de-cliente --run-tests", tone: "command" as const },
+    { text: "[INFO] Lendo diff e cobertura...", tone: "info" as const },
+    { text: "[INFO] 4 casos ligados a testes reais.", tone: "info" as const },
+    { text: "[SUCCESS] Cobertura do código alterado: 92%.", tone: "success" as const },
+    { text: "[SUCCESS] Veredito: aprovado.", tone: "success" as const },
+  ],
+  en: [
+    { text: "sentry run --spec customer-registration --run-tests", tone: "command" as const },
+    { text: "[INFO] Reading diff and coverage...", tone: "info" as const },
+    { text: "[INFO] 4 cases linked to real tests.", tone: "info" as const },
+    { text: "[SUCCESS] Changed code coverage: 92%.", tone: "success" as const },
+    { text: "[SUCCESS] Verdict: passed.", tone: "success" as const },
+  ],
+};
 
 export function Hero() {
+  const { lang, t } = useLanguage();
+
   return (
     <section className="relative mx-auto max-w-5xl px-6 pt-20 pb-4">
       <div
@@ -27,16 +48,23 @@ export function Hero() {
         />
 
         <h1 className="max-w-2xl text-4xl font-semibold uppercase leading-tight tracking-normal sm:text-5xl">
-          A disciplina entre
-          <br />o commit e a confiança
+          {t("A disciplina entre", "The discipline between")}
+          <br />
+          {t("o commit e a confiança", "commit and confidence")}
         </h1>
         <p className="mt-4 max-w-xl text-base leading-relaxed text-[var(--accent)] sm:text-lg">
-          O agente de IA declara a intenção; o Sentry mede a realidade: roda a suíte, lê o diff e a
-          cobertura, e emite um veredito auditável.
+          {t(
+            "O agente de IA declara a intenção; o Sentry mede a realidade: roda a suíte, lê o diff e a cobertura, e emite um veredito auditável.",
+            "The AI agent declares intent; Sentry measures reality: it runs the suite, reads the diff and coverage, and issues an auditable verdict."
+          )}
         </p>
 
         <div className="mt-8">
           <InstallCommand />
+        </div>
+
+        <div className="mt-10 w-full max-w-lg text-left">
+          <TerminalWindow lines={heroLines[lang]} title="sentry" />
         </div>
       </div>
     </section>

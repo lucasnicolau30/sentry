@@ -1,4 +1,5 @@
 import { FeatureCard } from "./FeatureCard";
+import { useLanguage } from "../i18n/LanguageContext";
 import arrowIcon from "../assets/arrow-icon.png";
 
 const iconProps = {
@@ -42,40 +43,83 @@ const LayersIcon = () => (
   </svg>
 );
 
-const features = [
-  {
-    icon: <TargetIcon />,
-    title: "Cobertura do que mudou",
-    description:
-      "Prioriza a cobertura do código alterado em cada mudança, em vez de esconder lacunas na média geral do projeto.",
-  },
-  {
-    icon: <ShieldIcon />,
-    title: "Veredito com contexto",
-    description:
-      "Aprovado, reprovado ou inconclusivo com base em severidade e evidência real, nunca por ausência de dados.",
-  },
-  {
-    icon: <HistoryIcon />,
-    title: "Histórico auditável",
-    description:
-      "Cada execução é persistida e comparável: cobertura, testes e achados evoluindo lado a lado ao longo do tempo.",
-  },
-  {
-    icon: <LayersIcon />,
-    title: (
-      <span className="inline-flex items-center gap-1.5">
-        Rastreabilidade caso
-        <img src={arrowIcon} alt="" aria-hidden="true" className="h-3 w-auto" />
-        teste
-      </span>
-    ),
-    description:
-      "Cada caso do CASES.md se liga ao teste real por um marcador de comentário, sem isso o Sentry não inventa que foi coberto.",
-  },
-];
+const featuresByLang = {
+  pt: [
+    {
+      icon: <TargetIcon />,
+      title: "Cobertura do que mudou",
+      description:
+        "Prioriza a cobertura do código alterado em cada mudança, em vez de esconder lacunas na média geral do projeto.",
+    },
+    {
+      icon: <ShieldIcon />,
+      title: "Veredito com contexto",
+      description:
+        "Aprovado, reprovado ou inconclusivo com base em severidade e evidência real, nunca por ausência de dados.",
+    },
+    {
+      icon: <HistoryIcon />,
+      title: "Histórico auditável",
+      description:
+        "Cada execução é persistida e comparável: cobertura, testes e achados evoluindo lado a lado ao longo do tempo.",
+    },
+    {
+      icon: <LayersIcon />,
+      title: (
+        <span className="inline-flex items-center gap-1.5">
+          Rastreabilidade caso
+          <img src={arrowIcon} alt="" aria-hidden="true" className="h-3 w-auto" />
+          teste
+        </span>
+      ),
+      description: (
+        <>
+          Cada caso do <span className="text-[var(--text-h)]">CASES.md</span> se liga ao teste real por um marcador de
+          comentário, sem isso o <span className="text-[var(--text-h)]">Sentry</span> não inventa que foi coberto.
+        </>
+      ),
+    },
+  ],
+  en: [
+    {
+      icon: <TargetIcon />,
+      title: "Coverage of what changed",
+      description:
+        "Prioritizes coverage of the changed code on every change, instead of hiding gaps in the project's overall average.",
+    },
+    {
+      icon: <ShieldIcon />,
+      title: "Verdict with context",
+      description: "Passed, failed or inconclusive based on severity and real evidence, never on missing data.",
+    },
+    {
+      icon: <HistoryIcon />,
+      title: "Auditable history",
+      description: "Every run is persisted and comparable: coverage, tests and findings evolving side by side over time.",
+    },
+    {
+      icon: <LayersIcon />,
+      title: (
+        <span className="inline-flex items-center gap-1.5">
+          Case
+          <img src={arrowIcon} alt="" aria-hidden="true" className="h-3 w-auto" />
+          test traceability
+        </span>
+      ),
+      description: (
+        <>
+          Every case in <span className="text-[var(--text-h)]">CASES.md</span> links to a real test through a comment marker —
+          without it, <span className="text-[var(--text-h)]">Sentry</span> never assumes it was covered.
+        </>
+      ),
+    },
+  ],
+};
 
 export function FeatureGrid() {
+  const { lang, t } = useLanguage();
+  const features = featuresByLang[lang];
+
   return (
     <section className="mx-auto max-w-5xl px-6 py-10">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -84,11 +128,11 @@ export function FeatureGrid() {
         ))}
       </div>
 
-      <div className="mt-6 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-5 py-3 text-sm">
+      <div className="mt-5 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-5 py-3 text-sm">
         <div>
           <span className="text-[var(--accent)]">sentry@cli</span>
           <span className="text-[var(--text)]">:~</span>
-          <span className="ml-2 text-[var(--text)]">&gt; pronto para carregar qualidade.</span>
+          <span className="ml-2 text-[var(--text)]">&gt; {t("pronto para carregar qualidade.", "ready to load quality.")}</span>
         </div>
         <div className="flex items-center gap-3">
           <svg width="60" height="16" viewBox="0 0 60 16" fill="none" aria-hidden="true">

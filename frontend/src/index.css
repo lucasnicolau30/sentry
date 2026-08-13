@@ -26,12 +26,14 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-h1, h2, h3 {
-  font-family: var(--mono);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--text-h);
-  margin: 0;
+@layer base {
+  h1, h2, h3 {
+    font-family: var(--mono);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-h);
+    margin: 0;
+  }
 }
 
 .docs-btn {
@@ -163,17 +165,21 @@ h1, h2, h3 {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  content: attr(data-label);
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  content: "";
   width: 97%;
   height: 90%;
   border-radius: 6px;
   transition-duration: 1s;
   background-color: rgba(0, 0, 0, 0.842);
   background-size: 200%;
+}
+
+.lang-btn > * {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .lang-btn:hover {
@@ -188,4 +194,53 @@ h1, h2, h3 {
 
 .lang-btn:active {
   transform: scale(0.95);
+}
+
+.tab-btn {
+  position: relative;
+}
+
+.tab-btn::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(to right, #14532d, var(--accent), #14532d, #14532d, var(--accent), #14532d);
+  background-size: 250%;
+  background-position: left;
+  opacity: 0;
+  transition: opacity 0.3s, background-position 1s;
+}
+
+.tab-btn:hover::after {
+  opacity: 1;
+  background-position: right;
+}
+
+.glow-card {
+  position: relative;
+}
+
+.glow-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, #14532d, var(--accent), #14532d, #14532d, var(--accent), #14532d);
+  background-size: 250%;
+  background-position: left;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, background-position 1s;
+}
+
+.glow-card:hover::after {
+  opacity: 1;
+  background-position: right;
 }
