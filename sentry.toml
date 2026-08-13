@@ -11,3 +11,7 @@ command = "pytest"
 run_tests_by_default = false
 timeout_seconds = 300
 exclude = ["frontend/"]
+
+[policy.thresholds]
+changed_coverage = 90
+global_coverage = 95
