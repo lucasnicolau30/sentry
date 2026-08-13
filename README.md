@@ -1,35 +1,34 @@
 # Sentry
 
+English · [Português (Brasil)](README.pt-BR.md)
+
 [![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 ![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat&logo=pytest&logoColor=white)
-![Markdown](https://img.shields.io/badge/Markdown-000000?style=flat&logo=markdown&logoColor=white)
-![TOML](https://img.shields.io/badge/TOML-9C4121?style=flat&logo=toml&logoColor=white)
-[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat&logo=githubactions&logoColor=white)](https://github.com/lucasnicolau30/sentry/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/sentry-test.svg?style=flat&label=PyPI&color=3775A9&logo=pypi&logoColor=white)](https://pypi.org/project/sentry-test/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](LICENSE)
 
-CLI de qualidade de teste orientada a mudança. O `sentry` cria a pasta da spec, valida a matriz de casos em markdown, roda a suíte, lê o diff e a cobertura, e emite um veredito auditável — e deixa o fluxo escrito para o agente de IA que for implementar a mudança.
+Change-oriented test quality CLI. `sentry` creates the spec folder, validates the case matrix in markdown, runs the suite, reads the diff and the coverage, and issues an auditable verdict — and writes the workflow down for the AI agent that will implement the change.
 
-Markdown é a fonte da intenção: a CLI parseia e valida `CASES.md` e `PROMPT.md` — ela nunca os escreve. O agente de IA faz a redação; o Sentry garante estrutura, rastreabilidade e veredito.
+Markdown is the source of intent: the CLI parses and validates `CASES.md` and `PROMPT.md` — it never writes them. The AI agent does the drafting; Sentry guarantees structure, traceability and a verdict.
 
-> Não confundir com o [Sentry da getsentry](https://sentry.io) (monitoramento de erros). Este projeto é distribuído como `sentry-test`.
+> Not to be confused with [getsentry's Sentry](https://sentry.io) (error monitoring). This project is distributed as `sentry-test`.
 
-## A divisão de responsabilidade
+## The division of responsibility
 
-- **O agente de IA declara intenção** — escreve o `CASES.md`: requisito, camada, tipo, prioridade, entrada, resultado esperado.
-- **O Sentry mede a realidade** — decide status, teste associado, evidência e veredito.
+- **The AI agent declares intent** — writes `CASES.md`: requirement, layer, type, priority, input, expected result.
+- **Sentry measures reality** — decides status, associated test, evidence and verdict.
 
-O agente nunca escreve status. O Sentry nunca chama um modelo. É isso que torna o veredito auditável e reproduzível.
+The agent never writes status. Sentry never calls a model. That's what makes the verdict auditable and reproducible.
 
-## Instalação
+## Installation
 
 ```bash
 pip install sentry-test
 ```
 
-Requer Python 3.11+. Confira com `sentry --version` (imprime a versão do pacote).
+Requires Python 3.11+. Check with `sentry --version` (prints the package version).
 
-Se faltar `pytest` ou `coverage`, o `init` avisa. Para instalar junto:
+If `pytest` or `coverage` are missing, `init` warns you. To install them too:
 
 ```bash
 sentry init --install
@@ -38,206 +37,206 @@ sentry init --install
 ## Setup
 
 ```bash
-cd seu-projeto
+cd your-project
 sentry init
 ```
 
-Cria `.sentry/` (specs, execuções, relatórios e banco), o `sentry.toml`, as entradas do `.gitignore`, e escreve o fluxo em dois lugares:
+Creates `.sentry/` (specs, runs, reports and database), `sentry.toml`, the `.gitignore` entries, and writes the workflow in two places:
 
-- **Skill `sentry-cases`** em `.claude/skills/sentry-cases/SKILL.md` — carregada automaticamente pelo Claude Code e por agentes que seguem essa convenção.
-- **`AGENT-SENTRY.md`** na raiz do projeto — o mesmo fluxo em markdown puro, sem depender de convenção de nenhuma ferramenta.
+- **`sentry-cases` skill** at `.claude/skills/sentry-cases/SKILL.md` — loaded automatically by Claude Code and by agents that follow this convention.
+- **`AGENT-SENTRY.md`** at the project root — the same workflow in plain markdown, without depending on any tool's convention.
 
-Para outros agentes (Cursor, Windsurf, Codex, opencode), aponte-os para o `AGENT-SENTRY.md` no arquivo de regras que cada um já usa — por exemplo, uma linha em `.cursor/rules` ou `AGENTS.md`:
+For other agents (Cursor, Windsurf, Codex, opencode), point them to `AGENT-SENTRY.md` from the rules file each one already uses — for example, a line in `.cursor/rules` or `AGENTS.md`:
 
 ```markdown
-Para escrever ou revisar casos de teste, siga AGENT-SENTRY.md.
+To write or review test cases, follow AGENT-SENTRY.md.
 ```
 
-`init` é idempotente: não apaga histórico, não sobrescreve configuração existente, não duplica estruturas.
+`init` is idempotent: it doesn't erase history, doesn't overwrite existing configuration, doesn't duplicate structures.
 
-## O fluxo
+## The workflow
 
-1. `sentry new "cadastro de cliente"` — cria `.sentry/specs/cadastro-de-cliente/` com `PROMPT.md` (pedido preservado) e `CASES.md` em branco
-2. **`sentry-cases`** — seu agente pergunta o que estiver ambíguo e preenche o `CASES.md` seguindo o template
-3. `sentry check cadastro-de-cliente` — estrutura válida? classes de equivalência do catálogo cobertas?
-4. seu agente liga cada caso ao teste real com o marcador `# cenario: <nome exato do caso>`
-5. `sentry run --spec cadastro-de-cliente --run-tests` — roda a suíte, lê diff e cobertura, aplica as regras, persiste
-6. `sentry report` / `sentry history` — releitura e comparação entre execuções
+1. `sentry new "customer registration"` — creates `.sentry/specs/customer-registration/` with `PROMPT.md` (request preserved) and a blank `CASES.md`
+2. **`sentry-cases`** — your agent asks about anything ambiguous and fills in `CASES.md` following the template
+3. `sentry check customer-registration` — is the structure valid? are the catalog's equivalence classes covered?
+4. your agent links each case to the real test with the `# scenario: <exact case name>` marker
+5. `sentry run --spec customer-registration --run-tests` — runs the suite, reads diff and coverage, applies the rules, persists
+6. `sentry report` / `sentry history` — read back and compare between runs
 
-Todo passo também funciona sem agente, pelos comandos abaixo.
+Every step also works without an agent, via the commands below.
 
-## Comandos
+## Commands
 
-Código de saída `0` em sucesso; veja a tabela de códigos adiante.
+Exit code `0` on success; see the exit code table further down.
 
-| Comando | O que faz |
+| Command | What it does |
 | --- | --- |
-| `sentry init [--install]` | Prepara o repositório: `.sentry/`, `sentry.toml`, `.gitignore`, guia de agente e skills. Com `--install`, instala as dependências ausentes. |
-| `sentry new <nome> [--prompt "..."] [--json]` | Cria a pasta da spec com slug derivado do nome. `--json` emite template, vocabulário aceito e classes cobradas, para o agente consumir. |
-| `sentry check [<slug>\|all]` | Valida `CASES.md`: estrutura, vocabulário e cobrança de classes de equivalência. `all` valida todas as specs juntas. |
-| `sentry run [--spec <slug>\|all] [--run-tests]` | Executa a análise e persiste. Sem `--run-tests` não há cobertura, e o veredito tende a `inconclusivo`. |
-| `sentry report` | Exibe o último relatório (`.sentry/reports/latest.md`). |
-| `sentry history` | Lista execuções e compara as duas últimas: cobertura, testes, achados novos, resolvidos e persistentes. |
-| `sentry clear [--keep-last N] [--yes]` | Poda execuções e relatórios antigos. Sem `--yes` apenas mostra o que sairia — apagar histórico é irreversível. Nunca toca em `.sentry/specs/`. |
+| `sentry init [--install]` | Prepares the repository: `.sentry/`, `sentry.toml`, `.gitignore`, agent guide and skills. With `--install`, installs missing dependencies. |
+| `sentry new <name> [--prompt "..."] [--json]` | Creates the spec folder with a slug derived from the name. `--json` emits the template, accepted vocabulary and required classes, for the agent to consume. |
+| `sentry check [<slug>\|all]` | Validates `CASES.md`: structure, vocabulary and equivalence class coverage. `all` validates every spec together. |
+| `sentry run [--spec <slug>\|all] [--run-tests]` | Runs the analysis and persists it. Without `--run-tests` there's no coverage, and the verdict tends toward `inconclusive`. |
+| `sentry report` | Shows the latest report (`.sentry/reports/latest.md`). |
+| `sentry history` | Lists runs and compares the last two: coverage, tests, new/resolved/persistent findings. |
+| `sentry clear [--keep-last N] [--yes]` | Prunes old runs and reports. Without `--yes` it only shows what would be removed — deleting history is irreversible. Never touches `.sentry/specs/`. |
 
-## Códigos de saída
+## Exit codes
 
-Quatro estados distinguíveis, para separar "código mal testado" de "meu ambiente quebrou":
+Four distinguishable states, to separate "poorly tested code" from "my environment broke":
 
-| Código | Significado |
+| Code | Meaning |
 | --- | --- |
-| `0` | aprovado |
-| `1` | aprovado com ressalvas |
-| `2` | reprovado |
-| `3` | inconclusivo ou erro de infraestrutura |
+| `0` | approved |
+| `1` | approved with caveats |
+| `2` | rejected |
+| `3` | inconclusive or infrastructure error |
 
-Erro de infraestrutura nunca produz veredito aprovado: uma suíte que não conseguiu rodar é diferente de uma suíte que reprovou.
+An infrastructure error never produces an approved verdict: a suite that failed to run is different from a suite that failed.
 
-`sentry check` mantém semântica própria: `0` estrutura válida, `1` erros estruturais, `2` não foi possível resolver a spec.
+`sentry check` keeps its own semantics: `0` valid structure, `1` structural errors, `2` couldn't resolve the spec.
 
 ## Skills
 
-Geradas para cada agente configurado; o `AGENT-SENTRY.md` cobre os demais.
+Generated for each configured agent; `AGENT-SENTRY.md` covers the rest.
 
-| Workflow | O que o agente faz |
+| Workflow | What the agent does |
 | --- | --- |
-| `sentry-cases` | Recebe o pedido em texto livre, cria a spec, **pergunta antes de escrever** toda ambiguidade que mude um caso, preenche o `CASES.md`, liga cada caso ao teste com `# cenario:` e roda `check` até fechar limpo. Nunca escreve status. |
+| `sentry-cases` | Takes the free-text request, creates the spec, **asks before writing** anything ambiguous that would change a case, fills in `CASES.md`, links each case to a test with `# scenario:` and runs `check` until it closes clean. Never writes status. |
 
-## Regras determinísticas
+## Deterministic rules
 
-Dez regras, com severidade configurável por projeto.
+Ten rules, with severity configurable per project.
 
-| Regra | Severidade padrão | Dispara quando |
+| Rule | Default severity | Triggers when |
 | --- | --- | --- |
-| `test-failing` | crítica | a suíte tem teste falhando |
-| `case-spec-invalid` | crítica | o `CASES.md` tem erro estrutural |
-| `changed-code-uncovered` | alta | cobertura do código alterado é zero |
-| `scenario-without-test` | alta | caso declarado sem teste associado |
-| `error-path-without-test` | alta | `raise`/`throw` em linha alterada que nenhum teste executou |
-| `missing-equivalence-class` | alta | classe exigida pelo catálogo que nenhum caso cobre |
-| `coverage-below-threshold` | alta | cobertura do código alterado abaixo do limiar declarado |
-| `requirement-without-scenario` | média | requisito sem cenário correspondente |
-| `coverage-missing` | média | não foi possível calcular a cobertura do código alterado |
-| `global-coverage-below-threshold` | média | cobertura global abaixo do limiar declarado |
+| `test-failing` | critical | the suite has a failing test |
+| `case-spec-invalid` | critical | `CASES.md` has a structural error |
+| `changed-code-uncovered` | high | changed code coverage is zero |
+| `scenario-without-test` | high | a declared case has no associated test |
+| `error-path-without-test` | high | a `raise`/`throw` on a changed line that no test executed |
+| `missing-equivalence-class` | high | a class required by the catalog that no case covers |
+| `coverage-below-threshold` | high | changed code coverage below the declared threshold |
+| `requirement-without-scenario` | medium | a requirement with no matching scenario |
+| `coverage-missing` | medium | changed code coverage couldn't be calculated |
+| `global-coverage-below-threshold` | medium | global coverage below the declared threshold |
 
-Sem limiar declarado, o Sentry não inventa um mínimo. Quem define "quanto basta" é o projeto, e o relatório registra o número aplicado.
+Without a declared threshold, Sentry doesn't invent a minimum. The project decides what's "enough", and the report records the number applied.
 
-## Catálogo de classes de equivalência
+## Equivalence class catalog
 
-Tabela fixa de situações que precisam de teste, **por tipo de campo**. Não gera casos: cobra os que o agente deixou de declarar.
+A fixed table of situations that need a test, **per field type**. It doesn't generate cases: it flags the ones the agent left undeclared.
 
-Tipos conhecidos: `cpf`, `cnpj`, `email`, `senha`, `data`, `telefone`, `cep`, `inteiro`, `decimal`, `texto`, `rota`.
+Known types: `cpf`, `cnpj`, `email`, `senha` (password), `data` (date), `telefone` (phone), `cep` (postal code), `inteiro` (integer), `decimal`, `texto` (text), `rota` (route).
 
-Uma classe que não faz sentido para o campo pode ser dispensada **com justificativa**, em vez de virar caso artificial ou cobrança eterna:
+A class that doesn't make sense for a field can be dismissed **with a justification**, instead of becoming an artificial case or an eternal complaint:
 
 ```markdown
 ## Classes não aplicáveis
 
-- **exclude/tamanho-maximo-excedido**: é parâmetro de configuração, não campo de formulário
+- **exclude/tamanho-maximo-excedido**: it's a configuration parameter, not a form field
 ```
 
-A dispensa remove o achado, mas fica registrada no relatório — nada some em silêncio.
+The dismissal removes the finding, but it stays recorded in the report — nothing disappears silently.
 
-## Dimensões de cobertura
+## Coverage dimensions
 
-Cada uma reporta `coberta`, `parcial`, `não coberta` ou `não aplicável`, com evidência.
+Each one reports `covered`, `partial`, `not covered` or `not applicable`, with evidence.
 
-| Dimensão | De onde tira a evidência |
+| Dimension | Where the evidence comes from |
 | --- | --- |
-| requisitos e regras de negócio | cenários da spec com teste associado |
-| APIs, persistência, transações e integrações | casos de tipo `contrato`/`integração` e camada `integração` |
-| exceções, resiliência e recuperação | caminhos de erro alterados executados por algum teste |
-| segurança e autorização | campos de tipo `rota` com todas as classes de acesso cobertas |
+| requirements and business rules | spec scenarios with an associated test |
+| APIs, persistence, transactions and integrations | `contract`/`integration`-type cases and `integration` layer |
+| exceptions, resilience and recovery | changed error paths executed by some test |
+| security and authorization | `route`-type fields with all access classes covered |
 
-`não aplicável` é distinto de `não coberta`: um projeto sem rotas não é punido na dimensão de segurança.
+`not applicable` is distinct from `not covered`: a project with no routes isn't penalized on the security dimension.
 
-## Configuração
+## Configuration
 
-`sentry.toml` na raiz, versionável, sem segredos. Tudo é opcional além do que o `init` já escreve.
+`sentry.toml` at the root, versionable, with no secrets. Everything beyond what `init` already writes is optional.
 
 ```toml
 [project]
-name = "meu-projeto"
+name = "my-project"
 
 [specs]
 path = ".sentry/specs"
 
-[test]                    # qualquer executor que exporte JUnit XML
+[test]                    # any runner that exports JUnit XML
 command = "npx jest"
-junit_xml = "reports/junit.xml"   # obrigatório fora do pytest: é a única fonte de contagem
+junit_xml = "reports/junit.xml"   # required outside pytest: it's the only source of counts
 
-[tests]                   # onde procurar testes
-paths = ["tests"]         # padrão: tests, test, spec, __tests__
+[tests]                   # where to look for tests
+paths = ["tests"]         # default: tests, test, spec, __tests__
 
-[coverage]                # relatório gerado pela suíte do próprio projeto
+[coverage]                # report generated by your own suite
 path = "coverage/lcov.info"
-format = "lcov"           # opcional: detectado pelo conteúdo quando omitido
+format = "lcov"           # optional: detected by content when omitted
 
 [analysis]
 run_tests_by_default = false
 timeout_seconds = 300
-exclude = ["frontend/"]   # diretórios fora do escopo da análise
+exclude = ["frontend/"]   # directories out of the analysis scope
 
-[policy.thresholds]       # sem isto, nenhum mínimo é cobrado
+[policy.thresholds]       # without this, no minimum is enforced
 changed_coverage = 85
 global_coverage = 90
 
-[policy.severities]       # sobrescreve a severidade de qualquer regra
-coverage-missing = "alta"
+[policy.severities]       # overrides the severity of any rule
+coverage-missing = "high"
 
-[catalog.fields]          # tipos de campo do seu domínio
-matricula = ["vazio", "formato-invalido", "valida"]
+[catalog.fields]          # field types from your own domain
+matricula = ["empty", "invalid-format", "valid"]
 
-[dimensions]              # eixos que não se aplicam ao projeto
+[dimensions]              # axes that don't apply to the project
 disabled = []
 ```
 
-`.sentry/` guarda specs, execuções, relatórios e o banco. Fica fora do Git, com uma exceção deliberada: `.sentry/reports/latest.md` é versionado, para o veredito aparecer no diff da PR sem que o revisor precise rodar o Sentry.
+`.sentry/` holds specs, runs, reports and the database. It stays out of Git, with one deliberate exception: `.sentry/reports/latest.md` is versioned, so the verdict shows up in the PR diff without the reviewer having to run Sentry.
 
-O histórico é mantido indefinidamente, e cresce a cada execução. Para podar:
+History is kept indefinitely, and grows with every run. To prune it:
 
 ```bash
-sentry clear --keep-last 10        # mostra o que sairia
-sentry clear --keep-last 10 --yes  # remove
+sentry clear --keep-last 10        # shows what would be removed
+sentry clear --keep-last 10 --yes  # removes it
 ```
 
-As specs nunca são removidas: são intenção declarada, não evidência gerada.
+Specs are never removed: they're declared intent, not generated evidence.
 
-## Stacks suportadas
+## Supported stacks
 
-A **derivação** — do pedido à matriz de casos — é agnóstica de linguagem: o `CASES.md` é markdown e o catálogo raciocina sobre tipo de dado, não sobre código.
+**Derivation** — from the request to the case matrix — is language-agnostic: `CASES.md` is markdown and the catalog reasons about data type, not code.
 
-A **verificação** depende do formato de intercâmbio que sua suíte exporta, não da ferramenta:
+**Verification** depends on the exchange format your suite exports, not on the tool:
 
-| Capacidade | Suporte |
+| Capability | Support |
 | --- | --- |
-| Execução da suíte | qualquer comando que exporte **JUnit XML** — pytest, Jest, Vitest, `go test` (gotestsum), Surefire, `dotnet test`, RSpec, PHPUnit |
-| Cobertura | **lcov** (nyc, c8, Jest, simplecov), **Cobertura XML** (JaCoCo, coverlet), **coverage.py** (JSON) — detectados pelo conteúdo |
-| Rastreabilidade caso↔teste | `.py`, `.js`/`.jsx`/`.ts`/`.tsx`, `.go`, `.java`/`.kt`, `.cs`, `.rb`, `.php`, `.rs` — e o marcador `cenario:` funciona em qualquer comentário |
-| Caminhos de erro | por AST em Python; por padrão sintático (`throw`, `catch`, `panic`, `rescue`, `panic!`) nas demais |
-| Análise de impacto | 12 extensões de código-fonte |
+| Suite execution | any command that exports **JUnit XML** — pytest, Jest, Vitest, `go test` (gotestsum), Surefire, `dotnet test`, RSpec, PHPUnit |
+| Coverage | **lcov** (nyc, c8, Jest, simplecov), **Cobertura XML** (JaCoCo, coverlet), **coverage.py** (JSON) — detected by content |
+| Case↔test traceability | `.py`, `.js`/`.jsx`/`.ts`/`.tsx`, `.go`, `.java`/`.kt`, `.cs`, `.rb`, `.php`, `.rs` — and the `scenario:` marker works in any comment |
+| Error paths | via AST in Python; via syntactic pattern (`throw`, `catch`, `panic`, `rescue`, `panic!`) in the rest |
+| Impact analysis | 12 source-code extensions |
 
-A detecção de caminho de erro fora de Python é menos precisa que AST, e o relatório registra essa diferença como limitação — nunca a esconde.
+Error path detection outside Python is less precise than AST, and the report records that difference as a limitation — it never hides it.
 
-Em Python, o **pytest** é o único runner instrumentado automaticamente: o Sentry o reconhece em `pytest`, `python -m pytest` e no executável do venv, embrulha em `coverage run` e coleta a contagem sozinho. Em Django, prefira `command = "python -m pytest"` com `pytest-django` a `manage.py test`. Qualquer outro comando — inclusive `python -m unittest` — roda **exatamente como declarado**, sem flag injetada: para medi-lo, declare o `junit_xml` que sua suíte gera, senão o veredito sai `não executado` por ausência de evidência.
+In Python, **pytest** is the only runner instrumented automatically: Sentry recognizes it as `pytest`, `python -m pytest`, and the venv's executable, wraps it in `coverage run` and collects the count on its own. In Django, prefer `command = "python -m pytest"` with `pytest-django` over `manage.py test`. Any other command — including `python -m unittest` — runs **exactly as declared**, with no flag injected: to measure it, declare the `junit_xml` your suite generates, otherwise the verdict comes out `not executed` for lack of evidence.
 
-Camada `frontend` é recusada de propósito: sem adaptador que a verifique, um caso declarado ficaria preso em `não coberto` para sempre.
+The `frontend` layer is rejected on purpose: without an adapter to verify it, a declared case would stay stuck as `not covered` forever.
 
 ## Local-first
 
-Nenhuma telemetria, nenhuma chamada externa, nenhum envio de código ou diff. Todo o histórico permanece na máquina.
+No telemetry, no external calls, no code or diff ever sent anywhere. All history stays on the machine.
 
-## Desenvolvimento
+## Development
 
 ```bash
 python -m pip install -e .
 python -m pytest
 ```
 
-O Sentry se analisa: `sentry run --spec all --run-tests` na raiz do repositório
-casa os casos declarados em `.sentry/specs/` com as funções de teste reais e
-reporta as quatro dimensões.
+Sentry analyzes itself: `sentry run --spec all --run-tests` at the root of the
+repository matches the cases declared in `.sentry/specs/` against the real
+test functions and reports the four dimensions.
 
-## Licença
+## License
 
 MIT
