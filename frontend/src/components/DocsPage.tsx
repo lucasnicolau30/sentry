@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { TerminalWindow } from "./TerminalWindow";
 import { useLanguage } from "../i18n/LanguageContext";
 
@@ -39,7 +40,7 @@ function DocsSidebar({ sections, label }: { sections: { id: string; label: strin
   const activeId = useScrollSpy(ids);
 
   return (
-    <aside className="hidden w-48 shrink-0 lg:block">
+    <aside className="hidden w-48 shrink-0 md:block">
       <div className="sticky top-6">
         <p className="mb-3 flex items-center gap-1.5 text-xs text-[var(--text)]/50">
           <span className="text-[var(--accent)]"><TerminalIcon /></span> {label}
@@ -225,9 +226,9 @@ function CodeBlock({ lines }: { lines: string[] }) {
           {copied ? <CheckIcon /> : <CopyIcon />}
         </button>
       </div>
-      <div className="space-y-0.5 px-4 py-3.5 font-mono text-sm">
+      <div className="space-y-0.5 overflow-x-auto px-4 py-3.5 font-mono text-sm">
         {lines.map((line, index) => (
-          <p key={index} className={index === 0 ? "text-[var(--text-h)]" : "text-[var(--text)]/50"}>
+          <p key={index} className={`whitespace-pre ${index === 0 ? "text-[var(--text-h)]" : "text-[var(--text)]/50"}`}>
             {index === 0 ? <span className="text-[var(--accent)]">$ </span> : null}
             {index === 0 ? line : `# ${line}`}
           </p>
@@ -794,7 +795,7 @@ function SetupContent({
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-14">
-      <div className="flex gap-12">
+      <div className="flex gap-8 lg:gap-12">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">{t("Primeiros passos", "First steps")}</p>
           <h1 className="mt-2 text-3xl font-semibold uppercase tracking-normal text-[var(--text-h)]">
@@ -1102,7 +1103,7 @@ function WorkflowContent({
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-14">
-      <div className="flex gap-12">
+      <div className="flex gap-8 lg:gap-12">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">{t("Primeiros passos", "First steps")}</p>
           <h1 className="mt-2 text-3xl font-semibold uppercase tracking-normal text-[var(--text-h)]">
@@ -1551,7 +1552,7 @@ function CommandsContent({
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-14">
-      <div className="flex gap-12">
+      <div className="flex gap-8 lg:gap-12">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">{t("Primeiros passos", "First steps")}</p>
           <h1 className="mt-2 text-3xl font-semibold uppercase tracking-normal text-[var(--text-h)]">
@@ -1689,63 +1690,344 @@ const PaperIcon = () => (
   </svg>
 );
 
-type Paper = { title: string; authors: string; venue: string; summary: ReactNode; href: string };
+const QuoteIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+    <path
+      d="M7 8a3 3 0 00-3 3v2a3 3 0 003 3M7 8c0-2 1-4 3-5M17 8a3 3 0 00-3 3v2a3 3 0 003 3m0-8c0-2 1-4 3-5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const TransformIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+    <path d="M4 7h11a4 4 0 014 4v1M20 17H9a4 4 0 01-4-4v-1" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M15 4l3 3-3 3M9 20l-3-3 3-3" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const GroundIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+    <circle cx="12" cy="6" r="2" />
+    <path d="M12 8v4M6 20v-4a2 2 0 012-2h8a2 2 0 012 2v4M6 20h12" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+type FlowStep = { icon: ReactNode; label: string };
+
+type Paper = {
+  id: string;
+  eyebrow: string;
+  title: string;
+  authors: string;
+  venue: string;
+  summary: ReactNode;
+  principle: string;
+  flow: FlowStep[];
+  grounds: ReactNode[];
+  href?: string;
+};
+
+const FlowArrowIcon = () => (
+  <svg
+    aria-hidden="true"
+    className="hidden shrink-0 text-[var(--accent)] sm:block"
+    width="40"
+    height="16"
+    viewBox="0 0 40 16"
+    fill="none"
+  >
+    <path d="M0 8h34M28 2l6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+function FlowDiagram({ steps }: { steps: FlowStep[] }) {
+  return (
+    <div className="flex flex-wrap justify-center gap-x-2 gap-y-4">
+      {steps.map((step, index) => (
+        <div key={`${step.label}-${index}`} className="flex w-24 flex-col items-center text-center">
+          <div className="flex w-full items-center justify-center gap-2">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-alt)] text-[var(--accent)] [&>svg]:h-5 [&>svg]:w-5">
+              {step.icon}
+            </span>
+            {index < steps.length - 1 && <FlowArrowIcon />}
+          </div>
+          <p className="mt-2 w-full break-words text-xs leading-snug text-[var(--text-h)]">{step.label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SectionLabel({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--text)]/50">
+      <span className="text-[var(--accent)]">{icon}</span>
+      {children}
+    </p>
+  );
+}
+
+function PrincipleQuote({ children }: { children: ReactNode }) {
+  return (
+    <blockquote className="relative mt-3 border-l-2 border-[var(--accent)] pl-4 text-base italic leading-relaxed text-[var(--text)]/80">
+      <span aria-hidden="true" className="mr-1 font-serif text-2xl not-italic leading-none text-[var(--accent)]">
+        “
+      </span>
+      {children}
+    </blockquote>
+  );
+}
+
+function GroundsList({ items }: { items: ReactNode[] }) {
+  return (
+    <ul className="mt-2 rounded-lg border border-[var(--border)] px-4 py-3 space-y-1.5">
+      {items.map((item, index) => (
+        <li key={index} className="flex items-start gap-2 text-sm leading-relaxed text-[var(--text)]/70">
+          <span aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--accent)]" />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 const papersByLang: Record<"pt" | "en", Paper[]> = {
   pt: [
     {
+      id: "test-impact-analysis",
+      eyebrow: "Test Impact Analysis",
       title: "An approach for Test Impact Analysis on the Integration Level in Java programs",
       authors: "Muzammil Shahbaz — Thales Underwater Systems",
       venue: "arXiv:2211.07782",
-      summary: (
+      summary:
+        "Seleciona testes de integração com base na análise de impacto das mudanças de código em runtime, reduzindo a suíte executada em CI/CD em até 50% em média e mais de 80% em alguns cenários.",
+      principle: "Teste o que mudou, não o sistema inteiro.",
+      flow: [
+        { icon: <PaperIcon />, label: "Paper" },
+        { icon: <ScanIcon />, label: "Test Impact Analysis" },
+        { icon: <SlidersIcon />, label: "Cobertura da mudança" },
+        { icon: <IssueIcon />, label: "changed-code-uncovered" },
+        { icon: <ReportIcon />, label: "Veredito auditável" },
+      ],
+      grounds: [
+        <>Análise do diff — delimita exatamente o que entrou em escopo na execução</>,
         <>
-          Seleciona testes de integração com base na análise de impacto das mudanças de código em runtime, reduzindo a suíte
-          executada em CI/CD — até 50% em média, mais de 80% em alguns casos. Fundamenta a lógica de "cobertura do que mudou"
-          que o <span className="text-[var(--text-h)]">Sentry</span> aplica.
-        </>
-      ),
+          <W>changed-code-uncovered</W> — dispara quando o diff altera código sem teste que o exercite
+        </>,
+        <>
+          <W>coverage-below-threshold</W> — compara a cobertura da mudança com o mínimo do <W>policy.thresholds</W>
+        </>,
+        <>
+          <W>changed_coverage</W> — limiar configurável em [policy.thresholds] no <W>sentry.toml</W>
+        </>,
+        <>Cobertura da mudança — mede o código alterado, não o repositório inteiro</>,
+      ],
       href: "https://arxiv.org/pdf/2211.07782",
     },
     {
-      title: "A taxonomy of risk-based testing",
+      id: "risk-based-testing",
+      eyebrow: "Risk-Based Testing",
+      title: "A Taxonomy of Risk-Based Testing",
       authors: "Michael Felderer, Ina Schieferdecker",
-      venue: "Software Tools for Technology Transfer (STTT) · arXiv:1912.11519",
-      summary: (
+      venue: "STTT · arXiv:1912.11519",
+      summary:
+        "Taxonomia para categorizar abordagens de teste orientadas a risco, cobrindo motivadores, avaliação e processos de teste guiados por risco.",
+      principle: "A severidade deve refletir o risco, não apenas a falha.",
+      flow: [
+        { icon: <PaperIcon />, label: "Paper" },
+        { icon: <ScanIcon />, label: "Risk-Based Testing" },
+        { icon: <IssueIcon />, label: "Avaliação do risco" },
+        { icon: <SlidersIcon />, label: "policy.severities" },
+        { icon: <ReportIcon />, label: "Priorização dos achados" },
+      ],
+      grounds: [
         <>
-          Taxonomia para categorizar abordagens de teste baseado em risco, cobrindo motivadores de risco, avaliação de risco e
-          o processo de teste guiado por risco. Fundamenta a lógica de prioridade e severidade configurável
-          (policy.severities) que o <span className="text-[var(--text-h)]">Sentry</span> aplica sobre os achados.
-        </>
-      ),
+          <W>policy.severities</W> — sobrescreve a severidade de qualquer regra, achado a achado
+        </>,
+        <>Regras críticas e de alta severidade — bloqueiam o veredito antes das demais</>,
+        <>Priorização dos achados — ordena o relatório pelo risco, não pela ordem de execução</>,
+        <>Classes de equivalência — cobrem os cenários que concentram maior risco</>,
+        <>Veredito baseado em evidências — cada severidade carrega a justificativa que a gerou</>,
+      ],
       href: "https://arxiv.org/pdf/1912.11519",
+    },
+    {
+      id: "shift-left",
+      eyebrow: "Shift Left",
+      title: "What is Shift-Left Testing?",
+      authors: "Rahul Awati — TechTarget",
+      venue: "TechTarget · 2023",
+      summary:
+        "Define shift-left testing como a prática de mover atividades de qualidade para estágios mais iniciais do ciclo de desenvolvimento, reduzindo custos e tempo de correção.",
+      principle: "A intenção do teste deve existir antes da implementação.",
+      flow: [
+        { icon: <PenIcon />, label: "Pedido" },
+        { icon: <TerminalIcon />, label: "CASES.md" },
+        { icon: <FlowIcon />, label: "Implementação" },
+        { icon: <RunIcon />, label: "Teste associado" },
+        { icon: <ReportIcon />, label: "Veredito" },
+      ],
+      grounds: [
+        <>
+          <W>CASES.md</W> — declara a intenção antes de qualquer linha de código ser escrita
+        </>,
+        <>
+          <W>PROMPT.md</W> — preserva o pedido original como fonte da verdade
+        </>,
+        <>
+          <Cmd>sentry check</Cmd> — valida vocabulário e estrutura antes de rodar qualquer teste
+        </>,
+        <>Fluxo orientado à mudança — liga caso a teste antes do merge, não depois</>,
+        <>Relatório versionado — o veredito aparece no diff da PR, antes da revisão humana</>,
+      ],
+      href: "https://www.techtarget.com/searchitoperations/definition/shift-left-testing",
+    },
+    {
+      id: "test-pyramid",
+      eyebrow: "Test Pyramid",
+      title: "Test Pyramid Engineering Guidance",
+      authors: "UK Home Office — Engineering Standards",
+      venue: "Home Office Engineering Guidance and Standards",
+      summary:
+        "Guia prático para a aplicação da pirâmide de testes: maior volume de testes unitários, menos testes de integração e uma camada ainda menor de testes end-to-end.",
+      principle: "Cada nível da pirâmide produz um tipo diferente de evidência.",
+      flow: [
+        { icon: <RunIcon />, label: "Testes unitários" },
+        { icon: <FlowIcon />, label: "Testes de integração" },
+        { icon: <SlidersIcon />, label: "Cobertura" },
+        { icon: <ReportIcon />, label: "Evidências" },
+        { icon: <HistoryIcon />, label: "Veredito" },
+      ],
+      grounds: [
+        <>Quatro dimensões de cobertura — requisitos, integrações, erros e segurança</>,
+        <>Testes de integração — camada intermediária cobrando contratos e persistência</>,
+        <>
+          <W>changed-code-uncovered</W> — cobra teste unitário no código alterado, a base da pirâmide
+        </>,
+        <>Camada frontend recusada — sem adaptador que a verifique, o caso nunca sairia de 'não coberto'</>,
+        <>Evidências por camada — cada nível da pirâmide sustenta um tipo diferente de prova</>,
+      ],
+      href: "https://engineering.homeoffice.gov.uk/standards/test-pyramid/",
     },
   ],
   en: [
     {
+      id: "test-impact-analysis",
+      eyebrow: "Test Impact Analysis",
       title: "An approach for Test Impact Analysis on the Integration Level in Java programs",
       authors: "Muzammil Shahbaz — Thales Underwater Systems",
       venue: "arXiv:2211.07782",
-      summary: (
+      summary:
+        "Selects integration tests based on runtime analysis of code-change impact, cutting the suite executed in CI/CD by up to 50% on average, over 80% in some scenarios.",
+      principle: "Test what changed, not the entire system.",
+      flow: [
+        { icon: <PaperIcon />, label: "Paper" },
+        { icon: <ScanIcon />, label: "Test Impact Analysis" },
+        { icon: <SlidersIcon />, label: "Changed-code coverage" },
+        { icon: <IssueIcon />, label: "changed-code-uncovered" },
+        { icon: <ReportIcon />, label: "Auditable verdict" },
+      ],
+      grounds: [
+        <>Diff analysis — pins down exactly what's in scope for the run</>,
         <>
-          Selects integration tests based on runtime analysis of code-change impact, cutting the suite executed in CI/CD — up
-          to 50% on average, over 80% in some cases. Grounds the "coverage of what changed" logic{" "}
-          <span className="text-[var(--text-h)]">Sentry</span> applies.
-        </>
-      ),
+          <W>changed-code-uncovered</W> — fires when the diff touches code with no test exercising it
+        </>,
+        <>
+          <W>coverage-below-threshold</W> — compares changed-code coverage against <W>policy.thresholds</W>' minimum
+        </>,
+        <>
+          <W>changed_coverage</W> — configurable threshold in [policy.thresholds] in <W>sentry.toml</W>
+        </>,
+        <>Changed-code coverage — measures the changed code, not the whole repository</>,
+      ],
       href: "https://arxiv.org/pdf/2211.07782",
     },
     {
-      title: "A taxonomy of risk-based testing",
+      id: "risk-based-testing",
+      eyebrow: "Risk-Based Testing",
+      title: "A Taxonomy of Risk-Based Testing",
       authors: "Michael Felderer, Ina Schieferdecker",
-      venue: "Software Tools for Technology Transfer (STTT) · arXiv:1912.11519",
-      summary: (
+      venue: "STTT · arXiv:1912.11519",
+      summary:
+        "A taxonomy for categorizing risk-based testing approaches, covering risk drivers, risk assessment and the risk-based test process.",
+      principle: "Severity should reflect risk, not just the failure.",
+      flow: [
+        { icon: <PaperIcon />, label: "Paper" },
+        { icon: <ScanIcon />, label: "Risk-Based Testing" },
+        { icon: <IssueIcon />, label: "Risk assessment" },
+        { icon: <SlidersIcon />, label: "policy.severities" },
+        { icon: <ReportIcon />, label: "Finding prioritization" },
+      ],
+      grounds: [
         <>
-          A taxonomy for categorizing risk-based testing approaches, covering risk drivers, risk assessment and the
-          risk-based test process. Grounds the priority and configurable severity logic (policy.severities){" "}
-          <span className="text-[var(--text-h)]">Sentry</span> applies to findings.
-        </>
-      ),
+          <W>policy.severities</W> — overrides the severity of any rule, finding by finding
+        </>,
+        <>Critical and high-severity rules — block the verdict ahead of the rest</>,
+        <>Finding prioritization — orders the report by risk, not by execution order</>,
+        <>Equivalence classes — cover the scenarios that concentrate the most risk</>,
+        <>Evidence-based verdict — every severity carries the justification behind it</>,
+      ],
       href: "https://arxiv.org/pdf/1912.11519",
+    },
+    {
+      id: "shift-left",
+      eyebrow: "Shift Left",
+      title: "What is Shift-Left Testing?",
+      authors: "Rahul Awati — TechTarget",
+      venue: "TechTarget · 2023",
+      summary:
+        "Defines shift-left testing as moving quality activities to earlier stages of the development cycle, cutting cost and fix time.",
+      principle: "Test intent must exist before implementation.",
+      flow: [
+        { icon: <PenIcon />, label: "Request" },
+        { icon: <TerminalIcon />, label: "CASES.md" },
+        { icon: <FlowIcon />, label: "Implementation" },
+        { icon: <RunIcon />, label: "Associated test" },
+        { icon: <ReportIcon />, label: "Verdict" },
+      ],
+      grounds: [
+        <>
+          <W>CASES.md</W> — declares intent before a single line of code is written
+        </>,
+        <>
+          <W>PROMPT.md</W> — preserves the original request as the source of truth
+        </>,
+        <>
+          <Cmd>sentry check</Cmd> — validates vocabulary and structure before running any test
+        </>,
+        <>Change-oriented flow — links case to test before the merge, not after</>,
+        <>Versioned report — the verdict shows up in the PR diff, ahead of human review</>,
+      ],
+      href: "https://www.techtarget.com/searchitoperations/definition/shift-left-testing",
+    },
+    {
+      id: "test-pyramid",
+      eyebrow: "Test Pyramid",
+      title: "Test Pyramid Engineering Guidance",
+      authors: "UK Home Office — Engineering Standards",
+      venue: "Home Office Engineering Guidance and Standards",
+      summary:
+        "Practical guidance on applying the test pyramid: more unit tests, fewer integration tests, and an even thinner layer of end-to-end tests.",
+      principle: "Each level of the pyramid produces a different kind of evidence.",
+      flow: [
+        { icon: <RunIcon />, label: "Unit tests" },
+        { icon: <FlowIcon />, label: "Integration tests" },
+        { icon: <SlidersIcon />, label: "Coverage" },
+        { icon: <ReportIcon />, label: "Evidence" },
+        { icon: <HistoryIcon />, label: "Verdict" },
+      ],
+      grounds: [
+        <>Four coverage dimensions — requirements, integrations, errors and security</>,
+        <>Integration tests — the middle layer, covering contracts and persistence</>,
+        <>
+          <W>changed-code-uncovered</W> — requires a unit test on changed code, the base of the pyramid
+        </>,
+        <>Rejected frontend layer — with no adapter to verify it, a case would stay stuck as 'not covered'</>,
+        <>Evidence per layer — each level of the pyramid supports a different kind of proof</>,
+      ],
+      href: "https://engineering.homeoffice.gov.uk/standards/test-pyramid/",
     },
   ],
 };
@@ -1753,62 +2035,123 @@ const papersByLang: Record<"pt" | "en", Paper[]> = {
 function PapersContent({ onPrevClick }: { onPrevClick: () => void }) {
   const { lang, t } = useLanguage();
   const papers = papersByLang[lang];
+  const sections = useMemo(() => papers.map((paper) => ({ id: paper.id, label: paper.eyebrow })), [papers]);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-14">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">{t("Primeiros passos", "First steps")}</p>
-      <h1 className="mt-2 text-3xl font-semibold uppercase tracking-normal text-[var(--text-h)]">Papers</h1>
-      <p className="mt-4 text-justify text-base leading-relaxed text-[var(--text)]/80">
-        {lang === "pt" ? (
-          <>
-            Leituras que embasam as decisões de design do <span className="text-[var(--text-h)]">Sentry</span> — para quem
-            quer entender o raciocínio por trás das regras, não só como usá-las.
-          </>
-        ) : (
-          <>
-            Reading that grounds <span className="text-[var(--text-h)]">Sentry</span>'s design decisions — for anyone who
-            wants to understand the reasoning behind the rules, not just how to use them.
-          </>
-        )}
-      </p>
+      <div className="flex gap-8 lg:gap-12">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+            {t("Primeiros passos", "First steps")}
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold uppercase tracking-normal text-[var(--text-h)]">Papers</h1>
+          <p className="mt-4 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            {lang === "pt" ? (
+              <>
+                As regras do <span className="text-[var(--text-h)]">Sentry</span> não foram definidas arbitrariamente. Cada
+                mecanismo da ferramenta — análise de impacto, cobertura da mudança, severidade, classes de equivalência e
+                veredito auditável — está apoiado em práticas estabelecidas da engenharia de qualidade de software. Leituras
+                para quem quer entender o raciocínio por trás das regras, não apenas como utilizá-las.
+              </>
+            ) : (
+              <>
+                <span className="text-[var(--text-h)]">Sentry</span>'s rules weren't defined arbitrarily. Every mechanism in
+                the tool — impact analysis, changed-code coverage, severity, equivalence classes and the auditable verdict —
+                is grounded in established software quality engineering practice. Reading for anyone who wants to understand
+                the reasoning behind the rules, not just how to use them.
+              </>
+            )}
+          </p>
 
-      <div className="mt-5 grid grid-cols-1 gap-4">
-        {papers.map((paper) => (
-          <a
-            key={paper.href}
-            href={paper.href}
-            target="_blank"
-            rel="noreferrer"
-            className="glow-card block rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-6 py-5 transition-colors duration-200 hover:border-[var(--accent)]/40"
-          >
-            <div className="flex items-start justify-between gap-3 text-[var(--accent)]">
-              <PaperIcon />
-              <ExternalIcon />
-            </div>
-            <h3 className="mt-3 text-sm font-semibold text-[var(--text-h)]">{paper.title}</h3>
-            <p className="mt-2 text-sm text-[var(--text)]/60">
-              {paper.authors} · <span className="text-[var(--accent)]">{paper.venue}</span>
-            </p>
-            <div className="mb-4 mt-4 h-px w-6 bg-[var(--border)]" />
-            <p className="text-sm leading-relaxed text-[var(--text)]/70">{paper.summary}</p>
-          </a>
-        ))}
+          {papers.map((paper) => {
+            const cardContent = (
+              <>
+                <div className="flex items-start justify-between gap-3 text-[var(--accent)]">
+                  <PaperIcon />
+                  {paper.href && <ExternalIcon />}
+                </div>
+                <h3 className="mt-3 text-base font-semibold text-[var(--accent)]">{paper.title}</h3>
+                <p className="mt-2 text-sm text-white">
+                  {paper.authors} · <span className="text-[var(--accent)]">{paper.venue}</span>
+                </p>
+                <div className="mb-4 mt-4 h-px w-6 bg-[var(--border)]" />
+                <p className="text-sm leading-relaxed text-[var(--text)]/70">{paper.summary}</p>
+
+                <div className="mt-4">
+                  <SectionLabel icon={<QuoteIcon />}>{t("Princípio", "Principle")}</SectionLabel>
+                </div>
+                <PrincipleQuote>{paper.principle}</PrincipleQuote>
+
+                <div className="mt-5">
+                  <SectionLabel icon={<TransformIcon />}>
+                    {t("Como isso se transforma no Sentry", "How this becomes Sentry")}
+                  </SectionLabel>
+                </div>
+                <div className="mt-5">
+                  <FlowDiagram steps={paper.flow} />
+                </div>
+
+                <div className="mt-5">
+                  <SectionLabel icon={<GroundIcon />}>{t("Fundamenta", "Grounds")}</SectionLabel>
+                </div>
+                <GroundsList items={paper.grounds} />
+              </>
+            );
+
+            return (
+              <div key={paper.id} className="mt-8">
+                {paper.href ? (
+                  <a
+                    id={paper.id}
+                    href={paper.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="glow-card block scroll-mt-24 cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-6 py-5 transition-colors duration-200 hover:border-[var(--accent)]/40"
+                  >
+                    {cardContent}
+                  </a>
+                ) : (
+                  <div
+                    id={paper.id}
+                    className="glow-card scroll-mt-24 rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-6 py-5 transition-colors duration-200 hover:border-[var(--accent)]/40"
+                  >
+                    {cardContent}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <PageFooter
+            prevLabel={t("Comandos e Habilidades", "Commands & Skills")}
+            onPrevClick={onPrevClick}
+            className="mt-10"
+          />
+        </div>
+
+        <DocsSidebar sections={sections} label={t("Nesta página", "On this page")} />
       </div>
-
-      <PageFooter
-        prevLabel={t("Comandos e Habilidades", "Commands & Skills")}
-        onPrevClick={onPrevClick}
-        className="mt-6"
-      />
     </div>
   );
 }
 
 export function DocsPage() {
   const { lang, t } = useLanguage();
-  const [activeTab, setActiveTab] = useState(tabs[0].id);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabIds = useMemo(() => tabs.map((tab) => tab.id), []);
+  const requestedTab = searchParams.get("tab");
+  const activeTab = requestedTab && tabIds.includes(requestedTab) ? requestedTab : tabs[0].id;
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  function goToTab(id: string) {
+    setSearchParams((params) => {
+      const next = new URLSearchParams(params);
+      next.set("tab", id);
+      return next;
+    });
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }
 
   useEffect(() => {
     const el = tabRefs.current[activeTab];
@@ -1828,7 +2171,7 @@ export function DocsPage() {
                 tabRefs.current[tab.id] = el;
               }}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => goToTab(tab.id)}
               className={`tab-btn cursor-pointer whitespace-nowrap py-3 transition-colors duration-300 ${
                 activeTab === tab.id ? "text-[var(--accent)]" : "text-[var(--text)]/60 hover:text-[var(--accent)]"
               }`}
@@ -1846,7 +2189,7 @@ export function DocsPage() {
 
       {activeTab === "start" && (
         <>
-          <section className="relative mx-auto max-w-5xl px-6 pt-20 pb-4">
+          <section className="relative mx-auto max-w-5xl overflow-hidden px-6 pt-20 pb-4">
             <div
               aria-hidden="true"
               className="pointer-events-none absolute -top-24 left-1/2 h-[360px] w-[720px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(34,197,94,0.18),rgba(34,197,94,0.06),transparent)] blur-3xl"
@@ -1887,23 +2230,23 @@ export function DocsPage() {
               </div>
             </div>
           </section>
-          <GetStartedContent onNextClick={() => setActiveTab("setup")} />
+          <GetStartedContent onNextClick={() => goToTab("setup")} />
         </>
       )}
 
       {activeTab === "setup" && (
-        <SetupContent onPrevClick={() => setActiveTab("start")} onNextClick={() => setActiveTab("workflow")} />
+        <SetupContent onPrevClick={() => goToTab("start")} onNextClick={() => goToTab("workflow")} />
       )}
 
       {activeTab === "workflow" && (
-        <WorkflowContent onPrevClick={() => setActiveTab("setup")} onNextClick={() => setActiveTab("commands")} />
+        <WorkflowContent onPrevClick={() => goToTab("setup")} onNextClick={() => goToTab("commands")} />
       )}
 
       {activeTab === "commands" && (
-        <CommandsContent onPrevClick={() => setActiveTab("workflow")} onNextClick={() => setActiveTab("papers")} />
+        <CommandsContent onPrevClick={() => goToTab("workflow")} onNextClick={() => goToTab("papers")} />
       )}
 
-      {activeTab === "papers" && <PapersContent onPrevClick={() => setActiveTab("commands")} />}
+      {activeTab === "papers" && <PapersContent onPrevClick={() => goToTab("commands")} />}
     </div>
   );
 }

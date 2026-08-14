@@ -23,7 +23,7 @@ export function Hero() {
   const { lang, t } = useLanguage();
 
   return (
-    <section className="relative mx-auto max-w-5xl px-6 pt-20 pb-4">
+    <section className="relative mx-auto max-w-5xl overflow-hidden px-6 pt-20 pb-4">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-24 left-1/2 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(34,197,94,0.18),rgba(34,197,94,0.06),transparent)] blur-3xl"

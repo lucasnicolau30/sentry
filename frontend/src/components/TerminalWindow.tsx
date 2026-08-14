@@ -30,10 +30,10 @@ export function TerminalWindow({ title = "sentry", lines, children, className = 
         <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
         <span className="ml-2 font-mono text-xs text-[var(--text)]/45">{title}</span>
       </div>
-      <div className="space-y-1 px-4 py-3.5 font-mono text-[13px] leading-relaxed">
+      <div className="space-y-1 overflow-x-auto px-4 py-3.5 font-mono text-[13px] leading-relaxed">
         {lines
           ? lines.map((line, index) => (
-              <p key={index} className={toneClass[line.tone ?? "info"]}>
+              <p key={index} className={`whitespace-pre ${toneClass[line.tone ?? "info"]}`}>
                 {line.tone === "command" ? <span className="text-[var(--accent)]">$ </span> : null}
                 {line.text}
               </p>

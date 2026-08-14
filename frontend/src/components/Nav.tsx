@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "../i18n/LanguageContext";
 import logo from "../assets/sentry-icon.png";
@@ -71,18 +71,22 @@ export function Nav() {
   const location = useLocation();
   const isHome = location.pathname === "/";
 
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
   return (
     <header className="border-b border-[var(--border)] bg-[var(--bg)]">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-6 py-4">
         {isHome ? (
-          <div className="flex items-center gap-2.5">
-            <img src={logo} alt="" aria-hidden="true" className="h-[48px] w-[48px] object-contain" />
-            <img src={wordmark} alt="Sentry" className="h-[26px] w-auto object-contain" />
+          <div className="flex min-w-0 shrink items-center gap-2 sm:gap-2.5">
+            <img src={logo} alt="" aria-hidden="true" className="h-9 w-9 shrink-0 object-contain sm:h-[48px] sm:w-[48px]" />
+            <img src={wordmark} alt="Sentry" className="h-[18px] w-auto shrink object-contain sm:h-[26px]" />
           </div>
         ) : (
-          <Link to="/" className="flex items-center gap-2.5">
-            <img src={logo} alt="" aria-hidden="true" className="h-[48px] w-[48px] object-contain" />
-            <img src={wordmark} alt="Sentry" className="h-[26px] w-auto object-contain" />
+          <Link to="/" className="flex min-w-0 shrink items-center gap-2 sm:gap-2.5">
+            <img src={logo} alt="" aria-hidden="true" className="h-9 w-9 shrink-0 object-contain sm:h-[48px] sm:w-[48px]" />
+            <img src={wordmark} alt="Sentry" className="h-[18px] w-auto shrink object-contain sm:h-[26px]" />
           </Link>
         )}
 
@@ -91,7 +95,7 @@ export function Nav() {
         </nav>
 
         <button
-          className="flex flex-col justify-center gap-1.5 p-2 sm:hidden"
+          className="flex shrink-0 flex-col justify-center gap-1.5 p-2 sm:hidden"
           aria-label="Abrir menu"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}
@@ -103,8 +107,8 @@ export function Nav() {
       </div>
 
       {open && (
-        <nav className="flex flex-col gap-4 border-t border-[var(--border)] px-6 py-4 text-sm text-[var(--text)] sm:hidden">
-          <NavLinks className="justify-start" />
+        <nav className="flex flex-wrap items-center justify-center gap-3 border-t border-[var(--border)] px-6 py-4 text-sm text-[var(--text)] sm:hidden">
+          <NavLinks />
         </nav>
       )}
     </header>
