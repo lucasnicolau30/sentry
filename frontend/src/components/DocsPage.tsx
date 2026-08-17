@@ -13,6 +13,12 @@ function useScrollSpy(ids: string[]) {
     setActiveId(ids[0]);
 
     function update() {
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      if (atBottom) {
+        setActiveId(ids[ids.length - 1]);
+        return;
+      }
+
       let current = ids[0];
       for (const id of ids) {
         const el = document.getElementById(id);
@@ -38,6 +44,17 @@ function useScrollSpy(ids: string[]) {
 function DocsSidebar({ sections, label }: { sections: { id: string; label: string }[]; label: string }) {
   const ids = useMemo(() => sections.map((s) => s.id), [sections]);
   const activeId = useScrollSpy(ids);
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [indicator, setIndicator] = useState({ top: 0, height: 0 });
+  const itemRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const targetId = hoverId ?? activeId;
+
+  useEffect(() => {
+    const el = itemRefs.current[targetId];
+    if (el) {
+      setIndicator({ top: el.offsetTop, height: el.offsetHeight });
+    }
+  }, [targetId, sections]);
 
   return (
     <aside className="hidden w-48 shrink-0 md:block">
@@ -45,12 +62,21 @@ function DocsSidebar({ sections, label }: { sections: { id: string; label: strin
         <p className="mb-3 flex items-center gap-1.5 text-xs text-[var(--text)]/50">
           <span className="text-[var(--accent)]"><TerminalIcon /></span> {label}
         </p>
-        <ul className="space-y-2.5 border-l border-[var(--border)] pl-4 text-sm">
+        <ul className="relative space-y-2.5 border-l border-[var(--border)] pl-4 text-sm" onMouseLeave={() => setHoverId(null)}>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -left-px w-[1.5px] rounded-full bg-[var(--accent)] transition-all duration-200 ease-out"
+            style={{ top: indicator.top, height: indicator.height }}
+          />
           {sections.map((section) => (
             <li key={section.id}>
               <a
                 href={`#${section.id}`}
-                className={`tab-btn inline-block cursor-pointer transition-all duration-150 active:scale-95 ${
+                ref={(el) => {
+                  itemRefs.current[section.id] = el;
+                }}
+                onMouseEnter={() => setHoverId(section.id)}
+                className={`inline-block cursor-pointer transition-all duration-150 active:scale-95 ${
                   activeId === section.id
                     ? "font-medium text-[var(--accent)]"
                     : "text-[var(--text)]/60 hover:text-[var(--accent)]"
@@ -216,7 +242,7 @@ function CodeBlock({ lines }: { lines: string[] }) {
         <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
-        <span className="ml-2 font-mono text-xs text-[var(--text)]/45">sentry</span>
+        <span className="ml-2 font-mono text-xs text-[var(--text)]/60">sentry</span>
         <button
           type="button"
           onClick={handleCopy}
@@ -226,7 +252,7 @@ function CodeBlock({ lines }: { lines: string[] }) {
           {copied ? <CheckIcon /> : <CopyIcon />}
         </button>
       </div>
-      <div className="space-y-0.5 overflow-x-auto px-4 py-3.5 font-mono text-sm">
+      <div className="scroll-fade-x space-y-0.5 overflow-x-auto px-4 py-3.5 font-mono text-sm">
         {lines.map((line, index) => (
           <p key={index} className={`whitespace-pre ${index === 0 ? "text-[var(--text-h)]" : "text-[var(--text)]/50"}`}>
             {index === 0 ? <span className="text-[var(--accent)]">$ </span> : null}
@@ -260,9 +286,21 @@ function PageFooter({
           <button
             type="button"
             onClick={onPrevClick}
-            className="tab-btn mt-1 inline-flex cursor-pointer items-center gap-1.5 text-base font-medium text-[var(--text-h)] transition-all duration-150 hover:text-[var(--accent)] active:scale-95"
+            className="group mt-1 inline-flex cursor-pointer items-center gap-1.5 text-base font-medium text-[var(--text-h)] transition-colors duration-200 hover:text-[var(--accent)] active:scale-95"
           >
-            <span aria-hidden="true">←</span> {prevLabel}
+            <span
+              aria-hidden="true"
+              className="inline-block transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:-translate-x-1"
+            >
+              ←
+            </span>
+            <span className="relative">
+              {prevLabel}
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-1 left-0 h-px w-full origin-right scale-x-0 bg-[var(--accent)] transition-transform duration-300 ease-out group-hover:scale-x-100"
+              />
+            </span>
           </button>
         </div>
       ) : (
@@ -275,9 +313,21 @@ function PageFooter({
           <button
             type="button"
             onClick={onNextClick}
-            className="tab-btn mt-1 inline-flex cursor-pointer items-center gap-1.5 text-base font-medium text-[var(--text-h)] transition-all duration-150 hover:text-[var(--accent)] active:scale-95"
+            className="group mt-1 inline-flex cursor-pointer items-center gap-1.5 text-base font-medium text-[var(--text-h)] transition-colors duration-200 hover:text-[var(--accent)] active:scale-95"
           >
-            {nextLabel} <span aria-hidden="true">→</span>
+            <span className="relative">
+              {nextLabel}
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 bg-[var(--accent)] transition-transform duration-300 ease-out group-hover:scale-x-100"
+              />
+            </span>
+            <span
+              aria-hidden="true"
+              className="inline-block transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:translate-x-1"
+            >
+              →
+            </span>
           </button>
         </div>
       ) : (
@@ -2142,7 +2192,10 @@ export function DocsPage() {
   const requestedTab = searchParams.get("tab");
   const activeTab = requestedTab && tabIds.includes(requestedTab) ? requestedTab : tabs[0].id;
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+  const [hoverTab, setHoverTab] = useState<string | null>(null);
+  const tabsNavRef = useRef<HTMLElement | null>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const indicatorTarget = hoverTab ?? activeTab;
 
   function goToTab(id: string) {
     setSearchParams((params) => {
@@ -2154,16 +2207,29 @@ export function DocsPage() {
   }
 
   useEffect(() => {
-    const el = tabRefs.current[activeTab];
+    const el = tabRefs.current[indicatorTarget];
     if (el) {
       setIndicator({ left: el.offsetLeft, width: el.offsetWidth });
     }
-  }, [activeTab, lang]);
+  }, [indicatorTarget, lang]);
+
+  useEffect(() => {
+    const container = tabsNavRef.current;
+    const el = tabRefs.current[activeTab];
+    if (container && el) {
+      const target = el.offsetLeft - container.clientWidth / 2 + el.clientWidth / 2;
+      container.scrollTo({ left: target, behavior: "smooth" });
+    }
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       <div className="border-b border-[var(--border)]">
-        <nav className="relative mx-auto flex max-w-5xl items-center gap-6 overflow-x-auto px-6 text-sm">
+        <nav
+          ref={tabsNavRef}
+          className="scroll-fade-x relative mx-auto flex max-w-5xl items-center gap-6 overflow-x-auto px-6 text-sm"
+          onMouseLeave={() => setHoverTab(null)}
+        >
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -2172,7 +2238,8 @@ export function DocsPage() {
               }}
               type="button"
               onClick={() => goToTab(tab.id)}
-              className={`tab-btn cursor-pointer whitespace-nowrap py-3 transition-colors duration-300 ${
+              onMouseEnter={() => setHoverTab(tab.id)}
+              className={`cursor-pointer whitespace-nowrap py-3 transition-colors duration-300 ${
                 activeTab === tab.id ? "text-[var(--accent)]" : "text-[var(--text)]/60 hover:text-[var(--accent)]"
               }`}
             >

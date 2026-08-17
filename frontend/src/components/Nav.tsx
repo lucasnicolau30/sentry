@@ -26,7 +26,7 @@ function LanguageToggle({ className = "" }: { className?: string }) {
   const current = lang === "pt" ? "Português" : "English";
 
   return (
-    <button type="button" onClick={toggle} aria-label="Toggle language" className={`lang-btn ${className}`}>
+    <button type="button" onClick={toggle} aria-label="Toggle language" className={`glow-btn lang-btn ${className}`}>
       <span>
         <GlobeIcon />
         {current}
@@ -47,7 +47,7 @@ function NavLinks({ className = "" }: { className?: string }) {
         target="_blank"
         rel="noreferrer"
         aria-label="GitHub"
-        className={`github-btn ${className}`}
+        className={`glow-btn github-btn ${className}`}
       >
         <svg
           stroke="currentColor"
@@ -61,7 +61,13 @@ function NavLinks({ className = "" }: { className?: string }) {
           <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
         </svg>
       </a>
-      {isDocs ? <LanguageToggle className={className} /> : <Link to="/docs" className={`docs-btn ${className}`} />}
+      {isDocs ? (
+        <LanguageToggle className={className} />
+      ) : (
+        <Link to="/docs" className={`glow-btn docs-btn ${className}`}>
+          <span className="sr-only">Docs</span>
+        </Link>
+      )}
     </>
   );
 }
@@ -95,7 +101,7 @@ export function Nav() {
         </nav>
 
         <button
-          className="flex shrink-0 flex-col justify-center gap-1.5 p-2 sm:hidden"
+          className="flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-1.5 sm:hidden"
           aria-label="Abrir menu"
           aria-expanded={open}
           onClick={() => setOpen((value) => !value)}

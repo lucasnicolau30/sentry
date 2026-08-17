@@ -16,7 +16,7 @@ const toneClass: Record<NonNullable<TerminalLine["tone"]>, string> = {
   command: "text-[var(--text-h)]",
   info: "text-[var(--text)]/70",
   success: "text-[var(--accent)]",
-  muted: "text-[var(--text)]/45",
+  muted: "text-[var(--text)]/60",
 };
 
 export function TerminalWindow({ title = "sentry", lines, children, className = "" }: TerminalWindowProps) {
@@ -28,12 +28,16 @@ export function TerminalWindow({ title = "sentry", lines, children, className = 
         <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
-        <span className="ml-2 font-mono text-xs text-[var(--text)]/45">{title}</span>
+        <span className="ml-2 font-mono text-xs text-[var(--text)]/60">{title}</span>
       </div>
-      <div className="space-y-1 overflow-x-auto px-4 py-3.5 font-mono text-[13px] leading-relaxed">
+      <div
+        className={`space-y-1 px-4 py-3.5 font-mono text-[13px] leading-relaxed ${
+          lines ? "" : "scroll-fade-x overflow-x-auto"
+        }`}
+      >
         {lines
           ? lines.map((line, index) => (
-              <p key={index} className={`whitespace-pre ${toneClass[line.tone ?? "info"]}`}>
+              <p key={index} className={`whitespace-pre-wrap break-words ${toneClass[line.tone ?? "info"]}`}>
                 {line.tone === "command" ? <span className="text-[var(--accent)]">$ </span> : null}
                 {line.text}
               </p>

@@ -1,7 +1,38 @@
-import { Link, useLocation } from "react-router-dom";
+import type { AnchorHTMLAttributes, ReactNode } from "react";
+import { Link, useLocation, type LinkProps } from "react-router-dom";
 import { useLanguage } from "../i18n/LanguageContext";
 import logo from "../assets/sentry-icon.png";
 import wordmark from "../assets/sentry-wordmark.png";
+
+const footerLinkClassName =
+  "group relative inline-block cursor-pointer text-[var(--text)] transition-colors duration-200 hover:text-[var(--accent)] active:scale-95";
+
+function FooterLinkUnderline() {
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 bg-[var(--accent)] transition-transform duration-300 ease-out group-hover:scale-x-100"
+    />
+  );
+}
+
+function FooterRouteLink({ children, ...props }: { children: ReactNode } & LinkProps) {
+  return (
+    <Link className={footerLinkClassName} {...props}>
+      {children}
+      <FooterLinkUnderline />
+    </Link>
+  );
+}
+
+function FooterExternalLink({ children, ...props }: { children: ReactNode } & AnchorHTMLAttributes<HTMLAnchorElement>) {
+  return (
+    <a className={footerLinkClassName} {...props}>
+      {children}
+      <FooterLinkUnderline />
+    </a>
+  );
+}
 
 export function Footer() {
   const { t } = useLanguage();
@@ -38,30 +69,17 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-4">
             {isDocs && (
-              <Link
-                to="/"
-                onClick={scrollToTop}
-                className="tab-btn cursor-pointer transition-all duration-150 hover:text-[var(--accent)] active:scale-95"
-              >
+              <FooterRouteLink to="/" onClick={scrollToTop}>
                 {t("Início", "Home")}
-              </Link>
+              </FooterRouteLink>
             )}
-            <a
-              href="https://github.com/lucasnicolau30/sentry"
-              target="_blank"
-              rel="noreferrer"
-              className="tab-btn cursor-pointer transition-all duration-150 hover:text-[var(--accent)] active:scale-95"
-            >
+            <FooterExternalLink href="https://github.com/lucasnicolau30/sentry" target="_blank" rel="noreferrer">
               GitHub
-            </a>
+            </FooterExternalLink>
             {!isDocs && (
-              <Link
-                to="/docs"
-                onClick={scrollToTop}
-                className="tab-btn cursor-pointer transition-all duration-150 hover:text-[var(--accent)] active:scale-95"
-              >
+              <FooterRouteLink to="/docs" onClick={scrollToTop}>
                 Docs
-              </Link>
+              </FooterRouteLink>
             )}
           </div>
         </div>

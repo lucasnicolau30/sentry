@@ -15,6 +15,11 @@
   box-sizing: border-box;
 }
 
+.scroll-fade-x {
+  -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+  mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -36,11 +41,8 @@ body {
   }
 }
 
-.docs-btn {
-  width: 96px;
-  height: 34px;
+.glow-btn {
   border: none;
-  border-radius: 8px;
   background: linear-gradient(to right, #14532d, var(--accent), #14532d, #14532d, var(--accent), #14532d);
   background-size: 250%;
   background-position: left;
@@ -52,13 +54,37 @@ body {
   cursor: pointer;
   transition-duration: 1s;
   overflow: hidden;
-  font-family: var(--mono);
-  font-size: 0.8rem;
   text-decoration: none;
 }
 
-.docs-btn::before {
+.glow-btn::before {
   position: absolute;
+  transition-duration: 1s;
+  background-color: rgba(0, 0, 0, 0.842);
+  background-size: 200%;
+}
+
+.glow-btn:hover {
+  background-position: right;
+}
+
+.glow-btn:hover::before {
+  background-position: right;
+}
+
+.glow-btn:active {
+  transform: scale(0.95);
+}
+
+.docs-btn {
+  width: 96px;
+  height: 44px;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.docs-btn::before {
   content: "Docs";
   color: var(--accent);
   display: flex;
@@ -67,46 +93,15 @@ body {
   width: 97%;
   height: 90%;
   border-radius: 6px;
-  transition-duration: 1s;
-  background-color: rgba(0, 0, 0, 0.842);
-  background-size: 200%;
-}
-
-.docs-btn:hover {
-  background-position: right;
-  transition-duration: 1s;
-}
-
-.docs-btn:hover::before {
-  background-position: right;
-  transition-duration: 1s;
-}
-
-.docs-btn:active {
-  transform: scale(0.95);
 }
 
 .github-btn {
-  width: 36px;
-  height: 36px;
-  border: none;
+  width: 44px;
+  height: 44px;
   border-radius: 9999px;
-  background: linear-gradient(to right, #14532d, var(--accent), #14532d, #14532d, var(--accent), #14532d);
-  background-size: 250%;
-  background-position: left;
-  color: var(--accent);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition-duration: 1s;
-  overflow: hidden;
-  text-decoration: none;
 }
 
 .github-btn::before {
-  position: absolute;
   content: "";
   display: flex;
   align-items: center;
@@ -114,9 +109,6 @@ body {
   width: 88%;
   height: 88%;
   border-radius: 9999px;
-  transition-duration: 1s;
-  background-color: rgba(0, 0, 0, 0.842);
-  background-size: 200%;
 }
 
 .github-btn svg {
@@ -124,44 +116,16 @@ body {
   z-index: 1;
 }
 
-.github-btn:hover {
-  background-position: right;
-  transition-duration: 1s;
-}
-
-.github-btn:hover::before {
-  background-position: right;
-  transition-duration: 1s;
-}
-
-.github-btn:active {
-  transform: scale(0.95);
-}
-
 .lang-btn {
   min-width: 104px;
-  height: 34px;
+  height: 44px;
   padding: 0 0.75rem;
-  border: none;
   border-radius: 8px;
-  background: linear-gradient(to right, #14532d, var(--accent), #14532d, #14532d, var(--accent), #14532d);
-  background-size: 250%;
-  background-position: left;
-  color: var(--accent);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition-duration: 1s;
-  overflow: hidden;
   font-family: var(--mono);
   font-size: 0.8rem;
-  text-decoration: none;
 }
 
 .lang-btn::before {
-  position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -169,9 +133,6 @@ body {
   width: 97%;
   height: 90%;
   border-radius: 6px;
-  transition-duration: 1s;
-  background-color: rgba(0, 0, 0, 0.842);
-  background-size: 200%;
 }
 
 .lang-btn > * {
@@ -180,20 +141,6 @@ body {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-}
-
-.lang-btn:hover {
-  background-position: right;
-  transition-duration: 1s;
-}
-
-.lang-btn:hover::before {
-  background-position: right;
-  transition-duration: 1s;
-}
-
-.lang-btn:active {
-  transform: scale(0.95);
 }
 
 .tab-btn {
