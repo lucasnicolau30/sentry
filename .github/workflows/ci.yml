@@ -59,6 +59,19 @@ jobs:
           python -m pip install -e .
           python -m pip install pytest coverage
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar a suite e2e do frontend
+        # [e2e] em sentry.toml sobe uma segunda suite (Playwright) durante a
+        # auto-analise: sem o Node e os browsers instalados, o job falharia por
+        # ambiente -- exatamente a distincao que os codigos de saida existem
+        # para preservar, entao instalamos antes de medir.
+        run: |
+          npm ci --prefix frontend
+          npx --prefix frontend playwright install --with-deps chromium
+
       - name: Analisar a própria mudança
         # Codigo de saida: 0 aprovado, 1 com ressalvas, 2 reprovado,
         # 3 inconclusivo. So `reprovado` derruba o build -- ressalva e
