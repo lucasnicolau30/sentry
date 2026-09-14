@@ -105,7 +105,7 @@ def build_parser():
         prog="sentry",
         description="Deriva a matriz de casos de teste de um pedido e verifica se a implementação corresponde.",
     )
-    parser.add_argument("--version", action="version", version=__version__, help="mostra a versão do programa e sai")
+    parser.add_argument("--version", action="version", version=paint(__version__, "green"), help="mostra a versão do programa e sai")
     # `parser_class` explícito: sem isso, `add_subparsers` propaga a classe do
     # pai (_RootArgumentParser) pra cada subcomando, e `sentry init -h`
     # ganharia o wordmark também -- só o `-h` raiz deve ter. `_ArgumentParserPT`

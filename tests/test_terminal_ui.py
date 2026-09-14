@@ -233,6 +233,16 @@ def test_sentry_h_mostra_o_wordmark_antes_do_texto_de_ajuda(capsys):
     assert "█" not in saida_subcomando
 
 
+# cenario: sentry --version colore o numero da versao em verde, pontos inclusos
+def test_sentry_version_colore_o_numero_em_verde(monkeypatch, capsys):
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    with pytest.raises(SystemExit):
+        cli.main(["--version"])
+    saida = capsys.readouterr().out.strip()
+    assert saida == paint(sentry_version, "green", enabled=True)
+
+
 # cenario: sentry -h tem cabecalhos com tracinho, igual as secoes do init
 def test_sentry_h_tem_cabecalhos_com_tracinho(capsys):
     with pytest.raises(SystemExit):

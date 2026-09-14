@@ -84,6 +84,10 @@ tem em ingles por padrao ("show this help message and exit"/"show
 program's version number and exit"); a traducao vale pra raiz e pra
 todo subcomando, nao so' a raiz (so' o wordmark e a decoracao de
 titulo/indentacao/flag sao exclusivos da raiz).
+(10) `sentry --version` -- a saida inteira (numeros e pontos, ex.:
+`2.0.0`) sai colorida em verde, com cor habilitada. Diferente do item 9
+(que colore o nome da flag `--version` dentro do texto de ajuda), este
+e' o valor que o proprio `--version` imprime quando chamado sozinho.
 
 ## Campos
 
@@ -604,6 +608,17 @@ titulo/indentacao/flag sao exclusivos da raiz).
 - **Então:** a linha de `-h`/`--help` diz "mostra esta mensagem de ajuda e
   sai" e a linha de `--version` diz "mostra a versão do programa e sai",
   nenhuma delas em inglês, tanto na raiz quanto em qualquer subcomando
+
+## Caso: sentry --version colore o numero da versao em verde, pontos inclusos
+
+- **Requisito:** "no version eu quero os numeros 2.0.0 tudo em verde, com
+  os pontos em verde tmb"
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** baixa
+- **Dado:** `sentry --version` com cor habilitada
+- **Quando:** a versão é impressa
+- **Então:** a saída inteira (números e pontos) sai colorida em verde
 
 ## Classes não aplicáveis
 
