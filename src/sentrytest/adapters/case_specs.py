@@ -23,8 +23,8 @@ TEMPLATE = """# <Título da funcionalidade>
 ## Caso: <nome curto e único>
 
 - **Requisito:** <o que do prompt este caso verifica>
-- **Camada:** backend | integração
-- **Tipo:** unitário | integração | contrato
+- **Camada:** backend | integração | frontend
+- **Tipo:** unitário | integração | contrato | e2e
 - **Prioridade:** crítica | alta | média | baixa
 - **Classe:** <campo>/<classe de equivalência>
 - **Dado:** <pré-condição>
@@ -37,8 +37,8 @@ TEMPLATE = """# <Título da funcionalidade>
 - **<campo>/<classe>**: <motivo pelo qual esta classe do catálogo não se aplica aqui>
 """
 
-LAYERS = ("backend", "integração")
-TEST_TYPES = ("unitário", "integração", "contrato")
+LAYERS = ("backend", "integração", "frontend")
+TEST_TYPES = ("unitário", "integração", "contrato", "e2e")
 PRIORITIES = ("crítica", "alta", "média", "baixa")
 
 _TITLE = re.compile(r"^#\s+(.+?)\s*$", re.MULTILINE)

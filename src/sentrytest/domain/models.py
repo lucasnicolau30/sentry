@@ -11,11 +11,11 @@ CONTRACT_VERSION = "1.0"
 class StrEnum(str, Enum):
     def __str__(self) -> str: return self.value
 
-# v1.0 cobre apenas backend: o produto nao aceita declarar camada que nao sabe
-# verificar, para nao produzir caso preso em "nao coberto" para sempre.
-class Layer(StrEnum): BACKEND="backend"; INTEGRATION="integração"
+# Frontend so' entrou depois que um adapter passou a verifica-lo (Playwright/JUnit):
+# declarar camada que ninguem media deixava o caso preso em "nao coberto" para sempre.
+class Layer(StrEnum): BACKEND="backend"; INTEGRATION="integração"; FRONTEND="frontend"
 class Priority(StrEnum): CRITICAL="crítica"; HIGH="alta"; MEDIUM="média"; LOW="baixa"
-class TestType(StrEnum): UNIT="unitário"; INTEGRATION="integração"; CONTRACT="contrato"
+class TestType(StrEnum): UNIT="unitário"; INTEGRATION="integração"; CONTRACT="contrato"; E2E="e2e"
 class TestStatus(StrEnum): COVERED="coberto"; PARTIAL="parcial"; NOT_COVERED="não coberto"; FAILED="falhou"; NOT_RUN="não executado"
 class Severity(StrEnum): CRITICAL="crítica"; HIGH="alta"; MEDIUM="média"; LOW="baixa"
 class VerdictStatus(StrEnum): APPROVED="aprovado"; WARNING="aprovado com ressalvas"; REJECTED="reprovado"; INCONCLUSIVE="inconclusivo"

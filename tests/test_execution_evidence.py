@@ -1,5 +1,6 @@
 from pathlib import Path
-from sentrytest.adapters.local_tools import SuiteAdapter, _counts_from_junitxml
+import sentrytest.adapters.local_tools as local_tools
+from sentrytest.adapters.local_tools import SuiteAdapter, _counts_from_junitxml, _resolve_command_head
 
 def test_execution_records_passed_counts_and_summary(tmp_path: Path):
     (tmp_path / "tests").mkdir()
@@ -443,3 +444,34 @@ def test_suite_nao_pytest_com_caminho_relativo_tambem_e_resolvida(tmp_path: Path
     assert execution.infrastructure_error is None
     assert execution.passed == 1
     assert percent is None
+
+
+# cenario: SuiteAdapter roda comando declarado num subdiretorio via cwd
+def test_suiteadapter_roda_comando_num_subdiretorio_via_cwd(tmp_path: Path):
+    """[e2e] normalmente mora num subprojeto (frontend/) com seu proprio
+    node_modules e config; rodar da raiz nao acharia nenhum dos dois."""
+    import sys
+
+    sub = tmp_path / "frontend"
+    sub.mkdir()
+    (sub / "marca_cwd.py").write_text(
+        "from pathlib import Path\nPath('aqui.txt').write_text(str(Path.cwd()), encoding='utf-8')\n",
+        encoding="utf-8")
+    SuiteAdapter(tmp_path, f"{sys.executable} marca_cwd.py", cwd="frontend").run(tmp_path / "cov.json")
+    assert (sub / "aqui.txt").exists()
+    assert not (tmp_path / "aqui.txt").exists()
+
+
+# cenario: nome puro de executavel e resolvido pelo PATH mesmo sendo shim do Windows
+def test_nome_puro_de_executavel_e_resolvido_pelo_path_mesmo_sendo_shim(tmp_path: Path, monkeypatch):
+    """`CreateProcess` recebendo uma lista de argumentos nao aplica `PATHEXT`
+    sozinho: sem isto, declarar `command = "npx playwright test"` falhava com
+    'arquivo nao encontrado' mesmo com o Node instalado e no PATH."""
+    shim = tmp_path / "npx.cmd"
+    monkeypatch.setattr(local_tools.shutil, "which", lambda name: str(shim) if name == "npx" else None)
+    assert _resolve_command_head(tmp_path, "npx") == str(shim)
+
+
+def test_nome_puro_sem_shim_no_path_permanece_intocado(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(local_tools.shutil, "which", lambda name: None)
+    assert _resolve_command_head(tmp_path, "comando-inexistente") == "comando-inexistente"

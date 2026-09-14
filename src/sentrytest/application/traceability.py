@@ -4,9 +4,19 @@ import unicodedata
 from pathlib import Path
 from ..ports.inputs import SpecScenario
 
-# O marcador nao ancora no `#`: `// cenario:`, `-- cenario:` e `# cenario:`
-# casam igual, entao o vinculo declarado ja e' agnostico de linguagem.
-_MARKER = re.compile(r"(?:scenario|cenario)\s*[:=]\s*([^\n#]+)", re.IGNORECASE)
+# O marcador nao ancora num comentario de linguagem especifica: `// cenario:`,
+# `-- cenario:`, `# cenario:` e `* cenario:` casam igual, entao o vinculo declarado
+# ja e' agnostico de linguagem.
+#
+# Ancora no inicio da linha, apos o abre-comentario: o marcador e' uma linha de
+# comentario, nao texto solto. Sem a ancora, um teste que *escreve* um marcador
+# noutro arquivo -- `write_text("# cenario: x\n", encoding="utf-8")` -- ou que o monta
+# num template -- `f"# cenario: {nome}\n"` -- devolvia `x\n", encoding="utf-8")` e
+# `{nome}\n` como nomes de cenario. Passava despercebido enquanto o marcador so servia
+# para associar teste (nome impossivel nao casa com nada) e virou ruido assim que
+# marcador sem caso correspondente passou a ser achado.
+_MARKER = re.compile(r"^[ \t]*(?://|--|\#|\*|/\*)[ \t]*(?:scenario|cenario)\s*[:=][ \t]*([^\n]+)",
+                     re.IGNORECASE | re.MULTILINE)
 
 # Como cada stack declara um teste. Aplicado por extensao, nao a todos os
 # arquivos: um `test("...")` solto em codigo Python nao deve virar nome de teste.
@@ -137,9 +147,10 @@ def _associated_tests(tests: dict[str, list[str]], scenario_name: str, test_func
                     break
     return sorted(set(associated))
 
-def build_traceability(specs: tuple[SpecScenario, ...], root: Path, behaviors: tuple[str, ...] = (), issue_text_by_behavior: dict[str, str] | None = None, test_paths: tuple[str, ...] = DEFAULT_TEST_PATHS) -> dict:
+def build_traceability(specs: tuple[SpecScenario, ...], root: Path, behaviors: tuple[str, ...] = (), issue_text_by_behavior: dict[str, str] | None = None, test_paths: tuple[str, ...] = DEFAULT_TEST_PATHS, declared_names: tuple[str, ...] | None = None, changed_test_lines: dict[str, tuple[int, ...]] | None = None) -> dict:
     issue_text_by_behavior = issue_text_by_behavior or {}
     tests: dict[str, list[str]] = {}
+    marker_lines: dict[str, list[tuple[str, int]]] = {}
     test_functions: dict[str, list[str]] = {}
     for path in collect_test_files(root, test_paths):
         try:
@@ -152,6 +163,9 @@ def build_traceability(specs: tuple[SpecScenario, ...], root: Path, behaviors: t
         for match in _MARKER.finditer(text):
             name = match.group(1).strip().strip("'\"")
             tests.setdefault(_normalize(name), []).append(relative)
+            # A linha do marcador, para saber se foi esta mudanca que o escreveu.
+            marker_lines.setdefault(_normalize(name), []).append(
+                (relative, text.count("\n", 0, match.start()) + 1))
         functions = [name for pattern in TEST_DEFINITIONS[path.suffix.lower()] for name in pattern.findall(text)]
         if functions:
             test_functions[relative] = functions
@@ -162,6 +176,37 @@ def build_traceability(specs: tuple[SpecScenario, ...], root: Path, behaviors: t
         scenarios.append({"name": scenario.name, "tests": associated, "covered": bool(associated)})
         if not associated:
             missing.append(scenario.name)
+    # Marcador que nao aponta para caso nenhum. Renomear um caso quebrava o vinculo em
+    # silencio: o marcador continuava la, o caso caia para "nao coberto", e o relatorio
+    # nao dizia por que -- um gerador de falso negativo sem rastro.
+    #
+    # A comparacao e' a mesma de `_associated_tests` (igualdade ou containment
+    # normalizado), e nao a de tokens: o palpite por sobreposicao existe para associar
+    # teste sem marcador, e usa-lo aqui perdoaria justamente o marcador errado.
+    #
+    # `declared_names` sao os casos declarados no projeto inteiro, nao so os da spec
+    # analisada: o mesmo diretorio de testes atende todas as specs, e comparar contra
+    # uma fatia acusaria de orfao todo marcador que pertence a outra.
+    #
+    # Sem spec declarada nao ha matriz com que comparar, e todo marcador viraria orfao.
+    known = declared_names if declared_names is not None else tuple(scenario.name for scenario in specs)
+    # Restrito ao marcador que esta mudanca escreveu ou editou -- a linha dele esta no
+    # diff. O Sentry julga a mudanca: marcador que ja estava orfao antes de alguem
+    # encostar no codigo e' divida pre-existente, e pertence ao mapa do projeto, nao ao
+    # veredito desta mudanca.
+    #
+    # Por arquivo alterado nao basta: um repositorio que use `# cenario:` como
+    # documentacao em prosa tem dezenas deles por arquivo, e tocar o arquivo por
+    # qualquer motivo despejava todos no relatorio. O achado util -- o nome que acabou
+    # de ser errado -- se perdia no meio, que e' o mesmo que nao existir.
+    changed = {str(Path(name)): set(lines) for name, lines in (changed_test_lines or {}).items()}
+    orphan_markers = []
+    if known and changed:
+        declared = [_normalize(name) for name in known]
+        for marker, occurrences in sorted(marker_lines.items()):
+            touched = sorted({path for path, line in occurrences if line in changed.get(path, ())})
+            if touched and not any(marker == name or marker in name or name in marker for name in declared):
+                orphan_markers.append({"marker": marker, "tests": touched})
     requirements_without_scenarios = []
     for behavior in behaviors:
         matched_scenario = any(_normalize(scenario.name) == _normalize(behavior) or _normalize(behavior) in _normalize(scenario.name) for scenario in specs)
@@ -170,4 +215,4 @@ def build_traceability(specs: tuple[SpecScenario, ...], root: Path, behaviors: t
             matched_test = bool(_associated_tests(tests, issue_text_by_behavior[behavior], test_functions))
         if not matched_scenario and not matched_test:
             requirements_without_scenarios.append(behavior)
-    return {"scenarios": scenarios, "scenarios_without_tests": missing, "requirements_without_scenarios": requirements_without_scenarios}
+    return {"scenarios": scenarios, "scenarios_without_tests": missing, "requirements_without_scenarios": requirements_without_scenarios, "orphan_markers": orphan_markers}

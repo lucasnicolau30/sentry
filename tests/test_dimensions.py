@@ -1,5 +1,5 @@
 from sentrytest.application.dimensions import (
-    ALL_DIMENSIONS, APIS, EXCEPTIONS, REQUIREMENTS, SECURITY, evaluate_dimensions,
+    ALL_DIMENSIONS, APIS, EXCEPTIONS, INTERFACE, REQUIREMENTS, SECURITY, evaluate_dimensions,
 )
 from sentrytest.domain.models import (
     Layer, Priority,
@@ -78,6 +78,20 @@ def test_seguranca_cobra_rota_com_classe_faltando():
 def test_seguranca_coberta_quando_rota_nao_tem_classe_faltando():
     fields = (Field("perfil", "rota"),)
     assert _run(fields=fields)[SECURITY]["status"] == "coberta"
+
+
+# cenario: dimensao de interface fica coberta quando todos os casos frontend passam
+def test_dimensao_de_interface_fica_coberta_quando_todos_os_casos_frontend_passam():
+    cases = (_case(DomainTestStatus.COVERED, DomainTestType.E2E, Layer.FRONTEND),)
+    assert _run(test_cases=cases)[INTERFACE]["status"] == "coberta"
+
+
+# cenario: dimensao de interface fica nao aplicavel sem nenhum caso frontend declarado
+def test_dimensao_de_interface_fica_nao_aplicavel_sem_nenhum_caso_frontend_declarado():
+    cases = (_case(DomainTestStatus.COVERED, DomainTestType.UNIT, Layer.BACKEND),)
+    resultado = _run(test_cases=cases)[INTERFACE]
+    assert resultado["status"] == "não aplicável"
+    assert resultado["status"] != "não coberta"
 
 
 def test_dimensao_desabilitada_nao_aparece():

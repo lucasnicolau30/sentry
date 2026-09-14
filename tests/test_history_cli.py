@@ -1,9 +1,10 @@
 import json
 import sqlite3
+import subprocess
 from pathlib import Path
 from sentrytest.cli import main
 
-def _insert_run(root: Path, run_id: str, run_tests: bool, passed: int, global_percent: float, verdict: str, coverage_error=None):
+def _insert_run(root: Path, run_id: str, run_tests: bool, passed: int, global_percent: float, verdict: str, coverage_error=None, commit=None):
     sentry_dir = root / ".sentry"
     sentry_dir.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -11,6 +12,7 @@ def _insert_run(root: Path, run_id: str, run_tests: bool, passed: int, global_pe
         "data": {
             "id": run_id,
             "project": "demo",
+            "commit": commit,
             "timestamp": "2026-08-06T00:00:00+00:00",
             "verdict": {"status": verdict},
             "findings": [],
@@ -119,3 +121,51 @@ def test_history_marks_incomparable_runs(tmp_path: Path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "Execuções incomparáveis" in out
     assert "execução de testes" in out
+
+def _git(root: Path, *args: str):
+    return subprocess.run(["git", *args], cwd=root, text=True, capture_output=True, check=True)
+
+def _repositorio(root: Path) -> str:
+    _git(root, "init")
+    _git(root, "config", "user.email", "test@example.com")
+    _git(root, "config", "user.name", "Test")
+    (root / "module.py").write_text("um\n", encoding="utf-8")
+    _git(root, "add", "module.py")
+    _git(root, "commit", "-m", "inicial")
+    return _git(root, "rev-parse", "HEAD").stdout.strip()
+
+# cenario: report acusa relatorio de commit diferente do HEAD
+def test_report_acusa_relatorio_de_commit_anterior_ao_head(tmp_path: Path, monkeypatch, capsys):
+    """A acusacao vem antes do relatorio: quem le a primeira linha precisa saber que
+    o que vem abaixo nao descreve o codigo atual. Era isto que faltava quando o CI
+    publicava um latest.md de cinco commits atras como se fosse o veredito."""
+    monkeypatch.chdir(tmp_path)
+    analisado = _repositorio(tmp_path)
+    _insert_run(tmp_path, "r1", True, passed=10, global_percent=80.0, verdict="aprovado", commit=analisado)
+    (tmp_path / "module.py").write_text("um\ndois\n", encoding="utf-8")
+    _git(tmp_path, "commit", "-am", "avanca o HEAD")
+    atual = _git(tmp_path, "rev-parse", "HEAD").stdout.strip()
+
+    assert main(["report"]) == 0
+    saida = capsys.readouterr().out
+    assert "Relatório desatualizado" in saida
+    assert analisado[:12] in saida and atual[:12] in saida
+    assert saida.index("Relatório desatualizado") < saida.index("# Sentry Report")
+
+def test_report_nao_acusa_quando_o_relatorio_e_do_head_atual(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    atual = _repositorio(tmp_path)
+    _insert_run(tmp_path, "r1", True, passed=10, global_percent=80.0, verdict="aprovado", commit=atual)
+    assert main(["report"]) == 0
+    assert "desatualizado" not in capsys.readouterr().out
+
+# cenario: sem repositorio Git o relatorio nao inventa commit
+def test_report_fora_de_repositorio_git_nao_acusa_desatualizacao(tmp_path: Path, monkeypatch, capsys):
+    """Sem HEAD com que comparar, nao ha desatualizacao a comprovar. A ausencia do
+    commit fica declarada no cabecalho, que e' limitacao, nao acusacao."""
+    monkeypatch.chdir(tmp_path)
+    _insert_run(tmp_path, "r1", True, passed=10, global_percent=80.0, verdict="aprovado")
+    assert main(["report"]) == 0
+    saida = capsys.readouterr().out
+    assert "desatualizado" not in saida
+    assert "Commit analisado: indisponível" in saida

@@ -25,8 +25,11 @@ COBERTURA = """<?xml version="1.0" ?>
 </coverage>
 """
 
-def coverage_file(path: Path, executed=(2,)):
-    path.write_text(json.dumps({"totals": {"percent_covered": 80.0}, "files": {"src/app.py": {"summary": {"percent_covered": 80.0}, "executed_lines": list(executed)}}}), encoding="utf-8")
+# `missing_lines` nao e' detalhe do fixture: e' o que declara quais linhas sao
+# statement. Sem ela, a linha 1 nao e' "descoberta", e sim inexistente para a
+# cobertura -- e o calculo, corretamente, a ignora.
+def coverage_file(path: Path, executed=(2,), missing=(1,)):
+    path.write_text(json.dumps({"totals": {"percent_covered": 80.0}, "files": {"src/app.py": {"summary": {"percent_covered": 80.0}, "executed_lines": list(executed), "missing_lines": list(missing)}}}), encoding="utf-8")
 
 def test_coverage_adapter_reads_json(tmp_path: Path):
     path = tmp_path / "coverage.json"
@@ -45,13 +48,13 @@ def test_changed_coverage_is_calculated(tmp_path: Path):
 
 def test_coverage_adapter_normalizes_windows_separators(tmp_path: Path):
     path = tmp_path / "coverage.json"
-    path.write_text(json.dumps({"totals": {"percent_covered": 80.0}, "files": {"src\\app.py": {"summary": {"percent_covered": 80.0}, "executed_lines": [2]}}}), encoding="utf-8")
+    path.write_text(json.dumps({"totals": {"percent_covered": 80.0}, "files": {"src\\app.py": {"summary": {"percent_covered": 80.0}, "executed_lines": [2], "missing_lines": [1]}}}), encoding="utf-8")
     result = CoverageAdapter().read(path)
     assert result.executed_lines["src/app.py"] == (2,)
 
 def test_changed_coverage_matches_windows_coverage_keys(tmp_path: Path):
     path = tmp_path / "coverage.json"
-    path.write_text(json.dumps({"totals": {"percent_covered": 80.0}, "files": {"src\\app.py": {"summary": {"percent_covered": 80.0}, "executed_lines": [2]}}}), encoding="utf-8")
+    path.write_text(json.dumps({"totals": {"percent_covered": 80.0}, "files": {"src\\app.py": {"summary": {"percent_covered": 80.0}, "executed_lines": [2], "missing_lines": [1]}}}), encoding="utf-8")
     coverage = CoverageAdapter().read(path)
     change = GitChange("head", "base", ("src/app.py",), changed_lines={"src/app.py": (1, 2)})
     result = calculate_changed_coverage(change, coverage)
@@ -164,3 +167,65 @@ def test_changed_coverage_from_lcov(tmp_path: Path):
     change = GitChange("head", "base", ("src/app.js",), changed_lines={"src/app.js": (1, 2)})
     result = calculate_changed_coverage(change, coverage)
     assert result.changed_percent == 50.0  # linha 1 coberta, linha 2 nao
+
+def _cobertura(executadas=(), faltantes=(), arquivo="src/app.py"):
+    return CoverageData(80.0, {arquivo: 80.0},
+                        executed_lines={arquivo: tuple(executadas)},
+                        measured_lines={arquivo: tuple(sorted({*executadas, *faltantes}))})
+
+# cenario: statement executado conta como coberto
+def test_statement_executado_entra_no_denominador_e_no_numerador():
+    change = GitChange("head", "base", ("src/app.py",), changed_lines={"src/app.py": (10,)})
+    assert calculate_changed_coverage(change, _cobertura(executadas=(10,))).changed_percent == 100.0
+
+# cenario: statement nao executado continua descoberto
+def test_statement_nao_executado_derruba_o_percentual():
+    """A correcao tira comentario do denominador; tirar tambem o statement sem teste
+    esconderia justamente o que esta medida existe para acusar."""
+    change = GitChange("head", "base", ("src/app.py",), changed_lines={"src/app.py": (10, 11)})
+    resultado = calculate_changed_coverage(change, _cobertura(executadas=(10,), faltantes=(11,)))
+    assert resultado.changed_percent == 50.0
+
+# cenario: linha em branco fica fora do calculo
+def test_linha_em_branco_nao_entra_no_denominador():
+    change = GitChange("head", "base", ("src/app.py",), changed_lines={"src/app.py": (10, 11)})
+    # A 11 e' linha em branco: a cobertura nao a mediu, entao ela nao aparece nem
+    # como executada nem como faltante.
+    assert calculate_changed_coverage(change, _cobertura(executadas=(10,))).changed_percent == 100.0
+
+# cenario: linha de comentario fica fora do calculo
+def test_linha_de_comentario_nao_derruba_a_cobertura_do_alterado():
+    """Neste codigo o comentario registra o porque de cada decisao. Conta-lo como
+    descoberto fazia escrever a explicacao derrubar a nota da propria mudanca."""
+    change = GitChange("head", "base", ("src/app.py",), changed_lines={"src/app.py": tuple(range(10, 25))})
+    resultado = calculate_changed_coverage(change, _cobertura(executadas=(10, 24)))
+    assert resultado.changed_percent == 100.0
+
+# cenario: linha de arquivo que a cobertura nao mede fica fora do calculo
+def test_arquivo_sem_cobertura_medida_nao_entra_no_denominador():
+    """Um workflow YAML alterado nao tem cobertura a medir; no denominador, ele
+    reprovava a mudanca por existir."""
+    change = GitChange("head", "base", ("src/app.py", ".github/workflows/ci.yml"),
+                       changed_lines={"src/app.py": (10,), ".github/workflows/ci.yml": (1, 2, 3)})
+    assert calculate_changed_coverage(change, _cobertura(executadas=(10,))).changed_percent == 100.0
+
+def test_mudanca_sem_linha_mensuravel_nao_produz_percentual():
+    change = GitChange("head", "base", ("README.md",), changed_lines={"README.md": (1, 2)})
+    assert calculate_changed_coverage(change, _cobertura(executadas=(10,))).changed_percent is None
+
+def test_erro_de_cobertura_passa_adiante_sem_calcular_percentual():
+    """Sem dados de linha nao ha o que calcular, e o erro precisa chegar ao
+    relatorio como limitacao. O branch existia sem teste e passou a carregar
+    tambem `measured_lines`: sem cobri-lo, a perda do campo passaria em silencio."""
+    change = GitChange("head", "base", ("src/app.py",), changed_lines={"src/app.py": (10,)})
+    vazia = CoverageData(None, {}, error="arquivo de cobertura ausente")
+    resultado = calculate_changed_coverage(change, vazia)
+    assert resultado.changed_percent is None
+    assert resultado.error == "arquivo de cobertura ausente"
+    assert resultado.measured_lines == {}
+
+def test_sem_linhas_executadas_declara_dados_ausentes():
+    change = GitChange("head", "base", ("src/app.py",), changed_lines={"src/app.py": (10,)})
+    resultado = calculate_changed_coverage(change, CoverageData(80.0, {"src/app.py": 80.0}))
+    assert resultado.error == "dados de linhas ausentes"
+    assert resultado.changed_percent is None

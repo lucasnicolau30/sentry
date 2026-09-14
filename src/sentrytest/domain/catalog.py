@@ -19,6 +19,13 @@ FIELD_CLASSES: dict[str, tuple[str, ...]] = {
     "decimal": ("vazio", "nao-numerico", "negativo", "casas-excedentes", "valido"),
     "texto": ("vazio", "tamanho-maximo-excedido", "caracteres-especiais", "valido"),
     "rota": ("com-permissao", "sem-permissao", "nao-autenticado", "token-expirado"),
+    # As quatro classes de UI: sem cobertura de linha no frontend, sao elas que
+    # cobram a matriz de casos declarada -- o mesmo catalogo, so' que verificado
+    # por execucao (Playwright) em vez de statement.
+    "formulario": ("vazio", "obrigatorio-ausente", "invalido", "valido", "submissao-duplicada"),
+    "navegacao": ("rota-existe", "rota-inexistente", "voltar", "deep-link"),
+    "responsivo": ("mobile", "tablet", "desktop"),
+    "acessibilidade": ("foco-visivel", "navegacao-teclado", "rotulo-associado", "contraste"),
 }
 
 

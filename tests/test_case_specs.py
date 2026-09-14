@@ -56,6 +56,22 @@ def test_camada_invalida_gera_erro():
     assert any("camada inválida" in error for error in errors)
 
 
+# cenario: camada frontend e aceita no vocabulario da spec
+def test_camada_frontend_e_aceita_no_vocabulario_da_spec():
+    text = VALID.replace("- **Camada:** backend", "- **Camada:** frontend")
+    document = parse_cases(text)
+    assert validate_document(document) == []
+    assert document.cases[0].layer == "frontend"
+
+
+# cenario: tipo e2e e aceito no vocabulario da spec
+def test_tipo_e2e_e_aceito_no_vocabulario_da_spec():
+    text = VALID.replace("- **Tipo:** unitário", "- **Tipo:** e2e")
+    document = parse_cases(text)
+    assert validate_document(document) == []
+    assert document.cases[0].test_type == "e2e"
+
+
 def test_bullet_obrigatorio_ausente_gera_erro():
     text = VALID.replace("- **Quando:** digita letras no campo CPF e submete\n", "")
     errors = validate_document(parse_cases(text))
@@ -93,6 +109,28 @@ def test_tipo_fora_do_catalogo_vira_limitacao_nao_cobranca():
     document = parse_cases(text)
     assert missing_classes(document.fields, document.cases) == ()
     assert unknown_field_types(document.fields) == ("matricula",)
+
+
+# cenario: catalogo cobra as cinco classes do tipo formulario
+def test_catalogo_cobra_as_cinco_classes_do_tipo_formulario():
+    assert set(required_classes("formulario")) == {
+        "vazio", "obrigatorio-ausente", "invalido", "valido", "submissao-duplicada"}
+
+
+# cenario: catalogo cobra as quatro classes do tipo navegacao
+def test_catalogo_cobra_as_quatro_classes_do_tipo_navegacao():
+    assert set(required_classes("navegacao")) == {"rota-existe", "rota-inexistente", "voltar", "deep-link"}
+
+
+# cenario: catalogo cobra as tres classes do tipo responsivo
+def test_catalogo_cobra_as_tres_classes_do_tipo_responsivo():
+    assert set(required_classes("responsivo")) == {"mobile", "tablet", "desktop"}
+
+
+# cenario: catalogo cobra as quatro classes do tipo acessibilidade
+def test_catalogo_cobra_as_quatro_classes_do_tipo_acessibilidade():
+    assert set(required_classes("acessibilidade")) == {
+        "foco-visivel", "navegacao-teclado", "rotulo-associado", "contraste"}
 
 
 def test_catalogo_aceita_tipos_declarados_no_projeto():

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 from .models import Evidence, Finding, Severity, TestStatus, Verdict, VerdictStatus
 
-DEFAULT_SEVERITIES={'test-failing':Severity.CRITICAL,'changed-code-uncovered':Severity.HIGH,'requirement-without-scenario':Severity.MEDIUM,'scenario-without-test':Severity.HIGH,'coverage-missing':Severity.MEDIUM,'error-path-without-test':Severity.HIGH,'missing-equivalence-class':Severity.HIGH,'case-spec-invalid':Severity.CRITICAL,'coverage-below-threshold':Severity.HIGH,'global-coverage-below-threshold':Severity.MEDIUM}
+DEFAULT_SEVERITIES={'test-failing':Severity.CRITICAL,'changed-code-uncovered':Severity.HIGH,'requirement-without-scenario':Severity.MEDIUM,'scenario-without-test':Severity.HIGH,'coverage-missing':Severity.MEDIUM,'error-path-without-test':Severity.HIGH,'missing-equivalence-class':Severity.HIGH,'case-spec-invalid':Severity.CRITICAL,'orphan-scenario-marker':Severity.MEDIUM,'coverage-below-threshold':Severity.HIGH,'global-coverage-below-threshold':Severity.MEDIUM}
 # Sem limiar declarado o Sentry nao inventa um numero: so cobra zero de cobertura,
 # que e ausencia de teste, nao politica. Quem define "quanto basta" e o projeto.
 @dataclass(frozen=True)
@@ -21,6 +21,7 @@ class EvaluationContext:
     error_paths_without_tests: tuple[str,...]=()
     missing_equivalence_classes: tuple[dict,...]=()
     case_spec_errors: tuple[str,...]=()
+    orphan_markers: tuple[dict,...]=()
     infrastructure_errors: tuple[str,...]=()
     global_coverage: float|None=None
     thresholds: Thresholds=Thresholds()
@@ -49,6 +50,10 @@ def evaluate(context:EvaluationContext,severities:dict[str,Severity]|None=None)-
     for item in context.error_paths_without_tests: add('error-path-without-test',f'Caminho de erro sem teste: {item}','Adicionar teste para validação, exceção ou autorização.')
     for item in context.missing_equivalence_classes: add('missing-equivalence-class',f'Classe de equivalência não coberta: {item["field"]}/{item["class"]} (tipo {item["type"]}).',f'Declarar em CASES.md um caso com "- **Classe:** {item["field"]}/{item["class"]}" cobrindo essa entrada.')
     for item in context.case_spec_errors: add('case-spec-invalid',f'CASES.md inválido: {item}','Corrigir a estrutura do CASES.md e rodar `sentry check <slug>` novamente.')
+    # Severidade media de proposito: o vinculo quebrado ja faz o caso cair para 'nao coberto',
+    # e `scenario-without-test` (alta) dispara junto. Este achado e' a explicacao daquele --
+    # sem ele, o autor procura um teste que existe e esta so com o nome errado no marcador.
+    for item in context.orphan_markers: add('orphan-scenario-marker',f'Marcador de cenário sem caso correspondente: "{item["marker"]}" em {", ".join(item["tests"])}.','Corrigir o nome no marcador para o de um caso do CASES.md, ou declarar o caso que falta.')
     # Achado crítico é conclusivo por si: teste falhando continua reprovando mesmo
     # com o ambiente degradado. Fora isso, sem evidência confiável não se aprova.
     if any(f.severity==Severity.CRITICAL for f in findings): status=VerdictStatus.REJECTED

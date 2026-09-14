@@ -153,3 +153,89 @@ def test_traceability_matches_behavior_via_issue_text_when_slug_alone_fails(tmp_
     (tmp_path / "tests" / "test_verdict.py").write_text("def test_severidade_critica_gera_reprovado():\n    pass\n", encoding="utf-8")
     result = build_traceability((), tmp_path, ("contextual-verdict",), {"contextual-verdict": "o veredito aplica severidade critica para gerar reprovado"})
     assert result["requirements_without_scenarios"] == []
+
+def _com_marcador(root: Path, marcador: str, corpo: str = "def test_algo():\n    assert True\n") -> None:
+    (root / "tests").mkdir(exist_ok=True)
+    (root / "tests" / "test_marcado.py").write_text(f"# cenario: {marcador}\n{corpo}", encoding="utf-8")
+
+MARCADO = str(Path("tests") / "test_marcado.py")
+
+# cenario: marcador que aponta para caso inexistente vira achado
+def test_marcador_sem_caso_correspondente_e_reportado(tmp_path: Path):
+    """Renomear um caso quebrava o vinculo em silencio: o marcador continuava la, o
+    caso caia para 'nao coberto', e o relatorio nao dizia por que."""
+    _com_marcador(tmp_path, "caso que foi renomeado")
+    resultado = build_traceability((SpecScenario("soma retorna o total", "", "", ""),), tmp_path,
+                                   changed_test_lines={MARCADO: (1,)})
+    orfaos = resultado["orphan_markers"]
+    assert len(orfaos) == 1
+    assert orfaos[0]["marker"] == "caso que foi renomeado"
+    assert orfaos[0]["tests"] == [MARCADO]
+
+# cenario: marcador orfao em linha nao alterada nao vira achado
+def test_marcador_orfao_em_linha_nao_alterada_nao_e_achado(tmp_path: Path):
+    """O Sentry julga a mudanca. Marcador ja orfao antes de alguem encostar no codigo
+    e' divida pre-existente: acusa-la em toda analise afoga o achado util -- o nome
+    que acabou de ser errado -- no meio de dezenas que nao explicam lacuna nenhuma.
+
+    Por arquivo alterado nao bastava: um repositorio que use `# cenario:` como
+    documentacao em prosa tem dezenas por arquivo, e tocar o arquivo por qualquer
+    motivo despejava todos no relatorio."""
+    _com_marcador(tmp_path, "caso que foi renomeado")
+    resultado = build_traceability((SpecScenario("soma retorna o total", "", "", ""),), tmp_path,
+                                   changed_test_lines={})
+    assert resultado["orphan_markers"] == []
+
+def test_marcador_escrito_dentro_de_literal_de_string_nao_vira_cenario(tmp_path: Path):
+    """Um fixture que *escreve* um marcador noutro arquivo devolvia o resto da linha
+    de codigo como nome de cenario. Inofensivo enquanto o marcador so associava teste
+    -- um nome impossivel nao casa com nada --, virou ruido quando marcador sem caso
+    correspondente passou a ser achado."""
+    fixture = (
+        'def test_escreve(tmp_path):\n'
+        '    (tmp_path / "t.py").write_text("# cenario: acesso negado\\n", encoding="utf-8")\n'
+    )
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_fixture.py").write_text(fixture, encoding="utf-8")
+    resultado = build_traceability((SpecScenario("acesso negado", "", "", ""),), tmp_path,
+                                   changed_test_lines={str(Path("tests") / "test_fixture.py"): (1, 2)})
+    assert resultado["orphan_markers"] == []
+
+# cenario: marcador que casa com caso declarado nao vira achado
+def test_marcador_que_casa_com_caso_declarado_nao_e_orfao(tmp_path: Path):
+    _com_marcador(tmp_path, "soma retorna o total")
+    resultado = build_traceability((SpecScenario("soma retorna o total", "", "", ""),), tmp_path,
+                                   changed_test_lines={MARCADO: (1,)})
+    assert resultado["orphan_markers"] == []
+
+def test_marcador_sem_acento_casa_com_caso_acentuado(tmp_path: Path):
+    """A comparacao normaliza acento, como a associacao ja fazia: um marcador correto
+    porem digitado sem acento nao pode ser acusado de orfao."""
+    _com_marcador(tmp_path, "divisao por zero e rejeitada")
+    resultado = build_traceability((SpecScenario("divisão por zero é rejeitada", "", "", ""),), tmp_path,
+                                   changed_test_lines={MARCADO: (1,)})
+    assert resultado["orphan_markers"] == []
+
+# cenario: arquivo de teste sem marcador nao vira achado
+def test_arquivo_sem_marcador_nao_produz_orfao(tmp_path: Path):
+    """O marcador e' opcional: a associacao por semelhanca de nome continua valendo,
+    e ausencia de marcador nao e' vinculo quebrado."""
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_simples.py").write_text("def test_soma_retorna_o_total():\n    assert True\n", encoding="utf-8")
+    resultado = build_traceability((SpecScenario("soma retorna o total", "", "", ""),), tmp_path,
+                                   changed_test_lines={str(Path("tests") / "test_simples.py"): (1, 2)})
+    assert resultado["orphan_markers"] == []
+    assert resultado["scenarios"][0]["covered"] is True
+
+def test_sem_cenario_declarado_nenhum_marcador_e_orfao(tmp_path: Path):
+    _com_marcador(tmp_path, "qualquer nome")
+    assert build_traceability((), tmp_path, changed_test_lines={MARCADO: (1,)})["orphan_markers"] == []
+
+def test_marcador_de_outra_spec_do_projeto_nao_e_orfao(tmp_path: Path):
+    """O diretorio de testes e' um so e atende todas as specs. Analisando uma delas,
+    comparar os marcadores contra a fatia acusaria de orfao todo marcador das outras."""
+    _com_marcador(tmp_path, "caso de outra spec")
+    resultado = build_traceability(
+        (SpecScenario("caso desta spec", "", "", ""),), tmp_path,
+        declared_names=("caso desta spec", "caso de outra spec"), changed_test_lines={MARCADO: (1,)})
+    assert resultado["orphan_markers"] == []

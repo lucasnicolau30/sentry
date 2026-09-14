@@ -2,6 +2,29 @@ from sentrytest.adapters.case_specs import parse_cases
 from sentrytest.application.cases import build_test_cases, scaffold, slugify, summarize
 from sentrytest.domain.models import Layer, Priority, TestStatus as DomainTestStatus, TestType as DomainTestType
 
+DOC_FRONTEND = """# Landing
+
+## Prompt
+
+A landing mostra o titulo.
+
+## Caso: landing mostra o titulo
+
+- **Requisito:** mostrar o titulo
+- **Camada:** frontend
+- **Tipo:** e2e
+- **Prioridade:** alta
+- **Dado:** a landing carregada
+- **Quando:** a pagina renderiza
+- **Então:** o titulo aparece
+"""
+
+TRACEABILITY_FRONTEND = {
+    "scenarios": [
+        {"name": "landing mostra o titulo", "tests": ["frontend/e2e/home.spec.ts"], "covered": True},
+    ]
+}
+
 DOC = """# Login
 
 ## Prompt
@@ -74,6 +97,29 @@ def test_suite_falhando_nao_atribui_falha_ao_caso():
     """Sem granularidade por teste nao da para culpar um caso especifico."""
     cases = build_test_cases(parse_cases(DOC), TRACEABILITY, tests_ran=True, suite_failed=True)
     assert cases[0].status == DomainTestStatus.PARTIAL
+
+
+# cenario: falha da suite e2e nao rebaixa caso de backend para parcial
+def test_falha_da_suite_e2e_nao_rebaixa_caso_de_backend_para_parcial():
+    cases = build_test_cases(parse_cases(DOC), TRACEABILITY, tests_ran=True, suite_failed=False, e2e_failed=True)
+    assert cases[0].status == DomainTestStatus.COVERED
+
+
+# cenario: falha da suite backend nao rebaixa caso de frontend para parcial
+def test_falha_da_suite_backend_nao_rebaixa_caso_de_frontend_para_parcial():
+    cases = build_test_cases(parse_cases(DOC_FRONTEND), TRACEABILITY_FRONTEND,
+                             tests_ran=True, suite_failed=True, e2e_failed=False)
+    assert cases[0].status == DomainTestStatus.COVERED
+    assert cases[0].layer == Layer.FRONTEND
+
+
+# cenario: evidencia de trace e screenshot e anexada ao caso quando o teste passou
+def test_evidencia_de_trace_e_screenshot_e_anexada_ao_caso_quando_o_teste_passou():
+    evidencia = {"landing mostra o titulo": ("test-results/trace.zip", "test-results/screenshot.png")}
+    cases = build_test_cases(parse_cases(DOC_FRONTEND), TRACEABILITY_FRONTEND,
+                             tests_ran=True, e2e_evidence=evidencia)
+    paths = {item.path for item in cases[0].evidences if item.source == "playwright"}
+    assert paths == {"test-results/trace.zip", "test-results/screenshot.png"}
 
 
 def test_entrada_declarada_vira_input_data():

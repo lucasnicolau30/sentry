@@ -16,7 +16,11 @@ class CoverageData:
     # `excluded_lines` sao linhas que o projeto tirou da medicao de proposito
     # (`# pragma: no cover`). Distinto de nao executada: e' exclusao declarada,
     # e tratar as duas como iguais acusaria falta de teste onde houve decisao.
-    global_percent:float|None; files:dict[str,float]; changed_percent:float|None=None; error:str|None=None; executed_lines:dict[str,tuple[int,...]]=None; excluded_lines:dict[str,tuple[int,...]]=None
+    #
+    # `measured_lines` sao as linhas que a ferramenta instrumentou: statements, e so
+    # eles. Comentario, linha em branco e arquivo que a cobertura nao le nao aparecem
+    # aqui -- e' o que separa "nao foi executada" de "nao havia o que executar".
+    global_percent:float|None; files:dict[str,float]; changed_percent:float|None=None; error:str|None=None; executed_lines:dict[str,tuple[int,...]]=None; excluded_lines:dict[str,tuple[int,...]]=None; measured_lines:dict[str,tuple[int,...]]=None
 class SpecReader(Protocol):
     """Fonte da matriz de casos. `document()` é o contrato principal: entrega
     título, prompt, campos declarados e casos. `scenarios()` é a projeção usada

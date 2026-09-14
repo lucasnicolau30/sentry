@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 import pytest
 from sentrytest.application.analyze import _severity_policy, analyze, select_spec
@@ -73,6 +74,44 @@ def test_analyze_runs_tests_once(tmp_path:Path):
     assert not (runs_dir/'pending-coverage.json').exists()
     assert (runs_dir/f'{run.id}-coverage.json').exists()
     assert run.configuration['test_execution']['passed']>=1
+
+def _fake_e2e_project(root: Path, failures: int = 0) -> None:
+    """Um 'e2e runner' que nao depende de Node: escreve seu proprio JUnit."""
+    (root / 'e2e_runner.py').write_text(
+        "from pathlib import Path\n"
+        "Path('reports').mkdir(exist_ok=True)\n"
+        f"Path('reports/junit.xml').write_text('<testsuite tests=\"1\" failures=\"{failures}\">"
+        "<testcase name=\"x\"/></testsuite>', encoding='utf-8')\n",
+        encoding='utf-8')
+    executavel = sys.executable.replace('\\', '/')
+    (root / 'sentry.toml').write_text(
+        f'[e2e]\ncommand = "{executavel} e2e_runner.py"\njunit_xml = "reports/junit.xml"\n',
+        encoding='utf-8')
+
+# cenario: segunda suite e2e roda junto da suite backend sem mascarar a outra
+def test_analyze_roda_suite_e2e_junto_da_backend_sem_mascarar_a_outra(tmp_path: Path):
+    _spec(tmp_path)
+    (tmp_path / 'tests').mkdir()
+    (tmp_path / 'tests' / 'test_ok.py').write_text('def test_ok():\n    assert 1 == 1\n', encoding='utf-8')
+    (tmp_path / 'conftest.py').write_text('', encoding='utf-8')
+    _fake_e2e_project(tmp_path)
+
+    run = analyze(tmp_path, run_tests=True)
+
+    assert run.configuration['test_execution']['passed'] >= 1
+    assert run.configuration['e2e_execution']['passed'] == 1
+    assert run.configuration['e2e_execution']['failed'] == 0
+
+# cenario: sem e2e configurado no sentry toml a segunda suite nao roda
+def test_analyze_sem_e2e_configurado_a_segunda_suite_nao_roda(tmp_path: Path):
+    _spec(tmp_path)
+    (tmp_path / 'tests').mkdir()
+    (tmp_path / 'tests' / 'test_ok.py').write_text('def test_ok():\n    assert 1 == 1\n', encoding='utf-8')
+    (tmp_path / 'conftest.py').write_text('', encoding='utf-8')
+
+    run = analyze(tmp_path, run_tests=True)
+
+    assert 'e2e_execution' not in run.configuration
 
 # cenario: rejeita slug que escapa da pasta de specs
 def test_select_spec_rejects_slug_escaping_specs_dir(tmp_path: Path):
@@ -300,3 +339,28 @@ def test_init_grava_o_nome_real_do_projeto_na_config(tmp_path: Path):
     from sentrytest.init_project import initialize_project
     initialize_project(tmp_path)
     assert f'name = "{tmp_path.name}"' in (tmp_path / 'sentry.toml').read_text(encoding='utf-8')
+
+# cenario: mudanca sem linha mensuravel nao vira achado de cobertura ausente
+def test_mudanca_so_de_comentario_nao_acusa_cobertura_ausente(tmp_path: Path):
+    """A extensao dizia "e' fonte, logo tinha o que medir", e `coverage-missing`
+    afirmava "nao foi possivel calcular" onde nao havia o que calcular. Com a
+    cobertura em maos, quem decide se havia algo mensuravel e' a medicao."""
+    import subprocess
+    _spec(tmp_path)
+    (tmp_path / 'sentry.toml').write_text('[coverage]\npath = "coverage/lcov.info"\n', encoding='utf-8')
+    for args in (('init',), ('config', 'user.email', 't@t'), ('config', 'user.name', 't')):
+        subprocess.run(['git', *args], cwd=tmp_path, capture_output=True)
+    (tmp_path / 'app.js').write_text('const a = 1;\n', encoding='utf-8')
+    subprocess.run(['git', 'add', '-A'], cwd=tmp_path, capture_output=True)
+    subprocess.run(['git', 'commit', '-qm', 'base'], cwd=tmp_path, capture_output=True)
+    # So a linha 2 muda, e ela e' comentario: nenhum DA a descreve no lcov.
+    (tmp_path / 'app.js').write_text('const a = 1;\n// o porque desta decisao\n', encoding='utf-8')
+    coverage = tmp_path / 'coverage' / 'lcov.info'
+    coverage.parent.mkdir()
+    coverage.write_text('SF:app.js\nDA:1,1\nend_of_record\n', encoding='utf-8')
+
+    run = analyze(tmp_path, run_tests=True)
+    assert run.configuration['coverage']['changed_percent'] is None
+    regras = {finding.rule for finding in run.findings}
+    assert 'coverage-missing' not in regras
+    assert 'changed-code-uncovered' not in regras

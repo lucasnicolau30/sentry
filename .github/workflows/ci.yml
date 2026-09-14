@@ -74,12 +74,19 @@ jobs:
 
       - name: Analisar a própria mudança
         # Codigo de saida: 0 aprovado, 1 com ressalvas, 2 reprovado,
-        # 3 inconclusivo. So `reprovado` derruba o build -- ressalva e
-        # inconclusivo aparecem no relatorio sem bloquear a PR.
+        # 3 inconclusivo/infraestrutura. Aprovado e ressalva passam; acima disso
+        # derruba o build.
+        #
+        # O 3 entrou aqui depois de deixar este job verde sem medir nada: as specs
+        # nao eram versionadas, o checkout limpo nao encontrava matriz de casos, o
+        # `run` saia com 3 e a expressao antiga (`== 2 ? 1 : 0`) traduzia isso em
+        # sucesso -- e o passo seguinte publicava um latest.md de commits atras.
+        # Para o job que existe para provar que o produto funciona, "nao consegui
+        # medir" e' falha, nao aprovacao silenciosa.
         run: |
           sentry run --spec all --run-tests || codigo=$?
           echo "veredito (exit ${codigo:-0})"
-          exit $(( ${codigo:-0} == 2 ? 1 : 0 ))
+          exit $(( ${codigo:-0} > 1 ? 1 : 0 ))
 
       - name: Publicar o relatório
         if: always()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -23,6 +24,24 @@ class LocalGitAdapter:
 
     def _run(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(["git", *args], cwd=self.root, capture_output=True, check=False, **DECODING)
+
+    def head(self) -> str | None:
+        """O commit atual, sem montar o diff. `sentry report` so precisa disto para
+        confrontar com o commit gravado no relatorio, e `change()` custaria dois
+        diffs completos para devolver o mesmo SHA. None fora de repositorio Git."""
+        result = self._run("rev-parse", "HEAD")
+        return result.stdout.strip() if result.returncode == 0 else None
+
+    def status_summary(self) -> tuple[str | None, bool | None]:
+        """(branch atual, arvore limpa) para a linha `git repo` do `init` --
+        so' o que da' para saber sem montar diff nenhum. `(None, None)` fora
+        de repositorio Git, mesma convencao de `head()`."""
+        branch = self._run("rev-parse", "--abbrev-ref", "HEAD")
+        if branch.returncode != 0:
+            return None, None
+        status = self._run("status", "--porcelain")
+        clean = status.returncode == 0 and not status.stdout.strip()
+        return branch.stdout.strip(), clean
 
     def _merge_base(self, reference: str) -> str | None:
         """O ponto em que a branch atual divergiu da referencia. None se a
@@ -113,6 +132,40 @@ class LocalGitAdapter:
                     continue
                 changed_lines[name] = tuple(range(1, line_count + 1))
         return GitChange(current, reference or "HEAD", tuple(statuses), diff=diff.stdout, statuses=statuses, changed_lines=changed_lines)
+
+    def whole_tree(self, source_extensions: frozenset[str]) -> GitChange:
+        """O projeto inteiro tratado como alterado, para `sentry status`: cada arquivo
+        de codigo-fonte rastreado ganha `changed_lines` cobrindo o arquivo inteiro,
+        exatamente como `change()` ja faz para um `.py` novo sem hunk reconhecivel
+        (linha ~117 acima) -- aqui essa mesma regra vira o unico caminho, nao a
+        excecao. Sem diff nenhum computado: nada consome `change.diff` fora do bloco
+        de bytes/chars do relatorio, e calcular um diff do projeto inteiro custaria um
+        `git diff` gigante que ninguem le.
+        """
+        revision = self._run("rev-parse", "HEAD")
+        if revision.returncode != 0:
+            return GitChange(None, None, (), error="diretorio nao e um repositorio Git")
+        current = revision.stdout.strip()
+        tracked = self._run("ls-files")
+        if tracked.returncode != 0:
+            return GitChange(current, None, (), error=tracked.stderr.strip() or "nao foi possivel listar os arquivos rastreados")
+        names = set(tracked.stdout.splitlines())
+        untracked = self._run("ls-files", "--others", "--exclude-standard")
+        if untracked.returncode == 0:
+            names.update(untracked.stdout.splitlines())
+        names = {name for name in names if not is_generated_artifact(name)}
+        statuses = {name: "A" for name in names}
+        changed_lines: dict[str, tuple[int, ...]] = {}
+        for name in names:
+            if Path(name).suffix.lower() not in source_extensions:
+                continue
+            try:
+                line_count = len((self.root / name).read_text(encoding="utf-8").splitlines())
+            except (OSError, UnicodeDecodeError):
+                continue
+            if line_count:
+                changed_lines[name] = tuple(range(1, line_count + 1))
+        return GitChange(current, None, tuple(sorted(statuses)), diff="", statuses=statuses, changed_lines=changed_lines)
 
 def _is_untouched_init_file(root: Path, name: str, added: list[str]) -> bool:
     """O arquivo alterado e' obra do `init` e so dele?
@@ -219,6 +272,24 @@ def _resolved_executable(root: Path, executable: str) -> str:
     return str(candidate if candidate.is_absolute() else (root / candidate))
 
 
+def _resolve_command_head(root: Path, executable: str) -> str:
+    """Como `_resolved_executable`, mas tambem resolve nome puro pelo PATH.
+
+    No Windows, `CreateProcess` recebendo uma lista de argumentos nao aplica
+    `PATHEXT` sozinho: um shim `.cmd`/`.bat` (`npx`, `npm`, `yarn`) nunca e
+    encontrado assim, so' um `.exe` real. `shutil.which` aplica `PATHEXT` e
+    devolve o caminho completo do shim; sem ele, declarar `[e2e] command = "npx
+    playwright test"` falhava com "arquivo nao encontrado" mesmo com o Node
+    instalado e no PATH.
+    """
+    resolved = _resolved_executable(root, executable)
+    if resolved == executable and "/" not in executable.replace("\\", "/"):
+        found = shutil.which(executable)
+        if found:
+            return found
+    return resolved
+
+
 def _interpreter_beside(root: Path, executable: str) -> str | None:
     """O interpretador irmao de um console script instalado. Num venv, `bin/pytest`
     e `bin/python` (ou `Scripts\\pytest.exe` e `Scripts\\python.exe`) moram lado a
@@ -276,8 +347,12 @@ class SuiteAdapter:
     um `go test` quebraria o comando do usuario por erro de linha de comando.
     """
 
-    def __init__(self, root: Path, command: str = "pytest", junit_xml: str | None = None):
+    def __init__(self, root: Path, command: str = "pytest", junit_xml: str | None = None, cwd: str | None = None):
         self.root = root
+        # Diretorio onde o comando roda, relativo a raiz -- a segunda suite (e2e)
+        # normalmente mora num subprojeto (frontend/) com seu proprio node_modules
+        # e config, e rodar da raiz do projeto Python nao acharia nenhum dos dois.
+        self.cwd = (root / cwd) if cwd else root
         self.junit_xml = junit_xml
         args = command.split()
         invocation = _pytest_invocation(root, args)
@@ -293,7 +368,7 @@ class SuiteAdapter:
         # declarado por caminho relativo sofre o mesmo, entao o caminho generico
         # tambem passa pela resolucao.
         self.command = ([interpreter, "-m", "coverage", "run", "-m", "pytest", *invocation[1]] if interpreter
-                        else [_resolved_executable(root, args[0]), *args[1:]] if args else [])
+                        else [_resolve_command_head(root, args[0]), *args[1:]] if args else [])
 
     def _classify(self, returncode: int, ran: bool) -> str | None:
         if self.is_pytest:
@@ -339,7 +414,7 @@ class SuiteAdapter:
                 # devolve None e a contagem cai no fallback por regex.
                 command = [*self.command, "--junitxml", str(report_path)] if self.is_pytest else list(self.command)
             try:
-                result = subprocess.run(command, cwd=self.root, capture_output=True, timeout=timeout_seconds, **DECODING)
+                result = subprocess.run(command, cwd=self.cwd, capture_output=True, timeout=timeout_seconds, **DECODING)
             # OSError, e nao so FileNotFoundError: executavel sem permissao, caminho
             # invalido e recusa do SO chegam aqui como irmaos. Configuracao ruim e'
             # infraestrutura, nao motivo para derrubar a analise com excecao.
@@ -418,15 +493,19 @@ def _from_line_hits(instrumented: dict[str, set[int]], hit: dict[str, set[int]],
     """Monta o CoverageData a partir de linha->executou, comum a lcov e cobertura."""
     files: dict[str, float | None] = {}
     executed: dict[str, tuple[int, ...]] = {}
+    measured: dict[str, tuple[int, ...]] = {}
     for filename, lines in instrumented.items():
         covered = hit.get(filename, set())
         executed[filename] = tuple(sorted(covered))
+        # Em lcov e cobertura, linha instrumentada ja e' exatamente "o que a
+        # ferramenta mediu": os formatos so descrevem statement.
+        measured[filename] = tuple(sorted(lines))
         files[filename] = (len(covered) / len(lines) * 100) if lines else None
     if global_percent is None:
         total = sum(len(lines) for lines in instrumented.values())
         covered_total = sum(len(hit.get(name, set())) for name in instrumented)
         global_percent = (covered_total / total * 100) if total else None
-    return CoverageData(global_percent, files, executed_lines=executed)
+    return CoverageData(global_percent, files, executed_lines=executed, measured_lines=measured)
 
 
 def _parse_coverage_py(text: str, root: Path | None) -> CoverageData:
@@ -434,6 +513,7 @@ def _parse_coverage_py(text: str, root: Path | None) -> CoverageData:
     files = {}
     executed = {}
     excluded = {}
+    measured = {}
     for filename, payload in data.get("files", {}).items():
         normalized = _relative(filename, root)
         files[normalized] = payload.get("summary", {}).get("percent_covered")
@@ -441,7 +521,10 @@ def _parse_coverage_py(text: str, root: Path | None) -> CoverageData:
         # Só o coverage.py tem o conceito de exclusão declarada; lcov e cobertura
         # descrevem apenas linha instrumentada e execuções.
         excluded[normalized] = tuple(payload.get("excluded_lines", []))
-    return CoverageData(data.get("totals", {}).get("percent_covered"), files, executed_lines=executed, excluded_lines=excluded)
+        # Statement medido e' executado ou faltante, e nada mais: comentario, linha
+        # em branco e `# pragma: no cover` nao aparecem em nenhuma das duas listas.
+        measured[normalized] = tuple(sorted({*executed[normalized], *payload.get("missing_lines", [])}))
+    return CoverageData(data.get("totals", {}).get("percent_covered"), files, executed_lines=executed, excluded_lines=excluded, measured_lines=measured)
 
 
 def _parse_lcov(text: str, root: Path | None) -> CoverageData:

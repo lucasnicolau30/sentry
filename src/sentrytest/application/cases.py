@@ -70,29 +70,42 @@ def build_test_cases(
     traceability: dict,
     tests_ran: bool = False,
     suite_failed: bool = False,
+    e2e_failed: bool = False,
+    e2e_evidence: dict[str, tuple[str, ...]] | None = None,
 ) -> tuple[TestCase, ...]:
     associated = {_normalize(item["name"]): item.get("tests", []) for item in traceability.get("scenarios", [])}
+    e2e_evidence = e2e_evidence or {}
     result = []
     for index, case in enumerate(document.cases, start=1):
         related = associated.get(_normalize(case.name), [])
+        layer = _enum_for(case.layer, LAYERS, Layer, Layer.BACKEND)
+        test_type = _enum_for(case.test_type, TEST_TYPES, TestType, TestType.UNIT)
         evidences = [Evidence(source="CASES.md", summary=f"caso declarado: {case.name}")]
         if case.equivalence_class:
             evidences.append(Evidence(source="catálogo", summary=f"classe coberta: {case.equivalence_class}"))
         for path in related:
             evidences.append(Evidence(source="teste", path=path, summary="teste associado por rastreabilidade"))
+        # Camada frontend nao tem cobertura de linha: a prova e' o trace/screenshot
+        # da execucao real, nunca um percentual que o produto nao mede ali.
+        for path in e2e_evidence.get(_normalize(case.name), ()):
+            evidences.append(Evidence(source="playwright", path=path,
+                                      summary="evidência de execução e2e (trace/screenshot), não cobertura de linha"))
+        # A execucao e' por suite (backend, e2e), nao por caso: falha na suite e2e
+        # nao pode marcar como parcial um caso de backend que passou, e vice-versa.
+        suite_failed_for_case = e2e_failed if (layer == Layer.FRONTEND or test_type == TestType.E2E) else suite_failed
         result.append(
             TestCase(
                 id=f"TC-{index:02d}-{_slug(case.name)}"[:80],
                 name=case.name,
                 requirement=case.requirement,
-                layer=_enum_for(case.layer, LAYERS, Layer, Layer.BACKEND),
+                layer=layer,
                 preconditions=(case.given,) if case.given else (),
                 input_data=dict(case.input_data or {}),
                 action=case.when,
                 expected_result=case.then,
                 priority=_enum_for(case.priority, PRIORITIES, Priority, Priority.MEDIUM),
-                test_type=_enum_for(case.test_type, TEST_TYPES, TestType, TestType.UNIT),
-                status=_status(related, tests_ran, suite_failed),
+                test_type=test_type,
+                status=_status(related, tests_ran, suite_failed_for_case),
                 related_test=related[0] if related else None,
                 evidences=tuple(evidences),
             )

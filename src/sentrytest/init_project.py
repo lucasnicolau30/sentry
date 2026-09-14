@@ -4,6 +4,7 @@ from __future__ import annotations
 import sqlite3
 import subprocess
 import sys
+from importlib.metadata import PackageNotFoundError, version as _package_version
 from pathlib import Path
 
 from .skills import install_agent_guide, install_skills
@@ -19,13 +20,21 @@ def default_config(project_name: str) -> str:
 # As unicas linhas que o `init` escreve no .gitignore do projeto. Nomeadas aqui
 # porque quem monta o diff precisa delas: uma alteracao composta so por estas
 # linhas e' do Sentry, e nao mudanca do usuario a revisar.
-# specs sao dado local (nao versionado); reports/* fica fora exceto latest.md,
-# que fica rastreavel para aparecer no diff da PR sem precisar rodar o Sentry.
-# Git nao reinclui arquivo dentro de diretorio excluido, por isso o padrao e
-# ".../*" (conteudo) em vez de ".../" (o diretorio inteiro) antes da negacao.
-GITIGNORE_ENTRIES = ('.sentry/sentry.db', '.sentry/specs/', '.sentry/reports/*',
+# reports/* fica fora exceto latest.md, que fica rastreavel para aparecer no
+# diff sem precisar rodar o Sentry. Git nao reinclui arquivo dentro de diretorio
+# excluido, por isso o padrao e ".../*" (conteudo) em vez de ".../" (o diretorio
+# inteiro) antes da negacao.
+#
+# `.sentry/specs/` saiu daqui: spec e' intencao declarada, nao evidencia gerada --
+# a mesma frase que o README ja usava enquanto o init a ignorava. Nao versionada,
+# ela so existia na maquina de quem a escreveu: um checkout limpo nao encontrava
+# matriz de casos, e a analise saia inconclusiva por falta de spec em vez de medir.
+GITIGNORE_ENTRIES = ('.sentry/sentry.db', '.sentry/reports/*',
                      '!.sentry/reports/latest.md', '.sentry/runs/', '.sentry/test-plans/')
-OBSOLETE_GITIGNORE_ENTRIES = frozenset({'.sentry/reports/'})
+# Removidas do .gitignore na proxima inicializacao. A comparacao e' por linha
+# inteira: `.sentry/specs/rascunhos/`, escrita pelo usuario, nao casa com
+# `.sentry/specs/` e permanece onde esta.
+OBSOLETE_GITIGNORE_ENTRIES = frozenset({'.sentry/reports/', '.sentry/specs/'})
 
 # Cada versao lista os comandos DDL que faltam para chegar nela, a partir da
 # anterior. Todos IF NOT EXISTS: aplicar de novo num banco ja migrado nao falha,
@@ -79,8 +88,19 @@ def _module_available(module: str) -> bool:
     result = subprocess.run([sys.executable, '-m', module, '--version'], capture_output=True, text=True, encoding='utf-8', errors='replace')
     return result.returncode == 0
 
-def check_dependencies(root: Path) -> dict[str,bool]:
-    return {'pytest': _module_available('pytest'), 'coverage': _module_available('coverage')}
+def _installed_version(module: str) -> str | None:
+    """A versao instalada, ou None se o pacote nao resolve por
+    importlib.metadata -- so' e' chamada depois que `_module_available` ja
+    confirmou que o modulo carrega, entao None aqui seria uma divergencia
+    real (nome do pacote diferente do modulo), nao o caminho comum."""
+    try:
+        return _package_version(module)
+    except PackageNotFoundError:
+        return None
+
+def check_dependencies(root: Path) -> dict[str, dict]:
+    return {name: {'installed': (ok := _module_available(name)), 'version': _installed_version(name) if ok else None}
+            for name in ('pytest', 'coverage')}
 
 def install_dependencies(names: list[str]) -> list[tuple[str,bool,str]]:
     """Instala no ambiente Python atual. Só é chamada com pedido explícito do usuário,
