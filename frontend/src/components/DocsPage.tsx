@@ -471,10 +471,11 @@ const actionsByLang: Record<"pt" | "en", Card[]> = {
     },
     {
       icon: <RunIcon />,
-      title: "Rode a suíte",
+      title: "Feche o loop",
       description: (
         <>
-          <Cmd>sentry run --run-tests</Cmd> executa os testes, lê diff e cobertura, aplica as regras e persiste o resultado.
+          <Cmd>sentry watch</Cmd> reavalia a cada salvamento sem custo, e <Cmd>sentry review</Cmd> dá o veredito
+          completo antes de commitar.
         </>
       ),
     },
@@ -530,10 +531,11 @@ const actionsByLang: Record<"pt" | "en", Card[]> = {
     },
     {
       icon: <RunIcon />,
-      title: "Run the suite",
+      title: "Close the loop",
       description: (
         <>
-          <Cmd>sentry run --run-tests</Cmd> runs the tests, reads diff and coverage, applies the rules and persists the result.
+          <Cmd>sentry watch</Cmd> re-evaluates on every save at no cost, and <Cmd>sentry review</Cmd> gives the full
+          verdict before you commit.
         </>
       ),
     },
@@ -1073,21 +1075,23 @@ function SetupContent({
           <p className="text-justify text-base leading-relaxed text-[var(--text)]/80">
             {lang === "pt" ? (
               <>
-                <span className="text-[var(--text-h)]">.sentry/</span> fica fora do Git, com uma exceção
+                A evidência gerada — execuções, banco e relatórios — fica fora do Git, com uma exceção
                 deliberada: <span className="text-[var(--text-h)]">.sentry/reports/latest.md</span> é versionado, para o
-                veredito aparecer no diff da PR sem que o revisor precise rodar o{" "}
+                veredito aparecer no diff sem que quem lê precise rodar o{" "}
                 <span className="text-[var(--text-h)]">Sentry</span>. As specs em{" "}
-                <span className="text-[var(--text-h)]">.sentry/specs/</span> nunca são removidas: são intenção declarada,
-                não evidência gerada.
+                <span className="text-[var(--text-h)]">.sentry/specs/</span> são versionadas e nunca removidas: são
+                intenção declarada, não evidência gerada. Sem elas no repositório, um checkout limpo não tem
+                matriz de casos e a análise sai inconclusiva por falta de spec, em vez de medir.
               </>
             ) : (
               <>
-                <span className="text-[var(--text-h)]">.sentry/</span> stays out of Git, with one deliberate
+                Generated evidence — runs, database and reports — stays out of Git, with one deliberate
                 exception: <span className="text-[var(--text-h)]">.sentry/reports/latest.md</span> is versioned, so the
-                verdict shows up in the PR diff without the reviewer having to run{" "}
+                verdict shows up in the diff without the reader having to run{" "}
                 <span className="text-[var(--text-h)]">Sentry</span>. Specs in{" "}
-                <span className="text-[var(--text-h)]">.sentry/specs/</span> are never removed: they're declared intent,
-                not generated evidence.
+                <span className="text-[var(--text-h)]">.sentry/specs/</span> are versioned and never removed: they're
+                declared intent, not generated evidence. Without them in the repository, a clean checkout has no
+                case matrix and the analysis comes back inconclusive for lack of a spec instead of measuring.
               </>
             )}
           </p>
@@ -1206,8 +1210,9 @@ function WorkflowContent({
             <p className="text-[var(--text)]/40"># CASES.md</p>
             <p className="mt-2 text-[var(--text-h)]">## {t("Cadastro de cliente", "Customer registration")}</p>
             <p className="mt-2 text-[var(--text)]/70">- **{t("requisito", "requirement")}**: {t("validar CPF antes de salvar", "validate CPF before saving")}</p>
-            <p className="text-[var(--text)]/70">- **{t("camada", "layer")}**: {t("unidade", "unit")}</p>
-            <p className="text-[var(--text)]/70">- **{t("tipo", "type")}**: cpf</p>
+            <p className="text-[var(--text)]/70">- **{t("camada", "layer")}**: backend</p>
+            <p className="text-[var(--text)]/70">- **{t("tipo", "type")}**: {t("unitário", "unit")}</p>
+            <p className="text-[var(--text)]/70">- **{t("classe", "class")}**: cpf</p>
             <p className="text-[var(--text)]/70">- **{t("prioridade", "priority")}**: {t("alta", "high")}</p>
             <p className="text-[var(--text)]/70">- **{t("entrada", "input")}**: {t("CPF com dígito verificador inválido", "CPF with invalid check digit")}</p>
             <p className="text-[var(--text)]/70">- **{t("resultado esperado", "expected result")}**: {t("rejeita com erro de validação", "rejects with a validation error")}</p>
@@ -1236,8 +1241,14 @@ function WorkflowContent({
               <span className="text-[var(--text-h)]">cep</span>,{" "}
               <span className="text-[var(--text-h)]">inteiro</span>,{" "}
               <span className="text-[var(--text-h)]">decimal</span>,{" "}
-              <span className="text-[var(--text-h)]">texto</span> e{" "}
-              <span className="text-[var(--text-h)]">rota</span>. Uma classe que não faz sentido pode ser dispensada
+              <span className="text-[var(--text-h)]">texto</span>,{" "}
+              <span className="text-[var(--text-h)]">rota</span>,{" "}
+              <span className="text-[var(--text-h)]">formulario</span>,{" "}
+              <span className="text-[var(--text-h)]">navegacao</span>,{" "}
+              <span className="text-[var(--text-h)]">responsivo</span> e{" "}
+              <span className="text-[var(--text-h)]">acessibilidade</span> — os quatro últimos são para casos de
+              camada <span className="text-[var(--text-h)]">frontend</span>, verificados por evidência de execução do
+              Playwright. Uma classe que não faz sentido pode ser dispensada
               com justificativa em vez de virar caso artificial:
             </p>
           ) : (
@@ -1252,8 +1263,14 @@ function WorkflowContent({
               <span className="text-[var(--text-h)]">zip</span>,{" "}
               <span className="text-[var(--text-h)]">integer</span>,{" "}
               <span className="text-[var(--text-h)]">decimal</span>,{" "}
-              <span className="text-[var(--text-h)]">text</span> and{" "}
-              <span className="text-[var(--text-h)]">route</span>. A class that doesn't make sense can be waived
+              <span className="text-[var(--text-h)]">text</span>,{" "}
+              <span className="text-[var(--text-h)]">route</span>,{" "}
+              <span className="text-[var(--text-h)]">formulario</span> (form),{" "}
+              <span className="text-[var(--text-h)]">navegacao</span> (navigation),{" "}
+              <span className="text-[var(--text-h)]">responsivo</span> (responsive) and{" "}
+              <span className="text-[var(--text-h)]">acessibilidade</span> (accessibility) — the last four are for
+              <span className="text-[var(--text-h)]"> frontend</span>-layer cases, verified by Playwright execution
+              evidence. A class that doesn't make sense can be waived
               with justification instead of turning into an artificial case:
             </p>
           )}
@@ -1421,6 +1438,41 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       ),
     },
     {
+      icon: <FlowIcon />,
+      command: "sentry review [--spec <slug>] [--base REF] [--no-tests]",
+      description: (
+        <>
+          <W>check</W> + <W>run</W> + relatório num comando só, com testes por padrão. Ideal como hook de pre-commit
+          local.
+        </>
+      ),
+    },
+    {
+      icon: <ScanIcon />,
+      command: "sentry watch",
+      description: (
+        <>
+          Reavalia a cada salvamento, sem executar teste nem gastar token. Escala para a suíte completa quando o
+          arquivo salvo é um teste.
+        </>
+      ),
+    },
+    {
+      icon: <RunIcon />,
+      command: "sentry context --json",
+      description: "Emite as lacunas da última análise em JSON, para o agente de IA trabalhar só sobre o que falta.",
+    },
+    {
+      icon: <HistoryIcon />,
+      command: "sentry status [--json]",
+      description: (
+        <>
+          Mede a aplicação inteira, não só o diff: todo arquivo tratado como alterado, sempre com a suíte completa e
+          nunca do cache. Aponta arquivos com zero cobertura.
+        </>
+      ),
+    },
+    {
       icon: <ReportIcon />,
       command: "sentry report",
       description: (
@@ -1483,6 +1535,41 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
         <>
           Runs the analysis and persists it. Without <W>--run-tests</W> there's no coverage, and the verdict tends
           toward inconclusive.
+        </>
+      ),
+    },
+    {
+      icon: <FlowIcon />,
+      command: "sentry review [--spec <slug>] [--base REF] [--no-tests]",
+      description: (
+        <>
+          <W>check</W> + <W>run</W> + report in one command, with tests on by default. Ideal as a local pre-commit
+          hook.
+        </>
+      ),
+    },
+    {
+      icon: <ScanIcon />,
+      command: "sentry watch",
+      description: (
+        <>
+          Re-evaluates on every save, without running tests or spending tokens. Escalates to the full suite when the
+          saved file is a test.
+        </>
+      ),
+    },
+    {
+      icon: <RunIcon />,
+      command: "sentry context --json",
+      description: "Emits the last run's gaps as JSON, for the AI agent to work only over what's missing.",
+    },
+    {
+      icon: <HistoryIcon />,
+      command: "sentry status [--json]",
+      description: (
+        <>
+          Measures the whole application, not just the diff: every file treated as changed, always with the full
+          suite and never from the cache. Points out files with zero coverage.
         </>
       ),
     },

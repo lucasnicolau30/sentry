@@ -1,6 +1,6 @@
 # Sentry
 
-English · [Português (Brasil)](README.pt-BR.md)
+[Português](README.pt.md) | English
 
 [![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 ![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat&logo=pytest&logoColor=white)
@@ -60,8 +60,11 @@ To write or review test cases, follow AGENT-SENTRY.md.
 2. **`sentry-cases`** — your agent asks about anything ambiguous and fills in `CASES.md` following the template
 3. `sentry check customer-registration` — is the structure valid? are the catalog's equivalence classes covered?
 4. your agent links each case to the real test with the `# scenario: <exact case name>` marker
-5. `sentry run --spec customer-registration --run-tests` — runs the suite, reads diff and coverage, applies the rules, persists
-6. `sentry report` / `sentry history` — read back and compare between runs
+5. `sentry watch` — leave it running while you write: it re-evaluates on every save without executing tests, and escalates to the full run when the file you saved is a test
+6. `sentry context --json` — when a gap shows up, your agent works over the gaps instead of re-reading the code
+7. `sentry review` — `check` + `run` + report in one command, as a local pre-commit hook
+8. `sentry status` — periodically, the whole application instead of just the diff: which files no test reaches at all
+9. `sentry report` / `sentry history` — read back and compare between runs
 
 Every step also works without an agent, via the commands below.
 
@@ -69,26 +72,51 @@ Every step also works without an agent, via the commands below.
 
 Exit code `0` on success; see the exit code table further down.
 
-| Command | What it does |
-| --- | --- |
-| `sentry init [--install]` | Prepares the repository: `.sentry/`, `sentry.toml`, `.gitignore`, agent guide and skills. With `--install`, installs missing dependencies. |
-| `sentry new <name> [--prompt "..."] [--json]` | Creates the spec folder with a slug derived from the name. `--json` emits the template, accepted vocabulary and required classes, for the agent to consume. |
-| `sentry check [<slug>\|all]` | Validates `CASES.md`: structure, vocabulary and equivalence class coverage. `all` validates every spec together. |
-| `sentry run [--spec <slug>\|all] [--run-tests]` | Runs the analysis and persists it. Without `--run-tests` there's no coverage, and the verdict tends toward `inconclusive`. |
-| `sentry report` | Shows the latest report (`.sentry/reports/latest.md`). |
-| `sentry history` | Lists runs and compares the last two: coverage, tests, new/resolved/persistent findings. |
-| `sentry clear [--keep-last N] [--yes]` | Prunes old runs and reports. Without `--yes` it only shows what would be removed — deleting history is irreversible. Never touches `.sentry/specs/`. |
+| Command                                                   | What it does                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sentry init [--install]`                                 | Prepares the repository: `.sentry/`, `sentry.toml`, `.gitignore`, agent guide and skills. With `--install`, installs missing dependencies.                                                                                                                                                                                                                                    |
+| `sentry new <name> [--prompt "..."] [--json]`             | Creates the spec folder with a slug derived from the name. `--json` emits the template, accepted vocabulary and required classes, for the agent to consume.                                                                                                                                                                                                                   |
+| `sentry check [<slug>\|all]`                              | Validates `CASES.md`: structure, vocabulary and equivalence class coverage. `all` validates every spec together.                                                                                                                                                                                                                                                              |
+| `sentry run [--spec <slug>\|all] [--run-tests]`           | Runs the analysis and persists it. Without `--run-tests` it runs in instant mode: no suite is executed and coverage is the one from the last full run, stamped as such. With `--run-tests`, a full run whose inputs haven't changed comes back from the cache. With no `--spec` and no `CASES.md` at all, it measures what doesn't depend on a spec instead of demanding one. |
+| `sentry review [--spec <slug>] [--base REF] [--no-tests]` | `check` + `run` + report in a single command, with tests on by default. Works in a repository with no `.sentry/` and no `sentry.toml`.                                                                                                                                                                                                                                        |
+| `sentry watch`                                            | Re-evaluates on save. Instant mode for the typing loop, escalating to the full run when the saved file is a test — that's where a change becomes evidence. Polls file mtime, so it adds no runtime dependency.                                                                                                                                                                |
+| `sentry context --json`                                   | Emits the last run's gaps as JSON, for the AI agent: uncovered line ranges, error paths no test executed, failing tests by name, scenarios without a test, missing equivalence classes, orphan markers and declared limitations.                                                                                                                                              |
+| `sentry status [--json]`                                  | Measures the whole application, not just the diff: every source file is treated as changed, against every declared spec (`--spec all`). Always runs the full suite, never from the cache — it's the periodic, authoritative snapshot, not the fast loop. Reports which files have zero coverage at all.                                                                       |
+| `sentry report`                                           | Shows the latest report (`.sentry/reports/latest.md`), flagging it when its commit is no longer HEAD.                                                                                                                                                                                                                                                                         |
+| `sentry history`                                          | Lists runs and compares the last two: coverage, tests, new/resolved/persistent findings.                                                                                                                                                                                                                                                                                      |
+| `sentry clear [--keep-last N] [--yes]`                    | Prunes old runs and reports. Without `--yes` it only shows what would be removed — deleting history is irreversible. Never touches `.sentry/specs/`.                                                                                                                                                                                                                          |
+
+## Two modes, by design
+
+The mode decides what the report is allowed to claim about coverage.
+
+- **Instant** — no test process is started. It reports structure, traceability, orphan markers, the diff, and the coverage of the last full run. Reused coverage is always stamped as coming from that run, with its timestamp, never as measured now. With no previous full run, coverage comes out unavailable and no number is asserted.
+- **Full** — executes the suite. It's the mode for the pre-commit hook and for anything that needs a count of its own.
+
+`sentry watch` picks between them on every save: instant for source files, full when the saved file is a test.
+
+A full run reuses the previous one when nothing that matters has changed. The cache key is a content hash of three inputs and nothing else: the files the diff lists, the test files, and the specs. Change any of them and the suite runs again — either the code is different, or what's being asked of it is. A run that comes back from the cache says so in the report, with the id and the timestamp of the run the evidence came from: reusing without saying it would turn old evidence into a new claim.
+
+## The gap payload
+
+`sentry context --json` is the loop's other half: the agent stops reading the code and reads what has no evidence. Keys: `summary`, `uncovered_lines`, `uncovered_error_paths`, `failing_tests`, `scenarios_without_tests`, `missing_equivalence_classes`, `orphan_markers`, `limitations`.
+
+Every key always exists, empty when there's nothing — an absent key would be ambiguous between "nothing to do" and "Sentry didn't look". Nothing there is recalculated: each gap was already decided by whatever held the data, and the payload only crops it, so it can never disagree with the report.
+
+## Cost
+
+Every report ends with a `## Custo` block: the tokens Sentry spent — **zero**, because no model is called at any point, which is what makes the same commit always produce the same verdict — and the size of what it summarized, in bytes: the diff it read and the report itself. The conversion to tokens is declared as an estimate at 4 characters per token, with no real tokenizer; it's an order of magnitude for sizing a context budget, not an exact count.
 
 ## Exit codes
 
 Four distinguishable states, to separate "poorly tested code" from "my environment broke":
 
-| Code | Meaning |
-| --- | --- |
-| `0` | approved |
-| `1` | approved with caveats |
-| `2` | rejected |
-| `3` | inconclusive or infrastructure error |
+| Code | Meaning                              |
+| ---- | ------------------------------------ |
+| `0`  | approved                             |
+| `1`  | approved with caveats                |
+| `2`  | rejected                             |
+| `3`  | inconclusive or infrastructure error |
 
 An infrastructure error never produces an approved verdict: a suite that failed to run is different from a suite that failed.
 
@@ -98,26 +126,26 @@ An infrastructure error never produces an approved verdict: a suite that failed 
 
 Generated for each configured agent; `AGENT-SENTRY.md` covers the rest.
 
-| Workflow | What the agent does |
-| --- | --- |
+| Workflow       | What the agent does                                                                                                                                                                                                                                |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `sentry-cases` | Takes the free-text request, creates the spec, **asks before writing** anything ambiguous that would change a case, fills in `CASES.md`, links each case to a test with `# scenario:` and runs `check` until it closes clean. Never writes status. |
 
 ## Deterministic rules
 
 Ten rules, with severity configurable per project.
 
-| Rule | Default severity | Triggers when |
-| --- | --- | --- |
-| `test-failing` | critical | the suite has a failing test |
-| `case-spec-invalid` | critical | `CASES.md` has a structural error |
-| `changed-code-uncovered` | high | changed code coverage is zero |
-| `scenario-without-test` | high | a declared case has no associated test |
-| `error-path-without-test` | high | a `raise`/`throw` on a changed line that no test executed |
-| `missing-equivalence-class` | high | a class required by the catalog that no case covers |
-| `coverage-below-threshold` | high | changed code coverage below the declared threshold |
-| `requirement-without-scenario` | medium | a requirement with no matching scenario |
-| `coverage-missing` | medium | changed code coverage couldn't be calculated |
-| `global-coverage-below-threshold` | medium | global coverage below the declared threshold |
+| Rule                              | Default severity | Triggers when                                             |
+| --------------------------------- | ---------------- | --------------------------------------------------------- |
+| `test-failing`                    | critical         | the suite has a failing test                              |
+| `case-spec-invalid`               | critical         | `CASES.md` has a structural error                         |
+| `changed-code-uncovered`          | high             | changed code coverage is zero                             |
+| `scenario-without-test`           | high             | a declared case has no associated test                    |
+| `error-path-without-test`         | high             | a `raise`/`throw` on a changed line that no test executed |
+| `missing-equivalence-class`       | high             | a class required by the catalog that no case covers       |
+| `coverage-below-threshold`        | high             | changed code coverage below the declared threshold        |
+| `requirement-without-scenario`    | medium           | a requirement with no matching scenario                   |
+| `coverage-missing`                | medium           | changed code coverage couldn't be calculated              |
+| `global-coverage-below-threshold` | medium           | global coverage below the declared threshold              |
 
 Without a declared threshold, Sentry doesn't invent a minimum. The project decides what's "enough", and the report records the number applied.
 
@@ -125,7 +153,7 @@ Without a declared threshold, Sentry doesn't invent a minimum. The project decid
 
 A fixed table of situations that need a test, **per field type**. It doesn't generate cases: it flags the ones the agent left undeclared.
 
-Known types: `cpf`, `cnpj`, `email`, `senha` (password), `data` (date), `telefone` (phone), `cep` (postal code), `inteiro` (integer), `decimal`, `texto` (text), `rota` (route).
+Known types: `cpf`, `cnpj`, `email`, `senha` (password), `data` (date), `telefone` (phone), `cep` (postal code), `inteiro` (integer), `decimal`, `texto` (text), `rota` (route), `formulario` (form), `navegacao` (navigation), `responsivo` (responsive), `acessibilidade` (accessibility) — the last four are for `frontend`-layer cases verified by Playwright evidence, not line coverage.
 
 A class that doesn't make sense for a field can be dismissed **with a justification**, instead of becoming an artificial case or an eternal complaint:
 
@@ -141,12 +169,12 @@ The dismissal removes the finding, but it stays recorded in the report — nothi
 
 Each one reports `covered`, `partial`, `not covered` or `not applicable`, with evidence.
 
-| Dimension | Where the evidence comes from |
-| --- | --- |
-| requirements and business rules | spec scenarios with an associated test |
+| Dimension                                        | Where the evidence comes from                               |
+| ------------------------------------------------ | ----------------------------------------------------------- |
+| requirements and business rules                  | spec scenarios with an associated test                      |
 | APIs, persistence, transactions and integrations | `contract`/`integration`-type cases and `integration` layer |
-| exceptions, resilience and recovery | changed error paths executed by some test |
-| security and authorization | `route`-type fields with all access classes covered |
+| exceptions, resilience and recovery              | changed error paths executed by some test                   |
+| security and authorization                       | `route`-type fields with all access classes covered         |
 
 `not applicable` is distinct from `not covered`: a project with no routes isn't penalized on the security dimension.
 
@@ -208,13 +236,13 @@ Specs are never removed: they're declared intent, not generated evidence.
 
 **Verification** depends on the exchange format your suite exports, not on the tool:
 
-| Capability | Support |
-| --- | --- |
-| Suite execution | any command that exports **JUnit XML** — pytest, Jest, Vitest, `go test` (gotestsum), Surefire, `dotnet test`, RSpec, PHPUnit |
-| Coverage | **lcov** (nyc, c8, Jest, simplecov), **Cobertura XML** (JaCoCo, coverlet), **coverage.py** (JSON) — detected by content |
+| Capability             | Support                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Suite execution        | any command that exports **JUnit XML** — pytest, Jest, Vitest, `go test` (gotestsum), Surefire, `dotnet test`, RSpec, PHPUnit         |
+| Coverage               | **lcov** (nyc, c8, Jest, simplecov), **Cobertura XML** (JaCoCo, coverlet), **coverage.py** (JSON) — detected by content               |
 | Case↔test traceability | `.py`, `.js`/`.jsx`/`.ts`/`.tsx`, `.go`, `.java`/`.kt`, `.cs`, `.rb`, `.php`, `.rs` — and the `scenario:` marker works in any comment |
-| Error paths | via AST in Python; via syntactic pattern (`throw`, `catch`, `panic`, `rescue`, `panic!`) in the rest |
-| Impact analysis | 12 source-code extensions |
+| Error paths            | via AST in Python; via syntactic pattern (`throw`, `catch`, `panic`, `rescue`, `panic!`) in the rest                                  |
+| Impact analysis        | 12 source-code extensions                                                                                                             |
 
 Error path detection outside Python is less precise than AST, and the report records that difference as a limitation — it never hides it.
 
