@@ -2,6 +2,7 @@ from __future__ import annotations
 import argparse
 import json
 import platform
+import re
 import sys
 from pathlib import Path
 from . import __version__
@@ -24,14 +25,79 @@ from .adapters.terminal import (
 from .domain.models import to_json
 from .application.reporting import clear_history, load_runs, staleness, write_reports, compare
 
-class _RootArgumentParser(argparse.ArgumentParser):
+_COMMAND_NAMES = ("init", "new", "check", "run", "review", "watch", "status", "context", "report", "history", "clear")
+_CHOICES_LINE = re.compile(r'^\{[\w,]+\}$')
+_FLAG_PATTERNS = (
+    re.compile(r'(?<![\w-])-h(?![\w-])'),
+    re.compile(r'(?<![\w-])--help(?![\w-])'),
+    re.compile(r'(?<![\w-])--version(?![\w-])'),
+)
+
+
+def _decorate_help(text: str) -> str:
+    """Troca os cabeçalhos em inglês, sem estilo ('positional arguments:',
+    'options:') pelo mesmo título com tracinho que `sentry init` usa pras
+    seções; colore cada nome de comando e cada flag (`-h`/`--help`/
+    `--version`) em verde; remove a listagem `{init,new,...}` repetida (uma
+    vez no `usage:`, outra vez logo abaixo do título `COMANDOS`) -- o
+    próprio título e a lista com descrição abaixo já mostram os comandos,
+    repetir a mesma enumeração compacta duas vezes só polui. A seção
+    `COMANDOS` também perde 2 espaços de indentação (o argparse alinha
+    comandos com 4, opções com 2) -- as duas ficam no mesmo recuo."""
+    lines = []
+    in_comandos = False
+    for line in text.splitlines():
+        if line.strip() == "positional arguments:":
+            lines.append(render_section("Comandos", "─"))
+            in_comandos = True
+            continue
+        if line.strip() == "options:":
+            lines.append(render_section("Extras", "─"))
+            in_comandos = False
+            continue
+        if _CHOICES_LINE.match(line.strip()):
+            continue
+        if in_comandos and line.startswith("  "):
+            line = line[2:]
+        for name in _COMMAND_NAMES:
+            line = re.sub(rf'(?<![\w-]){name}(?![\w-])', paint(name, "green"), line)
+        for pattern in _FLAG_PATTERNS:
+            line = pattern.sub(lambda m: paint(m.group(), "green"), line)
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def _strip_usage_and_description(text: str) -> str:
+    """Descarta o bloco `usage: ...` e o parágrafo de descrição do início do
+    texto de ajuda gerado pelo argparse -- o wordmark já identifica o
+    programa, repetir usage/descrição antes do título `COMANDOS` só empurra
+    a informação útil pra baixo. Cada bloco (usage, descrição) termina numa
+    linha em branco dupla, então dois `partition` bastam, não importa
+    quantas linhas cada um ocupou."""
+    _, _, rest = text.partition("\n\n")
+    _, _, rest = rest.partition("\n\n")
+    return rest
+
+
+class _ArgumentParserPT(argparse.ArgumentParser):
+    """`-h`/`--help` com texto em português -- o argparse só tem em inglês
+    por padrão ("show this help message and exit")."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("add_help", False)
+        super().__init__(*args, **kwargs)
+        self.add_argument("-h", "--help", action="help", help="mostra esta mensagem de ajuda e sai")
+
+
+class _RootArgumentParser(_ArgumentParserPT):
     """`sentry -h`/`sentry --help` ganha o mesmo wordmark do `sentry init` --
     é a outra porta de entrada de quem nunca usou a ferramenta. Só o parser
     raiz sobrescreve `format_help`; `sentry <comando> -h` continua sem
     wordmark, igual toda execução de comando além do `init`."""
 
     def format_help(self) -> str:
-        return f"{render_wordmark(__version__)}\n\n{super().format_help()}"
+        rest = _strip_usage_and_description(super().format_help())
+        return _decorate_help(f"{render_wordmark(__version__)}\n\n{rest}")
 
 
 def build_parser():
@@ -39,11 +105,12 @@ def build_parser():
         prog="sentry",
         description="Deriva a matriz de casos de teste de um pedido e verifica se a implementação corresponde.",
     )
-    parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("--version", action="version", version=__version__, help="mostra a versão do programa e sai")
     # `parser_class` explícito: sem isso, `add_subparsers` propaga a classe do
     # pai (_RootArgumentParser) pra cada subcomando, e `sentry init -h`
-    # ganharia o wordmark também -- só o `-h` raiz deve ter.
-    sub = parser.add_subparsers(dest="command", parser_class=argparse.ArgumentParser)
+    # ganharia o wordmark também -- só o `-h` raiz deve ter. `_ArgumentParserPT`
+    # (sem o wordmark, só o `-h` traduzido) é a classe base dos subcomandos.
+    sub = parser.add_subparsers(dest="command", parser_class=_ArgumentParserPT)
 
     init = sub.add_parser("init", help="prepara o projeto atual")
     init.add_argument("--install", action="store_true", help="instala as dependências ausentes")

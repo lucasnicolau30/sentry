@@ -62,9 +62,28 @@ emoji de verdade carrega paleta propria e ignora o ANSI, entao nao sai
 colorido igual ao resto da linha.
 (9) `sentry -h`/`sentry --help` -- a raiz sem comando, a outra porta de
 entrada de quem nunca usou a ferramenta -- ganha o mesmo wordmark do
-`sentry init` antes do texto de ajuda gerado pelo argparse. So' o parser
-raiz: `sentry <comando> -h` (ex.: `sentry init -h`) continua sem wordmark,
-igual toda execucao de comando alem do `init`.
+`sentry init` antes do texto de ajuda. So' o parser raiz: `sentry
+<comando> -h` (ex.: `sentry init -h`) continua com o `usage:`/`options:`
+crus do argparse, sem wordmark nem decoracao nenhuma, igual toda execucao
+de comando alem do `init`. Na raiz, o bloco `usage: sentry [-h]
+[--version] ...` e o paragrafo de descricao logo abaixo saem do texto --
+o wordmark ja identifica o programa, repetir usage/descricao antes do
+titulo `COMANDOS` so' empurraria a informacao util pra baixo. Os
+cabecalhos em ingles "positional arguments:"/"options:" viram o mesmo
+titulo com tracinho na frente e depois que as secoes do `init` usam
+("COMANDOS" e "EXTRAS", ver item 8), com a mesma indentacao de 2 espacos
+nos dois (o argparse por padrao indenta comandos com 4 e opcoes com 2;
+aqui os dois ficam iguais). Cada nome de comando e cada flag (`-h`,
+`--help`, `--version`) saem coloridos em verde, em qualquer lugar do
+texto onde aparecerem (inclusive dentro da descricao de outro comando,
+ex.: "check + run + relatorio" do `review`) -- mas a listagem compacta
+`{init,new,check,...}` (que repetiria os mesmos onze nomes que a lista
+com descricao ja mostra) nao aparece em lugar nenhum. "-h"/"--help" e
+"--version" tambem ganham texto de ajuda em portugues -- o argparse só
+tem em ingles por padrao ("show this help message and exit"/"show
+program's version number and exit"); a traducao vale pra raiz e pra
+todo subcomando, nao so' a raiz (so' o wordmark e a decoracao de
+titulo/indentacao/flag sao exclusivos da raiz).
 
 ## Campos
 
@@ -500,6 +519,91 @@ igual toda execucao de comando alem do `init`.
 - **Quando:** a ajuda é impressa
 - **Então:** o wordmark aparece antes do texto de uso gerado pelo argparse
   em `sentry -h`, e não aparece em `sentry init -h`
+
+## Caso: sentry -h tem cabecalhos com tracinho, igual as secoes do init
+
+- **Requisito:** "no init temos um titulo em verde com um tracinho na
+  direita e esquerda, coisa que não temos aqui", "options: troca por um
+  titulo" -- os cabeçalhos em inglês `positional arguments:`/`options:`
+  viram o mesmo estilo de título das seções do `init` (`COMANDOS`/`EXTRAS`)
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** baixa
+- **Dado:** `sentry -h`
+- **Quando:** a ajuda é impressa
+- **Então:** os textos `positional arguments:` e `options:` não aparecem;
+  em seus lugares aparecem `COMANDOS` e `EXTRAS`, cada um com um tracinho
+  antes e depois, no mesmo estilo do cabeçalho de seção do `init`
+
+## Caso: sentry -h colore o nome de cada comando e cada flag em verde
+
+- **Requisito:** "segundo os comando eu quero que eles fiquem em verde",
+  "poe -h, --help e --version em verde"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** baixa
+- **Dado:** `sentry -h` com cor habilitada
+- **Quando:** a ajuda é impressa
+- **Então:** cada nome de comando (`init`, `new`, `check`, `run`, `review`,
+  `watch`, `status`, `context`, `report`, `history`, `clear`) e cada flag
+  (`-h`, `--help`, `--version`) aparece colorido em verde onde quer que
+  apareça no texto
+
+## Caso: sentry -h nao repete a listagem compacta de comandos
+
+- **Requisito:** "{init,new,check,run,review,watch,status,context,report,
+  history,clear} deleta" -- a mesma enumeração entre chaves aparece duas
+  vezes (uma no `usage:`, outra logo abaixo do título `COMANDOS`) e não
+  acrescenta nada que a lista detalhada, com descrição de cada comando,
+  já não mostre
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** baixa
+- **Dado:** `sentry -h`
+- **Quando:** a ajuda é impressa
+- **Então:** a linha `{init,new,check,run,review,watch,status,context,
+  report,history,clear}` não aparece em lugar nenhum, nem no `usage:` nem
+  logo abaixo do título `COMANDOS`
+
+## Caso: sentry -h nao repete usage nem descricao antes do wordmark bastar
+
+- **Requisito:** "delete isso" (o bloco `usage: sentry [-h] [--version]
+  ...` seguido do parágrafo "Deriva a matriz de casos de teste...") -- o
+  wordmark já identifica o programa
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** baixa
+- **Dado:** `sentry -h`
+- **Quando:** a ajuda é impressa
+- **Então:** nem `usage:` nem o parágrafo de descrição aparecem; o
+  wordmark é seguido direto do título `COMANDOS`
+
+## Caso: comandos e extras tem a mesma indentacao
+
+- **Requisito:** "os comandos em comando estão mt a direita, coloque como
+  estão em extras: mais próximos a esquerda" -- o argparse por padrão
+  indenta a lista de comandos com 4 espaços e a de opções com 2
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** baixa
+- **Dado:** `sentry -h`
+- **Quando:** a ajuda é impressa
+- **Então:** as linhas de comando (`COMANDOS`) e as linhas de flag
+  (`EXTRAS`) começam com a mesma indentação de 2 espaços
+
+## Caso: -h e --version tem texto de ajuda em portugues
+
+- **Requisito:** "show program's version number and exit / show this help
+  message and exit português" -- o argparse só tem esses textos em inglês
+  por padrão
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** baixa
+- **Dado:** `sentry -h` e `sentry init -h`
+- **Quando:** a ajuda é impressa
+- **Então:** a linha de `-h`/`--help` diz "mostra esta mensagem de ajuda e
+  sai" e a linha de `--version` diz "mostra a versão do programa e sai",
+  nenhuma delas em inglês, tanto na raiz quanto em qualquer subcomando
 
 ## Classes não aplicáveis
 

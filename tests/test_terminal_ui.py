@@ -225,12 +225,88 @@ def test_sentry_h_mostra_o_wordmark_antes_do_texto_de_ajuda(capsys):
         cli.main(["-h"])
     saida = capsys.readouterr().out
     assert "█" in saida
-    assert saida.index("█") < saida.index("usage:")
+    assert saida.index("█") < saida.index("COMANDOS")
 
     with pytest.raises(SystemExit):
         cli.main(["init", "-h"])
     saida_subcomando = capsys.readouterr().out
     assert "█" not in saida_subcomando
+
+
+# cenario: sentry -h tem cabecalhos com tracinho, igual as secoes do init
+def test_sentry_h_tem_cabecalhos_com_tracinho(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["-h"])
+    saida = capsys.readouterr().out
+    assert "positional arguments:" not in saida
+    assert "options:" not in saida
+    assert "COMANDOS" in saida
+    assert "EXTRAS" in saida
+    assert "─" in saida
+
+
+# cenario: sentry -h colore o nome de cada comando e cada flag em verde
+def test_sentry_h_colore_o_nome_de_cada_comando_e_cada_flag_em_verde(monkeypatch, capsys):
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    with pytest.raises(SystemExit):
+        cli.main(["-h"])
+    saida = capsys.readouterr().out
+    for name in ("init", "new", "check", "run", "review", "watch",
+                 "status", "context", "report", "history", "clear"):
+        assert paint(name, "green", enabled=True) in saida
+    for flag in ("-h", "--help", "--version"):
+        assert paint(flag, "green", enabled=True) in saida
+
+
+# cenario: sentry -h nao repete a listagem compacta de comandos
+def test_sentry_h_nao_repete_a_listagem_compacta_de_comandos(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["-h"])
+    saida = capsys.readouterr().out
+    assert "{init,new,check,run,review,watch,status,context,report,history,clear}" not in saida
+
+
+# cenario: sentry -h nao repete usage nem descricao antes do wordmark bastar
+def test_sentry_h_nao_repete_usage_nem_descricao(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["-h"])
+    saida = capsys.readouterr().out
+    assert "usage:" not in saida
+    assert "Deriva a matriz de casos de teste" not in saida
+    linhas = saida.splitlines()
+    indice_versao = next(i for i, l in enumerate(linhas) if sentry_version in l)
+    indice_comandos = next(i for i, l in enumerate(linhas) if "COMANDOS" in l)
+    assert linhas[indice_versao + 1].strip() == ""  # uma linha em branco...
+    assert indice_comandos == indice_versao + 2      # ...e so' uma, antes do titulo
+
+
+# cenario: comandos e extras tem a mesma indentacao
+def test_comandos_e_extras_tem_a_mesma_indentacao(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["-h"])
+    saida = capsys.readouterr().out
+    linha_init = next(l for l in saida.splitlines() if l.strip().startswith("init"))
+    linha_help = next(l for l in saida.splitlines() if l.strip().startswith("-h,"))
+    recuo = lambda linha: len(linha) - len(linha.lstrip(" "))
+    assert recuo(linha_init) == recuo(linha_help)
+
+
+# cenario: -h e --version tem texto de ajuda em portugues
+def test_h_e_version_tem_texto_de_ajuda_em_portugues(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["-h"])
+    saida = capsys.readouterr().out
+    assert "mostra esta mensagem de ajuda e sai" in saida
+    assert "mostra a versão do programa e sai" in saida
+    assert "show this help message and exit" not in saida
+    assert "show program's version number and exit" not in saida
+
+    with pytest.raises(SystemExit):
+        cli.main(["init", "-h"])
+    saida_subcomando = capsys.readouterr().out
+    assert "mostra esta mensagem de ajuda e sai" in saida_subcomando
+    assert "show this help message and exit" not in saida_subcomando
 
 
 # cenario: nenhum outro comando repete o wordmark
