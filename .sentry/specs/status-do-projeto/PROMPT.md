@@ -1,0 +1,3 @@
+# status-do-projeto
+
+sentry status: comando que mede a aplicacao inteira como se tudo estivesse alterado, em vez de so o diff. Reaproveita analyze() com um GitChange sintetico (whole_tree) que trata todo arquivo de codigo-fonte rastreado como alterado (linhas 1..N inteiras), com --spec all forcado, run_tests sempre True, e sem usar o cache local (medicao autoritativa). O relatorio reusa markdown_report mas troca os rotulos de diff por rotulos de projeto inteiro e acrescenta uma secao nova listando arquivos com 0% de cobertura (sem nenhum teste alcancando), tirada do coverage.files ja existente. Marcador orfao passa a ser detectado no projeto inteiro (nao so no diff), efeito colateral desejado desse modo.
