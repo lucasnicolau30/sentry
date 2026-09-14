@@ -56,9 +56,8 @@ def test_analyze_flags_declared_case_without_test(tmp_path:Path):
     assert 'scenario-without-test' in {finding.rule for finding in run.findings}
 
 def test_analyze_requires_existing_explicit_spec(tmp_path:Path):
-    try: analyze(tmp_path,'missing')
-    except FileNotFoundError as error: assert 'não encontrada' in str(error)
-    else: raise AssertionError('deveria falhar')
+    with pytest.raises(FileNotFoundError, match='não encontrada'):
+        analyze(tmp_path,'missing')
 
 def test_analyze_populates_test_cases(tmp_path:Path):
     _spec(tmp_path)

@@ -72,6 +72,48 @@ Duas coisas que poderiam melhorar o tempo de analise de cada arquivo, que hoje n
 - **Então:** a execução sai como não executada com erro de infraestrutura, sem exceção
 - **Entrada:** `comando = ""`
 
+## Caso: comando de teste ausente vira erro de infraestrutura, nao reprovacao
+
+- **Requisito:** "FileNotFoundError (comando configurado nao existe no PATH) precisa
+  virar infrastructure_error, nunca ser tratado como suite reprovada"
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** crítica
+- **Classe:** comando/valido
+- **Dado:** `[test] command` apontando para um executável que não existe no PATH
+- **Quando:** o Sentry tenta executar a suíte
+- **Então:** a execução sai como não executada, com erro de infraestrutura, sem
+  cobertura calculada
+
+## Caso: fora do pytest, ausencia de teste contabilizado e infraestrutura
+
+- **Requisito:** "Nao existe tabela confiavel de codigos de saida fora do pytest, entao
+  o sinal e' a evidencia: sem nenhum teste contabilizado nao ha prova de que a suite
+  rodou -- e' ambiente, e reprovar ali mentiria sobre o codigo. Com teste contabilizado,
+  codigo de saida != 0 volta a ser reprovacao legitima"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** comando/valido
+- **Dado:** uma suíte não-pytest (`npx jest`) que terminou sem contabilizar teste
+  nenhum, e outra que terminou com pelo menos um teste contabilizado
+- **Quando:** o Sentry classifica o código de saída
+- **Então:** sem contagem, a ausência vira erro de infraestrutura nomeando o código de
+  saída; com contagem, o código de saída não-zero continua sendo reprovação legítima
+
+## Caso: junit.xml corrompido cai no fallback por regex sem quebrar
+
+- **Requisito:** "XML invalido ou sem <testsuite> precisa devolver None -- e' o sinal
+  para SuiteAdapter usar o fallback por regex na saida do pytest"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** média
+- **Classe:** junit_xml/invalido
+- **Dado:** um `junit.xml` com conteúdo malformado, e outro sem elemento `<testsuite>`
+- **Quando:** o Sentry tenta contar testes a partir do arquivo
+- **Então:** a leitura devolve `None` para os dois, sem levantar exceção
+- **Entrada:** `junit_xml = "isto nao e xml valido <<<"`
+
 ## Classes não aplicáveis
 
 - **comando/tamanho-maximo-excedido**: o comprimento do comando é limite do sistema

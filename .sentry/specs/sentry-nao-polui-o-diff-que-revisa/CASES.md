@@ -87,6 +87,21 @@ Ele polui o diff que revisa — "Arquivos alterados: 3" incluiu .gitignore (que 
 - **Então:** o arquivo é tratado como mudança do usuário e permanece no diff, sem exceção
 - **Entrada:** `arquivo = "sentry.toml"`, `origem_da_alteracao = ""`
 
+## Caso: arquivos gerados pelo proprio Sentry ficam fora do diff
+
+- **Requisito:** "is_generated_artifact exclui .sentry/ e as skills" — a base sobre a
+  qual este spec fecha a lacuna do `sentry.toml`/`.gitignore`
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** arquivo/valido
+- **Dado:** caminhos como `AGENT-SENTRY.md`, `.claude/skills/sentry-cases/SKILL.md` e a
+  mesma skill com separador `\`
+- **Quando:** o Sentry decide o que é artefato gerado
+- **Então:** todos são reconhecidos como gerados pelo próprio Sentry; uma skill de outra
+  ferramenta (`.claude/skills/minha-skill/SKILL.md`) não é
+- **Entrada:** `arquivo = "AGENT-SENTRY.md"`
+
 ## Classes não aplicáveis
 
 - **arquivo/tamanho-maximo-excedido**: o comprimento do caminho é limite do sistema de

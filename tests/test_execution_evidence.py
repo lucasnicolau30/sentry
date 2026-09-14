@@ -118,7 +118,7 @@ def test_suite_nao_pytest_sem_junit_declarado_nao_recebe_junitxml(tmp_path: Path
     # Sem relatorio nao ha contagem, mas o recado agora aponta a acao que resolve.
     assert "junit_xml" in (test.infrastructure_error or "")
 
-# cenario: pytest chamado como modulo continua sendo pytest
+# cenario: pytest invocado como modulo e reconhecido
 def test_pytest_invocado_como_modulo_e_reconhecido(tmp_path: Path):
     """`python -m pytest` e `.venv/bin/pytest` sao o mesmo runner que `pytest`.
     Sem normalizar, perdiam `coverage run` e nao mediam cobertura nenhuma."""

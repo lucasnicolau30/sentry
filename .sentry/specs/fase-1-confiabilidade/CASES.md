@@ -79,6 +79,22 @@ em vez de exibir como veredito corrente.
 - **Então:** essa linha permanece intacta no arquivo
 - **Entrada:** `entrada_gitignore = ".sentry/specs/rascunhos/"`
 
+## Caso: gitignore antigo e migrado sem duplicar entradas
+
+- **Requisito:** "O padrao antigo (`.sentry/reports/`) exclui o diretorio inteiro: uma
+  negacao para latest.md depois dele nao teria efeito. Precisa ser removido, nao só
+  complementado"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** entrada_gitignore/valido
+- **Dado:** um `.gitignore` com o padrão antigo `.sentry/reports/` (exclui o diretório
+  inteiro), escrito por uma versão anterior do `init`
+- **Quando:** o `sentry init` roda de novo
+- **Então:** `.sentry/reports/` sai do arquivo, `.sentry/reports/*` e
+  `!.sentry/reports/latest.md` entram no lugar, e uma segunda execução não duplica nada
+- **Entrada:** `entrada_gitignore = ".sentry/reports/"`
+
 ## Caso: codigo de aprovado mantem o build verde
 
 - **Requisito:** "qualquer codigo de saida acima de ressalva precisa derrubar o build" —
@@ -251,6 +267,34 @@ em vez de exibir como veredito corrente.
 - **Quando:** as regras avaliam a mudança
 - **Então:** a cobertura do alterado sai indisponível e o achado `coverage-missing` não
   é emitido
+
+## Caso: diff sem arquivo mensuravel nao acusa cobertura ausente
+
+- **Requisito:** "Um diff so de .md/.toml nao tem cobertura a calcular: isso e' 'nao
+  aplicavel', nao 'falhou ao calcular'. Antes, um projeto recem-inicializado recebia esse
+  achado por causa dos arquivos do proprio Sentry" — o mesmo comportamento do caso acima,
+  na camada de regras (`evaluate`), sem passar pela análise completa
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** linha_alterada/valido
+- **Dado:** um `EvaluationContext` com `changed_files=('README.md', 'sentry.toml')` e
+  `has_measurable_change=False`
+- **Quando:** `evaluate` roda
+- **Então:** nenhum achado `coverage-missing` é emitido
+
+## Caso: diff com codigo continua acusando cobertura ausente
+
+- **Requisito:** "A precisao nao pode virar silencio: havendo codigo alterado sem
+  cobertura calculada, o achado continua sendo legitimo"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** linha_alterada/valido
+- **Dado:** um `EvaluationContext` com `changed_files=('src/app.py',)` e
+  `has_measurable_change=True`, sem cobertura calculada
+- **Quando:** `evaluate` roda
+- **Então:** o achado `coverage-missing` é emitido
 - **Entrada:** `linha_alterada = "# so comentario nesta mudanca"`
 
 ## Classes não aplicáveis

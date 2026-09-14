@@ -77,6 +77,19 @@
 - **Então:** os arquivos de dependência ficam de fora
 - **Entrada:** `test_paths = "frontend"`
 
+## Caso: teste com erro de sintaxe vira limitacao, nao quebra a analise
+
+- **Requisito:** "Um arquivo de teste com sintaxe invalida nao pode derrubar a analise
+  dos demais: SyntaxError ao parsear os imports precisa virar limitacao registrada"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Dado:** um arquivo de teste com sintaxe Python inválida, dentro do diretório de
+  testes analisado
+- **Quando:** o Sentry calcula o impacto de uma alteração em código fonte
+- **Então:** a análise não levanta exceção; o arquivo quebrado não entra como impactado,
+  e a limitação é registrada em vez de silenciar o defeito
+
 ## Classes não aplicáveis
 
 - **test_paths/tamanho-maximo-excedido**: o comprimento do caminho é limite do sistema de

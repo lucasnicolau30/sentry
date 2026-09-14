@@ -86,6 +86,20 @@ Só a última hunk de cada arquivo é analisada — local_tools.py:62, sobrescre
 - **Então:** os dois pontos aparecem entre as linhas alteradas do arquivo
 - **Entrada:** `diff = <saida real de git diff --unified=0>`
 
+## Caso: arquivo novo ilegivel nao derruba a leitura do diff
+
+- **Requisito:** "Um .py novo com bytes invalidos de UTF-8 nao pode quebrar o change():
+  so esse arquivo fica sem changed_lines, o resto do diff continua"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** diff/valido
+- **Dado:** um arquivo novo com bytes inválidos de UTF-8, junto de outro arquivo alterado
+  normalmente
+- **Quando:** o Sentry monta o contexto da mudança
+- **Então:** o arquivo ilegível fica sem `changed_lines`, mas o resto do diff (incluindo o
+  outro arquivo) continua sendo lido normalmente, sem exceção
+
 ## Classes não aplicáveis
 
 - **hunks/negativo**: a quantidade de blocos é a contagem de cabeçalhos `@@` presentes
