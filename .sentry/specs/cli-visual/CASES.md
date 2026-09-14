@@ -60,6 +60,11 @@ real do terminal, o que for menor -- pra nao estourar e quebrar linha
 tracinhos usam a mesma cor e o mesmo espaçamento de um espaço, sem emoji --
 emoji de verdade carrega paleta propria e ignora o ANSI, entao nao sai
 colorido igual ao resto da linha.
+(9) `sentry -h`/`sentry --help` -- a raiz sem comando, a outra porta de
+entrada de quem nunca usou a ferramenta -- ganha o mesmo wordmark do
+`sentry init` antes do texto de ajuda gerado pelo argparse. So' o parser
+raiz: `sentry <comando> -h` (ex.: `sentry init -h`) continua sem wordmark,
+igual toda execucao de comando alem do `init`.
 
 ## Campos
 
@@ -482,6 +487,19 @@ colorido igual ao resto da linha.
 - **Quando:** `render_wordmark` monta as linhas
 - **Então:** a saída não tem nenhum código ANSI e ainda é a arte em blocos
   de desenho de caixa
+
+## Caso: sentry -h mostra o wordmark antes do texto de ajuda
+
+- **Requisito:** "coloque [o wordmark] e siga o padrao do init" -- `sentry -h`
+  ganha o mesmo wordmark que `sentry init`, mas nenhum subcomando repete
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** baixa
+- **Dado:** `sentry -h` (ou `--help`) na raiz, e `sentry init -h` como
+  contraste
+- **Quando:** a ajuda é impressa
+- **Então:** o wordmark aparece antes do texto de uso gerado pelo argparse
+  em `sentry -h`, e não aparece em `sentry init -h`
 
 ## Classes não aplicáveis
 

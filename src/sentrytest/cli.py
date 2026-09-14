@@ -24,13 +24,26 @@ from .adapters.terminal import (
 from .domain.models import to_json
 from .application.reporting import clear_history, load_runs, staleness, write_reports, compare
 
+class _RootArgumentParser(argparse.ArgumentParser):
+    """`sentry -h`/`sentry --help` ganha o mesmo wordmark do `sentry init` --
+    é a outra porta de entrada de quem nunca usou a ferramenta. Só o parser
+    raiz sobrescreve `format_help`; `sentry <comando> -h` continua sem
+    wordmark, igual toda execução de comando além do `init`."""
+
+    def format_help(self) -> str:
+        return f"{render_wordmark(__version__)}\n\n{super().format_help()}"
+
+
 def build_parser():
-    parser = argparse.ArgumentParser(
+    parser = _RootArgumentParser(
         prog="sentry",
         description="Deriva a matriz de casos de teste de um pedido e verifica se a implementação corresponde.",
     )
     parser.add_argument("--version", action="version", version=__version__)
-    sub = parser.add_subparsers(dest="command")
+    # `parser_class` explícito: sem isso, `add_subparsers` propaga a classe do
+    # pai (_RootArgumentParser) pra cada subcomando, e `sentry init -h`
+    # ganharia o wordmark também -- só o `-h` raiz deve ter.
+    sub = parser.add_subparsers(dest="command", parser_class=argparse.ArgumentParser)
 
     init = sub.add_parser("init", help="prepara o projeto atual")
     init.add_argument("--install", action="store_true", help="instala as dependências ausentes")

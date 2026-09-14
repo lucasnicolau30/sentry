@@ -11,6 +11,8 @@ import subprocess
 import time
 from pathlib import Path
 
+import pytest
+
 from sentrytest import __version__ as sentry_version
 from sentrytest import cli
 from sentrytest.adapters.terminal import (
@@ -215,6 +217,20 @@ def test_python_entra_como_detalhe_do_item_de_ambiente(tmp_path: Path, monkeypat
     saida = capsys.readouterr().out
     assert "python 3." in saida
     assert saida.index("INICIALIZANDO") < saida.index("python 3.") < saida.index("sentry-test")
+
+
+# cenario: sentry -h mostra o wordmark antes do texto de ajuda
+def test_sentry_h_mostra_o_wordmark_antes_do_texto_de_ajuda(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["-h"])
+    saida = capsys.readouterr().out
+    assert "█" in saida
+    assert saida.index("█") < saida.index("usage:")
+
+    with pytest.raises(SystemExit):
+        cli.main(["init", "-h"])
+    saida_subcomando = capsys.readouterr().out
+    assert "█" not in saida_subcomando
 
 
 # cenario: nenhum outro comando repete o wordmark
