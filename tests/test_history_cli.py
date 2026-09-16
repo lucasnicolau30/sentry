@@ -3,8 +3,9 @@ import sqlite3
 import subprocess
 from pathlib import Path
 from sentrytest.cli import main
+from sentrytest.adapters.terminal import VERDICT_COLOR, VERDICT_SYMBOL, paint
 
-def _insert_run(root: Path, run_id: str, run_tests: bool, passed: int, global_percent: float, verdict: str, coverage_error=None, commit=None):
+def _insert_run(root: Path, run_id: str, run_tests: bool, passed: int, global_percent: float, verdict: str, coverage_error=None, commit=None, findings=()):
     sentry_dir = root / ".sentry"
     sentry_dir.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -15,7 +16,7 @@ def _insert_run(root: Path, run_id: str, run_tests: bool, passed: int, global_pe
             "commit": commit,
             "timestamp": "2026-08-06T00:00:00+00:00",
             "verdict": {"status": verdict},
-            "findings": [],
+            "findings": [{"rule": rule} for rule in findings],
             "configuration": {
                 "run_tests": run_tests,
                 "coverage": {"global_percent": global_percent, "changed_percent": global_percent, "error": coverage_error},
@@ -49,7 +50,7 @@ def test_history_compares_two_comparable_runs(tmp_path: Path, monkeypatch, capsy
     out = capsys.readouterr().out
     assert "Cobertura global: +5.0" in out
     assert "passed +2" in out
-    assert "Veredito: aprovado com ressalvas -> aprovado" in out
+    assert "Veredito: ⚠ Aprovado com ressalvas -> ✓ Aprovado" in out
 
 def _run_files(root: Path, run_id: str) -> list[Path]:
     """Os quatro arquivos que uma execucao deixa no disco."""
@@ -169,3 +170,83 @@ def test_report_fora_de_repositorio_git_nao_acusa_desatualizacao(tmp_path: Path,
     saida = capsys.readouterr().out
     assert "desatualizado" not in saida
     assert "Commit analisado: indisponível" in saida
+
+# cenario: history colore delta de cobertura e de testes pelo sentido
+def test_history_colore_delta_de_cobertura_e_de_testes_pelo_sentido(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.chdir(tmp_path)
+    _insert_run(tmp_path, "r1", True, passed=10, global_percent=80.0, verdict="aprovado")
+    _insert_run(tmp_path, "r2", True, passed=12, global_percent=85.0, verdict="aprovado")
+    assert main(["history"]) == 0
+    saida = capsys.readouterr().out
+    assert f"Cobertura global: {paint('+5.0', 'green', enabled=True)}" in saida
+    assert f"passed {paint('+2', 'green', enabled=True)}" in saida
+    assert "failed 0" in saida  # delta zero nao muda, nao ganha cor
+
+# cenario: history nao colore delta zero ou indisponivel
+def test_history_nao_colore_delta_zero_ou_indisponivel(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.chdir(tmp_path)
+    _insert_run(tmp_path, "r1", True, passed=10, global_percent=80.0, verdict="aprovado")
+    _insert_run(tmp_path, "r2", True, passed=10, global_percent=80.0, verdict="aprovado")
+    assert main(["history"]) == 0
+    saida = capsys.readouterr().out
+    assert "Cobertura global: 0" in saida
+    assert "\x1b[" not in saida.split("Cobertura global:")[1].split("\n")[0]
+
+# cenario: history colore achados novos resolvidos e persistentes
+def test_history_colore_achados_novos_resolvidos_e_persistentes(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.chdir(tmp_path)
+    _insert_run(tmp_path, "r1", True, passed=10, global_percent=80.0, verdict="aprovado", findings=("regra-a", "regra-b"))
+    _insert_run(tmp_path, "r2", True, passed=10, global_percent=80.0, verdict="aprovado", findings=("regra-b", "regra-c"))
+    assert main(["history"]) == 0
+    saida = capsys.readouterr().out
+    assert f"Achados novos: {paint('regra-c', 'red', enabled=True)}" in saida
+    assert f"Achados resolvidos: {paint('regra-a', 'green', enabled=True)}" in saida
+    assert f"Achados persistentes: {paint('regra-b', 'yellow', enabled=True)}" in saida
+
+# cenario: history colore a transicao de veredito pelos dois status
+def test_history_colore_a_transicao_de_veredito_pelos_dois_status(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.chdir(tmp_path)
+    _insert_run(tmp_path, "r1", True, passed=10, global_percent=80.0, verdict="aprovado com ressalvas")
+    _insert_run(tmp_path, "r2", True, passed=12, global_percent=85.0, verdict="aprovado")
+    assert main(["history"]) == 0
+    saida = capsys.readouterr().out
+    de = paint("⚠", VERDICT_COLOR["aprovado com ressalvas"], enabled=True)
+    para = paint("✓", VERDICT_COLOR["aprovado"], enabled=True)
+    assert f"Veredito: {de} Aprovado com ressalvas -> {para} Aprovado" in saida
+
+# cenario: clear sem nada a remover ganha o simbolo de aprovado
+def test_clear_sem_nada_a_remover_ganha_o_simbolo_de_aprovado(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["clear"]) == 0
+    saida = capsys.readouterr().out
+    assert f"{VERDICT_SYMBOL['aprovado']} Nada a remover." in saida
+
+# cenario: clear avisa a contagem em amarelo antes de confirmar
+def test_clear_avisa_a_contagem_em_amarelo_antes_de_confirmar(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.chdir(tmp_path)
+    _insert_run(tmp_path, "r1", True, passed=1, global_percent=80.0, verdict="aprovado")
+    _run_files(tmp_path, "r1")
+    assert main(["clear"]) == 0
+    saida = capsys.readouterr().out
+    assert paint("✂", "yellow", enabled=True) + " Execuções a remover: 1" in saida
+
+# cenario: clear aplicado confirma em verde com simbolo de aprovado
+def test_clear_aplicado_confirma_em_verde_com_simbolo_de_aprovado(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.chdir(tmp_path)
+    _insert_run(tmp_path, "r1", True, passed=1, global_percent=80.0, verdict="aprovado")
+    _run_files(tmp_path, "r1")
+    assert main(["clear", "--yes"]) == 0
+    saida = capsys.readouterr().out
+    assert f"{paint(VERDICT_SYMBOL['aprovado'], 'green', enabled=True)} Removidos" in saida

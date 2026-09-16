@@ -167,10 +167,10 @@ def test_dashboard_traz_testes_cobertura_e_achados_por_severidade():
 def test_icone_do_comando_prefixa_a_primeira_linha_impressa(tmp_path: Path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
 
-    cli.main(["clear"])
+    cli.main(["history"])
 
     primeira_linha = capsys.readouterr().out.splitlines()[0]
-    assert primeira_linha.startswith(COMMAND_ICON["clear"])
+    assert primeira_linha.startswith(COMMAND_ICON["history"])
 
 
 # cenario: sentry init mostra o wordmark antes do texto de conclusao
@@ -228,9 +228,10 @@ def test_sentry_h_mostra_o_wordmark_antes_do_texto_de_ajuda(capsys):
     assert saida.index("█") < saida.index("COMANDOS")
 
     with pytest.raises(SystemExit):
-        cli.main(["init", "-h"])
+        cli.main(["check", "-h"])
     saida_subcomando = capsys.readouterr().out
-    assert "█" not in saida_subcomando
+    assert "█" in saida_subcomando
+    assert saida_subcomando.index("█") < saida_subcomando.index("USO")
 
 
 # cenario: sentry --version colore o numero da versao em verde, pontos inclusos
@@ -251,7 +252,7 @@ def test_sentry_h_tem_cabecalhos_com_tracinho(capsys):
     assert "positional arguments:" not in saida
     assert "options:" not in saida
     assert "COMANDOS" in saida
-    assert "EXTRAS" in saida
+    assert "USO" in saida
     assert "─" in saida
 
 
@@ -286,20 +287,54 @@ def test_sentry_h_nao_repete_usage_nem_descricao(capsys):
     assert "Deriva a matriz de casos de teste" not in saida
     linhas = saida.splitlines()
     indice_versao = next(i for i, l in enumerate(linhas) if sentry_version in l)
+    indice_uso = next(i for i, l in enumerate(linhas) if "USO" in l)
     indice_comandos = next(i for i, l in enumerate(linhas) if "COMANDOS" in l)
-    assert linhas[indice_versao + 1].strip() == ""  # uma linha em branco...
-    assert indice_comandos == indice_versao + 2      # ...e so' uma, antes do titulo
+    assert linhas[indice_versao + 1].strip() == ""  # uma linha em branco antes do USO...
+    assert indice_uso == indice_versao + 2           # ...e so' uma
+    assert linhas[indice_comandos - 1].strip() == ""  # uma linha em branco antes do COMANDOS...
+    assert linhas[indice_comandos - 2].strip() != ""  # ...e so' uma
 
 
-# cenario: comandos e extras tem a mesma indentacao
-def test_comandos_e_extras_tem_a_mesma_indentacao(capsys):
+# cenario: comandos e USO tem a mesma indentacao
+def test_comandos_e_uso_tem_a_mesma_indentacao(capsys):
     with pytest.raises(SystemExit):
         cli.main(["-h"])
     saida = capsys.readouterr().out
     linha_init = next(l for l in saida.splitlines() if l.strip().startswith("init"))
-    linha_help = next(l for l in saida.splitlines() if l.strip().startswith("-h,"))
+    linha_sentry = next(l for l in saida.splitlines() if l.strip().startswith("sentry ["))
     recuo = lambda linha: len(linha) - len(linha.lstrip(" "))
-    assert recuo(linha_init) == recuo(linha_help)
+    assert recuo(linha_init) == recuo(linha_sentry)
+
+
+# cenario: argumentos e uso de um subcomando tem a mesma indentacao
+def test_argumentos_e_uso_de_subcomando_tem_a_mesma_indentacao(capsys):
+    recuo = lambda linha: len(linha) - len(linha.lstrip(" "))
+
+    with pytest.raises(SystemExit):
+        cli.main(["check", "-h"])
+    saida = capsys.readouterr().out
+    linha_slug = next(l for l in saida.splitlines() if l.strip() == "slug")
+    linha_uso = next(l for l in saida.splitlines() if l.strip() == "sentry check [slug]")
+    assert recuo(linha_slug) == recuo(linha_uso)
+
+
+# cenario: bloco USO e linha de erro tem a mesma margem que as outras secoes
+def test_bloco_uso_e_linha_de_erro_tem_a_mesma_margem(capsys):
+    recuo = lambda linha: len(linha) - len(linha.lstrip(" "))
+
+    with pytest.raises(SystemExit):
+        cli.main(["check", "-h"])
+    saida = capsys.readouterr().out
+    linha_uso = next(l for l in saida.splitlines() if l.strip() == "sentry check [slug]")
+    linha_flag_uso = next(l for l in saida.splitlines() if l.strip().startswith("[-h, --help]"))
+    assert recuo(linha_flag_uso) > recuo(linha_uso)
+
+    with pytest.raises(SystemExit):
+        cli.main(["new"])
+    saida = capsys.readouterr().err
+    linha_erro = next(l for l in saida.splitlines() if "erro:" in l)
+    linha_uso_new = next(l for l in saida.splitlines() if l.strip() == "sentry new name")
+    assert recuo(linha_erro) == recuo(linha_uso_new)
 
 
 # cenario: -h e --version tem texto de ajuda em portugues
@@ -319,15 +354,217 @@ def test_h_e_version_tem_texto_de_ajuda_em_portugues(capsys):
     assert "show this help message and exit" not in saida_subcomando
 
 
-# cenario: nenhum outro comando repete o wordmark
+# cenario: comandos de rotina nao repetem o wordmark
 def test_nenhum_outro_comando_repete_o_wordmark(tmp_path: Path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     cli.main(["init"])
     capsys.readouterr()  # descarta a saida do init
 
-    cli.main(["check"])
+    cli.main(["history"])
 
     assert "█" not in capsys.readouterr().out
+
+
+# cenario: sentry new mostra o wordmark antes do restante da saida
+def test_sentry_new_mostra_o_wordmark_antes_do_restante_da_saida(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    capsys.readouterr()
+
+    cli.main(["new", "nome da feature"])
+
+    saida = capsys.readouterr().out
+    assert "█" in saida
+    assert "Spec criada em" in saida
+    assert saida.index("█") < saida.index("Spec criada em")
+
+
+# cenario: sentry new --json nao mostra o wordmark
+def test_sentry_new_json_nao_mostra_o_wordmark(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    capsys.readouterr()
+
+    cli.main(["new", "nome da feature", "--json"])
+
+    assert "█" not in capsys.readouterr().out
+
+
+# cenario: sentry new sem o name obrigatorio tambem mostra o wordmark
+def test_sentry_new_sem_name_tambem_mostra_o_wordmark(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["new"])
+
+    saida = capsys.readouterr().err
+    assert "█" in saida
+    assert "USO" in saida
+    assert saida.index("█") < saida.index("USO")
+
+
+# cenario: bloco USO mostra um token por linha em vez de tudo numa linha so
+def test_bloco_uso_mostra_um_token_por_linha(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["run", "-h"])
+
+    saida = capsys.readouterr().out
+    linhas = saida.splitlines()
+    linha_nome = next(l for l in linhas if l.strip().startswith("sentry run"))
+    assert linha_nome.strip().startswith("sentry run [-h, --help]")
+    indice = linhas.index(linha_nome)
+    assert linhas[indice + 1].strip() == "[--spec SPEC]"
+    assert linhas[indice + 2].strip() == "[--run-tests]"
+    assert linhas[indice + 3].strip().startswith("[--base REF]")
+
+
+# cenario: posicional vem primeiro no USO, depois -h, depois o resto
+def test_posicional_vem_primeiro_no_uso_depois_h_depois_o_resto(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["new", "-h"])
+
+    saida = capsys.readouterr().out
+    assert saida.index("sentry new name") < saida.index("[-h, --help]") < saida.index("[--prompt PROMPT]") < saida.index("[--json]")
+
+
+# cenario: sentry new -h tambem mostra o wordmark
+def test_sentry_new_h_tambem_mostra_o_wordmark(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["new", "-h"])
+
+    saida = capsys.readouterr().out
+    assert "█" in saida
+    assert "USO" in saida
+    assert saida.index("█") < saida.index("USO")
+
+
+# cenario: erro de qualquer subcomando tambem ganha o wordmark
+def test_erro_de_qualquer_subcomando_tambem_ganha_o_wordmark(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["check", "--bogus"])
+
+    saida = capsys.readouterr().err
+    assert "█" in saida
+    assert saida.index("█") < saida.index("USO")
+
+
+# cenario: sentry init -h tambem mostra o wordmark
+def test_sentry_init_h_tambem_mostra_o_wordmark(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["init", "-h"])
+    saida = capsys.readouterr().out
+    assert "█" in saida
+    assert "USO" in saida
+    assert saida.index("█") < saida.index("USO")
+
+
+# cenario: token de -h no USO mostra as duas formas da flag
+def test_token_de_h_no_uso_mostra_as_duas_formas_da_flag(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["init", "-h"])
+    assert "[-h, --help]" in capsys.readouterr().out
+
+    with pytest.raises(SystemExit):
+        cli.main(["new", "-h"])
+    assert "[-h, --help]" in capsys.readouterr().out
+
+    with pytest.raises(SystemExit):
+        cli.main(["--bogus"])
+    saida = capsys.readouterr().err
+    assert "[-h, --help]" in saida
+    assert "[-h]" not in saida
+
+
+# cenario: sentry init -h funde a descricao de cada flag no USO e some com EXTRAS
+def test_sentry_init_h_funde_descricao_no_uso_e_some_com_extras(capsys):
+    for argv in (["init", "-h"], ["init", "--help"]):
+        with pytest.raises(SystemExit):
+            cli.main(argv)
+        saida = capsys.readouterr().out
+        assert "[-h, --help]" in saida
+        assert "mostra esta mensagem de ajuda e sai" in saida
+        assert "[--install]" in saida
+        assert "instala as dependências ausentes" in saida
+        assert "EXTRAS" not in saida
+        # a descricao esta na MESMA linha do token, nao numa secao separada
+        linha_install = next(l for l in saida.splitlines() if "[--install]" in l)
+        assert "instala as dependências ausentes" in linha_install
+
+
+# cenario: sentry new -h funde a descricao no USO mantendo ARGUMENTOS
+def test_sentry_new_h_funde_descricao_no_uso_mantendo_argumentos(capsys):
+    for argv in (["new", "-h"], ["new", "--help"]):
+        with pytest.raises(SystemExit):
+            cli.main(argv)
+        saida = capsys.readouterr().out
+        assert "[-h, --help]" in saida
+        assert "mostra esta mensagem de ajuda e sai" in saida
+        assert "[--prompt PROMPT]" in saida
+        assert "o pedido em texto livre; se omitido, usa o nome" in saida
+        assert "EXTRAS" not in saida
+        linha_prompt = next(l for l in saida.splitlines() if "[--prompt PROMPT]" in l)
+        assert "o pedido em texto livre; se omitido, usa o nome" in linha_prompt
+        # ARGUMENTOS continua existindo -- so' EXTRAS some, nao a secao de posicional
+        assert "ARGUMENTOS" in saida
+        assert "nome da funcionalidade; vira o slug da spec" in saida
+
+
+# cenario: fusao de USO e EXTRAS vale em todo comando, raiz inclusive
+def test_fusao_de_uso_e_extras_vale_em_todo_comando(capsys):
+    for argv in (["check", "-h"], ["clear", "-h"], ["run", "-h"], ["review", "-h"],
+                 ["watch", "-h"], ["status", "-h"], ["context", "-h"], ["report", "-h"],
+                 ["history", "-h"]):
+        with pytest.raises(SystemExit):
+            cli.main(argv)
+        saida = capsys.readouterr().out
+        assert "EXTRAS" not in saida
+        assert "[-h, --help]" in saida
+
+    with pytest.raises(SystemExit):
+        cli.main(["-h"])
+    saida = capsys.readouterr().out
+    assert "EXTRAS" not in saida
+    linha_h = next(l for l in saida.splitlines() if l.strip().startswith("[-h, --help]"))
+    assert "mostra esta mensagem de ajuda e sai" in linha_h
+
+
+# cenario: erro de sentry init e sentry new nao funde USO com EXTRAS
+def test_erro_de_init_e_new_nao_funde_uso_com_extras(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["init", "--bogus"])
+    saida = capsys.readouterr().err
+    assert "[-h, --help]" in saida
+    assert "[-h, --help]  mostra esta mensagem de ajuda e sai" not in saida
+    assert "EXTRAS" not in saida
+
+    with pytest.raises(SystemExit):
+        cli.main(["new"])
+    saida = capsys.readouterr().err
+    assert "[-h, --help]" in saida
+    assert "[-h, --help]       mostra esta mensagem de ajuda e sai" not in saida
+    assert "EXTRAS" not in saida
+
+
+# cenario: argumento sobrando num subcomando usa o usage do proprio subcomando
+def test_argumento_sobrando_usa_o_usage_do_proprio_subcomando(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    cli.main(["init"])
+    capsys.readouterr()
+
+    with pytest.raises(SystemExit):
+        cli.main(["new", "nome da feature", "--json", "name"])
+
+    saida = capsys.readouterr().err
+    assert "sentry new name" in saida
+    assert "{init,new,check" not in saida
+    assert "█" in saida
+
+
+# cenario: argumento sobrando sem subcomando escolhido usa o usage da raiz
+def test_argumento_sobrando_sem_subcomando_usa_o_usage_da_raiz(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(["--bogus"])
+
+    saida = capsys.readouterr().err
+    assert "[init, new, check" in saida
 
 
 # cenario: sentry init mostra o checklist dos passos com check verde
@@ -408,12 +645,15 @@ def test_versao_aparece_no_pezinho_do_wordmark_e_em_chip_nas_dependencias(tmp_pa
     assert "ENGINE ACTIVE" not in saida  # cabecalho separado foi removido
 
 
-# cenario: linha do checklist mostra a badge alinhada a direita por categoria
-def test_linha_do_checklist_mostra_a_badge_alinhada_a_direita_por_categoria():
-    linha = render_checklist_item("Criando .sentry/ (reports)", badge="created", badge_color="blue", enabled=False)
+# cenario: linha do checklist nao mostra nenhuma badge por categoria
+def test_linha_do_checklist_nao_mostra_nenhuma_badge_por_categoria(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
 
-    assert linha.rstrip().endswith("created")
-    assert "Criando .sentry/ (reports)" in linha
+    cli.main(["init"])
+
+    saida = capsys.readouterr().out
+    for rotulo in ("created", "written", "installed", "ready"):
+        assert rotulo not in saida
 
 
 # cenario: detalhe do ambiente mostra a versao real de cada dependencia

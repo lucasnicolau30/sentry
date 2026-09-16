@@ -48,8 +48,7 @@ SEVERITY_SYMBOL = {"crítica": "✗", "alta": "✗", "média": "⚠", "baixa": "
 # (masthead/resumo compacto): `run`/`review`/`status` ficariam com dois
 # simbolos competindo pela mesma linha.
 COMMAND_ICON = {
-    "init": "▶", "new": "✎", "check": "☑", "clear": "✂",
-    "watch": "◎", "context": "▤", "report": "▤", "history": "↺",
+    "clear": "✂", "history": "↺",
 }
 
 
@@ -97,13 +96,13 @@ def colorize_report(markdown: str, *, enabled: bool | None = None) -> str:
     if enabled is None:
         enabled = supports_color()
     markdown = _VERDICT_LINE.sub(
-        lambda m: m.group(1) + VERDICT_SYMBOL.get(m.group(2), "?") + " "
-        + paint(m.group(2), VERDICT_COLOR.get(m.group(2), "gray"), enabled=enabled) + m.group(3),
+        lambda m: m.group(1) + paint(VERDICT_SYMBOL.get(m.group(2), "?"), VERDICT_COLOR.get(m.group(2), "gray"), enabled=enabled)
+        + " " + m.group(2).capitalize() + m.group(3),
         markdown,
     )
     markdown = _SEVERITY_TAG.sub(
-        lambda m: "[" + SEVERITY_SYMBOL.get(m.group(1), "·") + " "
-        + paint(m.group(1), SEVERITY_COLOR.get(m.group(1), "gray"), enabled=enabled) + "]",
+        lambda m: "[" + paint(SEVERITY_SYMBOL.get(m.group(1), "·"), SEVERITY_COLOR.get(m.group(1), "gray"), enabled=enabled)
+        + " " + m.group(1) + "]",
         markdown,
     )
     return markdown
@@ -120,8 +119,8 @@ def spinner_frame(tick: int) -> str:
     return _SPINNER_FRAMES[tick % len(_SPINNER_FRAMES)]
 
 
-def _frame_line(tick: int, elapsed: float, message: str) -> str:
-    return f"\r{spinner_frame(tick)} {message}… {elapsed:.0f}s"
+def _frame_line(tick: int, elapsed: float, message: str, *, enabled: bool | None = None) -> str:
+    return f"\r{paint(spinner_frame(tick), 'green', enabled=enabled)} {message}… {elapsed:.0f}s"
 
 
 class Spinner:
@@ -154,7 +153,8 @@ class Spinner:
         for tick in itertools.count():
             if self._stop.is_set():
                 return
-            self.stream.write(_frame_line(tick, time.monotonic() - started, self.message))
+            self.stream.write(_frame_line(tick, time.monotonic() - started, self.message,
+                                          enabled=supports_color(self.stream)))
             self.stream.flush()
             self._stop.wait(self.interval)
 
@@ -239,8 +239,7 @@ def render_wordmark(version: str | None = None, *, enabled: bool | None = None) 
     return "\n".join(rendered)
 
 
-# Largura de referencia para o unico lado que ainda precisa de coluna
-# alinhada -- a badge do checklist.
+# Largura de referencia para o tracinho de preenchimento de render_section.
 _LINE_WIDTH = 78
 
 
@@ -259,19 +258,12 @@ def render_section(title: str, prefix_symbol: str = "", *, enabled: bool | None 
 
 
 def render_checklist_item(text: str, *, detail: str | None = None, detail_color: str = "blue",
-                          badge: str | None = None, badge_color: str = "blue",
                           enabled: bool | None = None) -> str:
-    """Uma linha do checklist do `init`. `detail` é um complemento colorido
-    depois do texto (ex.: versão do Python); `badge` é um rótulo alinhado à
-    direita numa largura fixa (`_LINE_WIDTH`) -- linha que já passa dessa
-    largura sozinha só ganha um espaço antes da badge, sem forçar a coluna."""
+    """Uma linha do checklist do `init`: o `✓` verde, o texto e, opcionalmente,
+    um detalhe colorido depois (ex.: versão do Python)."""
     line = f"{paint(VERDICT_SYMBOL['aprovado'], 'green', enabled=enabled)} {text}"
     if detail:
         line += " " + paint(detail, detail_color, enabled=enabled)
-    if badge:
-        plain_len = len(strip_ansi(line))
-        padding = max(_LINE_WIDTH - plain_len - len(badge), 1)
-        line += " " * padding + paint(badge, badge_color, enabled=enabled)
     return line
 
 
@@ -301,7 +293,7 @@ def render_masthead(payload: dict, *, enabled: bool | None = None) -> str:
     data = payload.get("data") or {}
     status = (data.get("verdict") or {}).get("status", "inconclusivo")
     symbol = VERDICT_SYMBOL.get(status, "?")
-    veredito = f"Veredito: {symbol} " + paint(status, VERDICT_COLOR.get(status, "gray"), enabled=enabled)
+    veredito = f"Veredito: {paint(symbol, VERDICT_COLOR.get(status, 'gray'), enabled=enabled)} {status.capitalize()}"
     commit = data.get("commit")
     lines = [
         f"Projeto: {data.get('project', '?')}",
@@ -325,7 +317,8 @@ def render_dashboard(payload: dict, *, enabled: bool | None = None) -> str:
         severity = finding.get("severity", "?")
         by_severity[severity] = by_severity.get(severity, 0) + 1
     achados = ", ".join(
-        f"{SEVERITY_SYMBOL.get(severity, '·')} {severity}={count}" for severity, count in by_severity.items()
+        f"{paint(SEVERITY_SYMBOL.get(severity, '·'), SEVERITY_COLOR.get(severity, 'gray'), enabled=enabled)} {severity}={count}"
+        for severity, count in by_severity.items()
     ) or "nenhum"
     lines = [
         f"Testes: {execution.get('passed', 0)} passou, {execution.get('failed', 0)} falhou" if execution

@@ -328,8 +328,8 @@ def staleness(payload, head: str | None) -> str | None:
     commit = (payload.get("data") or {}).get("commit")
     if not commit or not head or commit == head:
         return None
-    return (f"> Relatório desatualizado: analisado em {commit[:12]}, o HEAD atual é "
-            f"{head[:12]}. Não é o veredito do código atual — rode `sentry run` de novo.")
+    return (f"Relatório desatualizado: analisado em {commit[:12]}, o HEAD atual é "
+            f"{head[:12]}. Não é o veredito do código atual — rode sentry run de novo.")
 
 def write_reports(root: Path, payload):
     reports = root / ".sentry" / "reports"

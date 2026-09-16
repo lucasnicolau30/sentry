@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from sentrytest import cli
 from sentrytest.adapters.terminal import colorize_report, paint, strip_ansi, supports_color
 
@@ -60,38 +62,38 @@ def _relatorio(veredito: str, achados: str = "") -> str:
 # cenario: veredito aprovado sai verde
 def test_veredito_aprovado_sai_verde():
     saida = colorize_report(_relatorio("aprovado"), enabled=True)
-    assert paint("aprovado", "green", enabled=True) in saida
+    assert paint("✓", "green", enabled=True) + " Aprovado" in saida
 
 
 # cenario: veredito aprovado com ressalvas sai amarelo
 def test_veredito_aprovado_com_ressalvas_sai_amarelo():
     saida = colorize_report(_relatorio("aprovado com ressalvas"), enabled=True)
-    assert paint("aprovado com ressalvas", "yellow", enabled=True) in saida
+    assert paint("⚠", "yellow", enabled=True) + " Aprovado com ressalvas" in saida
 
 
 # cenario: veredito reprovado sai vermelho
 def test_veredito_reprovado_sai_vermelho():
     saida = colorize_report(_relatorio("reprovado"), enabled=True)
-    assert paint("reprovado", "red", enabled=True) in saida
+    assert paint("✗", "red", enabled=True) + " Reprovado" in saida
 
 
 # cenario: veredito inconclusivo sai cinza
 def test_veredito_inconclusivo_sai_cinza():
     saida = colorize_report(_relatorio("inconclusivo"), enabled=True)
-    assert paint("inconclusivo", "gray", enabled=True) in saida
+    assert paint("○", "gray", enabled=True) + " Inconclusivo" in saida
 
 
 # cenario: achado critico ou alto sai vermelho
 def test_achado_critico_ou_alto_sai_vermelho():
     saida = colorize_report(_relatorio("reprovado", "- [crítica] `x` — y\n- [alta] `z` — w"), enabled=True)
-    assert paint("crítica", "red", enabled=True) in saida
-    assert paint("alta", "red", enabled=True) in saida
+    assert paint("✗", "red", enabled=True) + " crítica" in saida
+    assert paint("✗", "red", enabled=True) + " alta" in saida
 
 
 # cenario: achado de media severidade sai amarelo
 def test_achado_de_media_severidade_sai_amarelo():
     saida = colorize_report(_relatorio("aprovado com ressalvas", "- [média] `x` — y"), enabled=True)
-    assert paint("média", "yellow", enabled=True) in saida
+    assert paint("⚠", "yellow", enabled=True) + " média" in saida
 
 
 def test_cor_desabilitada_ainda_assim_nao_tem_codigo_ansi():
@@ -127,7 +129,7 @@ def test_sentry_check_colore_erro_de_vermelho_e_sucesso_de_verde(tmp_path: Path,
 
     cli._check(tmp_path, 'demo')
     saida_com_erro = capsys.readouterr().out
-    assert paint('✗ erro:', 'red', enabled=True) in saida_com_erro
+    assert paint('✗', 'red', enabled=True) + ' erro:' in saida_com_erro
 
     (spec / 'CASES.md').write_text(
         "# Demo\n\n## Prompt\n\nx\n\n## Caso: um caso\n\n"
@@ -136,7 +138,7 @@ def test_sentry_check_colore_erro_de_vermelho_e_sucesso_de_verde(tmp_path: Path,
         encoding='utf-8')
     cli._check(tmp_path, 'demo')
     saida_ok = capsys.readouterr().out
-    assert paint('Estrutura valida e catalogo de classes coberto.', 'green', enabled=True) in saida_ok
+    assert paint('✓', 'green', enabled=True) + ' Estrutura valida e catalogo de classes coberto.' in saida_ok
 
 
 # cenario: dependencia ausente vira vermelho e presente vira verde no detalhe do ambiente
@@ -182,3 +184,110 @@ def test_checklist_do_init_em_reexecucao_nao_mostra_nenhuma_badge(tmp_path: Path
 
     saida = capsys.readouterr().out
     assert 'presente' not in saida
+
+
+# cenario: uso de subcomando ganha titulo com tracinho e colore comando e flag
+def test_usage_de_subcomando_usa_uso_em_portugues_e_colore_qualquer_flag(monkeypatch, capsys):
+    monkeypatch.setenv('FORCE_COLOR', '1')
+    monkeypatch.delenv('NO_COLOR', raising=False)
+
+    with pytest.raises(SystemExit):
+        cli.main(['new', '-h'])
+
+    saida = capsys.readouterr().out
+    assert 'USO' in saida
+    assert 'usage:' not in saida
+    assert paint('sentry', 'green', enabled=True) in saida
+    assert paint('new', 'green', enabled=True) in saida
+    for flag in ('-h', '--prompt', '--json'):
+        assert paint(flag, 'green', enabled=True) in saida
+
+
+# cenario: erro do argparse nao repete sentry comando antes de erro
+def test_erro_do_argparse_nao_repete_sentry_comando_antes_de_erro(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(['new'])
+
+    saida = capsys.readouterr().err
+    assert 'sentry new:' not in saida
+    linha_de_erro = next(l for l in saida.splitlines() if 'erro:' in l)
+    assert linha_de_erro.strip().startswith('erro:')
+
+
+# cenario: subcomando sem name nem valor colorido ainda assim tem flag colorida
+def test_subcomando_sem_positional_ainda_assim_tem_flag_colorida(monkeypatch, capsys):
+    monkeypatch.setenv('FORCE_COLOR', '1')
+    monkeypatch.delenv('NO_COLOR', raising=False)
+
+    with pytest.raises(SystemExit):
+        cli.main(['check', '-h'])
+
+    saida = capsys.readouterr().out
+    assert paint('-h', 'green', enabled=True) in saida
+
+
+# cenario: argumento obrigatorio ausente vira mensagem em portugues
+def test_argumento_obrigatorio_ausente_vira_mensagem_em_portugues(capsys):
+    with pytest.raises(SystemExit) as info:
+        cli.main(['new'])
+
+    assert info.value.code == 2
+    saida = capsys.readouterr().err
+    assert 'argumento(s) obrigatório(s) ausente(s): name' in saida
+    assert 'the following arguments are required' not in saida
+
+
+# cenario: escolha invalida de subcomando vira mensagem em portugues
+def test_escolha_invalida_de_subcomando_vira_mensagem_em_portugues(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(['comando-que-nao-existe'])
+
+    saida = capsys.readouterr().err
+    assert 'escolha inválida' in saida
+    assert 'invalid choice' not in saida
+
+
+# cenario: escolha invalida nao repete a lista de opcoes que o USO ja mostra
+def test_escolha_invalida_nao_repete_a_lista_de_opcoes(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(['comando-que-nao-existe'])
+
+    saida = capsys.readouterr().err
+    linha_erro = next(l for l in saida.splitlines() if 'erro:' in l)
+    assert "escolha inválida: 'comando-que-nao-existe'" in linha_erro
+    assert 'opções' not in linha_erro
+
+
+# cenario: mensagem de erro sem tradutor reconhecida cai no texto original
+def test_mensagem_de_erro_sem_tradutor_reconhecida_cai_no_texto_original():
+    from sentrytest.cli import _translate_argparse_message
+
+    original = "some completely unmapped argparse message"
+    assert _translate_argparse_message(original) == original
+
+
+# cenario: palavra erro sai em vermelho na linha de erro
+def test_palavra_erro_sai_em_vermelho_na_linha_de_erro(monkeypatch, capsys):
+    monkeypatch.setenv('FORCE_COLOR', '1')
+    monkeypatch.delenv('NO_COLOR', raising=False)
+
+    with pytest.raises(SystemExit):
+        cli.main(['new'])
+
+    saida = capsys.readouterr().err
+    assert paint('erro:', 'red', enabled=True) in saida
+
+
+# cenario: subcomando sem subcomandos proprios usa titulo Argumentos
+def test_subcomando_usa_titulo_argumentos_raiz_usa_titulo_comandos(capsys):
+    with pytest.raises(SystemExit):
+        cli.main(['new', '-h'])
+    saida_subcomando = capsys.readouterr().out
+
+    with pytest.raises(SystemExit):
+        cli.main(['-h'])
+    saida_raiz = capsys.readouterr().out
+
+    assert 'ARGUMENTOS' in saida_subcomando
+    assert 'COMANDOS' in saida_raiz
+    assert 'ARGUMENTOS' not in saida_raiz
