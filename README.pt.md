@@ -1,4 +1,15 @@
-# Sentry
+<div align="center">
+
+```
+███████╗███████╗███╗   ██╗████████╗██████╗ ██╗   ██╗
+██╔════╝██╔════╝████╗  ██║╚══██╔══╝██╔══██╗╚██╗ ██╔╝
+███████╗█████╗  ██╔██╗ ██║   ██║   ██████╔╝ ╚████╔╝
+╚════██║██╔══╝  ██║╚██╗██║   ██║   ██╔══██╗  ╚██╔╝
+███████║███████╗██║ ╚████║   ██║   ██║  ██║   ██║
+╚══════╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝  v2.0.0
+```
+
+</div>
 
 Português | [English](README.md)
 
@@ -79,7 +90,7 @@ Código de saída `0` em sucesso; veja a tabela de códigos adiante.
 | `sentry check [<slug>\|all]`                              | Valida `CASES.md`: estrutura, vocabulário e cobrança de classes de equivalência. `all` valida todas as specs juntas.                                                                                                                                                                                                                              |
 | `sentry run [--spec <slug>\|all] [--run-tests]`           | Executa a análise e persiste. Sem `--run-tests` roda no modo instantâneo: nenhuma suíte é executada e a cobertura é a da última execução completa, carimbada como tal. Com `--run-tests`, uma execução completa cuja entrada não mudou volta do cache. Sem `--spec` e sem nenhum `CASES.md`, mede o que não depende de spec em vez de exigir uma. |
 | `sentry review [--spec <slug>] [--base REF] [--no-tests]` | `check` + `run` + relatório num comando só, com testes por padrão. Funciona em repositório sem `.sentry/` e sem `sentry.toml`.                                                                                                                                                                                                                    |
-| `sentry watch`                                            | Reavalia ao salvar. Modo instantâneo para o loop de digitação, escalando para a execução completa quando o arquivo salvo é um teste — é aí que a mudança vira evidência. Faz polling de mtime, sem acrescentar dependência de runtime.                                                                                                            |
+| `sentry watch [--spec <slug>] [--interval SEGUNDOS]`      | Reavalia ao salvar. Modo instantâneo para o loop de digitação, escalando para a execução completa quando o arquivo salvo é um teste — é aí que a mudança vira evidência. Faz polling de mtime (intervalo padrão `0.4s`), sem acrescentar dependência de runtime.                                                                                  |
 | `sentry context --json`                                   | Emite as lacunas da última análise em JSON, para o agente de IA: faixas de linha descobertas, caminhos de erro que nenhum teste executou, testes falhando com nome, cenários sem teste, classes de equivalência ausentes, marcadores órfãos e limitações declaradas.                                                                              |
 | `sentry status [--json]`                                  | Mede a aplicação inteira, não só o diff: todo arquivo de código-fonte é tratado como alterado, contra todas as specs declaradas (`--spec all`). Sempre roda a suíte completa, nunca volta do cache — é a medição periódica e autoritativa, não o loop rápido. Reporta quais arquivos têm cobertura zero.                                          |
 | `sentry report`                                           | Exibe o último relatório (`.sentry/reports/latest.md`), acusando quando ele é de um commit que não é mais o HEAD.                                                                                                                                                                                                                                 |
@@ -175,6 +186,7 @@ Cada uma reporta `coberta`, `parcial`, `não coberta` ou `não aplicável`, com 
 | APIs, persistência, transações e integrações | casos de tipo `contrato`/`integração` e camada `integração`   |
 | exceções, resiliência e recuperação          | caminhos de erro alterados executados por algum teste         |
 | segurança e autorização                      | campos de tipo `rota` com todas as classes de acesso cobertas |
+| interface e fluxo de usuário                 | casos de camada `frontend` com evidência de execução e2e      |
 
 `não aplicável` é distinto de `não coberta`: um projeto sem rotas não é punido na dimensão de segurança.
 
@@ -199,6 +211,11 @@ paths = ["tests"]         # padrão: tests, test, spec, __tests__
 [coverage]                # relatório gerado pela suíte do próprio projeto
 path = "coverage/lcov.info"
 format = "lcov"           # opcional: detectado pelo conteúdo quando omitido
+
+[e2e]                     # opcional: segunda suíte para casos de camada frontend
+command = "npx playwright test --reporter=junit"
+junit_xml = "frontend/reports/junit.xml"
+paths = ["frontend/e2e"]
 
 [analysis]
 run_tests_by_default = false
@@ -248,7 +265,7 @@ A detecção de caminho de erro fora de Python é menos precisa que AST, e o rel
 
 Em Python, o **pytest** é o único runner instrumentado automaticamente: o Sentry o reconhece em `pytest`, `python -m pytest` e no executável do venv, embrulha em `coverage run` e coleta a contagem sozinho. Em Django, prefira `command = "python -m pytest"` com `pytest-django` a `manage.py test`. Qualquer outro comando — inclusive `python -m unittest` — roda **exatamente como declarado**, sem flag injetada: para medi-lo, declare o `junit_xml` que sua suíte gera, senão o veredito sai `não executado` por ausência de evidência.
 
-Camada `frontend` é recusada de propósito: sem adaptador que a verifique, um caso declarado ficaria preso em `não coberto` para sempre.
+Camada `frontend` é verificada por uma segunda suíte, declarada em `[e2e]` — o reporter JUnit do Playwright encaixa nativamente. Seus casos nunca ganham cobertura de linha: o status vem de **evidência de execução** (o cenário rodou e passou, trace/screenshot anexado), nunca de um número de cobertura, e o relatório registra isso como limitação declarada.
 
 ## Local-first
 
@@ -263,7 +280,7 @@ python -m pytest
 
 O Sentry se analisa: `sentry run --spec all --run-tests` na raiz do repositório
 casa os casos declarados em `.sentry/specs/` com as funções de teste reais e
-reporta as quatro dimensões.
+reporta as cinco dimensões.
 
 ## Licença
 

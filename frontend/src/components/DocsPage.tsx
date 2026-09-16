@@ -484,7 +484,7 @@ const actionsByLang: Record<"pt" | "en", Card[]> = {
       title: "Leia o veredito",
       description: (
         <>
-          <Cmd>sentry report</Cmd> exibe o último relatório com as quatro dimensões de cobertura e a evidência de cada achado.
+          <Cmd>sentry report</Cmd> exibe o último relatório com as cinco dimensões de cobertura e a evidência de cada achado.
         </>
       ),
     },
@@ -544,7 +544,7 @@ const actionsByLang: Record<"pt" | "en", Card[]> = {
       title: "Read the verdict",
       description: (
         <>
-          <Cmd>sentry report</Cmd> shows the latest report with the four coverage dimensions and evidence for each finding.
+          <Cmd>sentry report</Cmd> shows the latest report with the five coverage dimensions and evidence for each finding.
         </>
       ),
     },
@@ -998,6 +998,10 @@ function SetupContent({
             <p className="mt-2 text-[var(--text-h)]">[coverage]</p>
             <p className="pl-2">path = <span className="text-[var(--accent)]">"coverage/lcov.info"</span></p>
             <p className="pl-2">format = <span className="text-[var(--accent)]">"lcov"</span> <span className="text-[var(--text)]/40"># {t("opcional: detectado pelo conteúdo", "optional: detected by content")}</span></p>
+            <p className="mt-2 text-[var(--text-h)]">[e2e] <span className="text-[var(--text)]/40"># {t("opcional: segunda suíte para casos de camada frontend", "optional: second suite for frontend-layer cases")}</span></p>
+            <p className="pl-2">command = <span className="text-[var(--accent)]">"npx playwright test --reporter=junit"</span></p>
+            <p className="pl-2">junit_xml = <span className="text-[var(--accent)]">"frontend/reports/junit.xml"</span></p>
+            <p className="pl-2">paths = <span className="text-[var(--accent)]">["frontend/e2e"]</span></p>
             <p className="mt-2 text-[var(--text-h)]">[analysis]</p>
             <p className="pl-2">run_tests_by_default = <span className="text-[var(--accent)]">false</span></p>
             <p className="pl-2">timeout_seconds = <span className="text-[var(--accent)]">300</span></p>
@@ -1058,13 +1062,17 @@ function SetupContent({
           <p className="mt-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
             {lang === "pt" ? (
               <>
-                Camada <span className="text-[var(--text-h)]">frontend</span> é recusada de propósito: sem adaptador
-                que a verifique, um caso declarado ficaria preso em "não coberto" para sempre.
+                Camada <span className="text-[var(--text-h)]">frontend</span> é verificada por uma segunda suíte,
+                declarada em <span className="text-[var(--text-h)]">[e2e]</span> — o reporter JUnit do Playwright
+                encaixa nativamente. Seus casos nunca ganham cobertura de linha: o status vem de evidência de
+                execução (o cenário rodou e passou, trace/screenshot anexado), nunca de um número de cobertura.
               </>
             ) : (
               <>
-                The <span className="text-[var(--text-h)]">frontend</span> layer is rejected on purpose: without an
-                adapter to verify it, a declared case would stay stuck as "not covered" forever.
+                The <span className="text-[var(--text-h)]">frontend</span> layer is verified by a second suite,
+                declared under <span className="text-[var(--text-h)]">[e2e]</span> — Playwright's JUnit reporter is
+                a native fit. Its cases never get line coverage: status comes from execution evidence (the scenario
+                ran and passed, trace/screenshot attached), never from a coverage number.
               </>
             )}
           </p>
@@ -1136,12 +1144,14 @@ const coverageDimensionsByLang = {
     { dimension: "APIs, persistência, transações e integrações", evidence: "casos de tipo contrato/integração e camada integração" },
     { dimension: "Exceções, resiliência e recuperação", evidence: "caminhos de erro alterados executados por algum teste" },
     { dimension: "Segurança e autorização", evidence: "campos de tipo rota com todas as classes de acesso cobertas" },
+    { dimension: "Interface e fluxo de usuário", evidence: "casos de camada frontend com evidência de execução e2e" },
   ],
   en: [
     { dimension: "Requirements and business rules", evidence: "spec scenarios with an associated test" },
     { dimension: "APIs, persistence, transactions and integrations", evidence: "contract/integration-type cases and integration layer" },
     { dimension: "Exceptions, resilience and recovery", evidence: "changed error paths executed by some test" },
     { dimension: "Security and authorization", evidence: "route-type fields with all access classes covered" },
+    { dimension: "Interface and user flow", evidence: "frontend-layer cases with e2e execution evidence" },
   ],
 };
 
@@ -1284,8 +1294,8 @@ function WorkflowContent({
 
           <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
             {t(
-              "A cobertura é medida em quatro dimensões, cada uma reportando coberta, parcial, não coberta ou não aplicável, com evidência:",
-              "Coverage is measured across four dimensions, each reporting covered, partial, not covered or not applicable, with evidence:"
+              "A cobertura é medida em cinco dimensões, cada uma reportando coberta, parcial, não coberta ou não aplicável, com evidência:",
+              "Coverage is measured across five dimensions, each reporting covered, partial, not covered or not applicable, with evidence:"
             )}
           </p>
           <div className="overflow-hidden rounded-xl border border-[var(--border)]">
@@ -2038,12 +2048,12 @@ const papersByLang: Record<"pt" | "en", Paper[]> = {
         { icon: <HistoryIcon />, label: "Veredito" },
       ],
       grounds: [
-        <>Quatro dimensões de cobertura — requisitos, integrações, erros e segurança</>,
+        <>Cinco dimensões de cobertura — requisitos, integrações, erros, segurança e interface</>,
         <>Testes de integração — camada intermediária cobrando contratos e persistência</>,
         <>
           <W>changed-code-uncovered</W> — cobra teste unitário no código alterado, a base da pirâmide
         </>,
-        <>Camada frontend recusada — sem adaptador que a verifique, o caso nunca sairia de 'não coberto'</>,
+        <>Camada frontend via Playwright — evidência de execução e2e, nunca cobertura de linha</>,
         <>Evidências por camada — cada nível da pirâmide sustenta um tipo diferente de prova</>,
       ],
       href: "https://engineering.homeoffice.gov.uk/standards/test-pyramid/",
@@ -2156,12 +2166,12 @@ const papersByLang: Record<"pt" | "en", Paper[]> = {
         { icon: <HistoryIcon />, label: "Verdict" },
       ],
       grounds: [
-        <>Four coverage dimensions — requirements, integrations, errors and security</>,
+        <>Five coverage dimensions — requirements, integrations, errors, security and interface</>,
         <>Integration tests — the middle layer, covering contracts and persistence</>,
         <>
           <W>changed-code-uncovered</W> — requires a unit test on changed code, the base of the pyramid
         </>,
-        <>Rejected frontend layer — with no adapter to verify it, a case would stay stuck as 'not covered'</>,
+        <>Frontend layer via Playwright — e2e execution evidence, never line coverage</>,
         <>Evidence per layer — each level of the pyramid supports a different kind of proof</>,
       ],
       href: "https://engineering.homeoffice.gov.uk/standards/test-pyramid/",
