@@ -49,21 +49,45 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Determinar a base de comparação e se há código Python no diff
+        # Sem --base, o LocalGitAdapter compara contra HEAD -- e um checkout
+        # limpo ja esta em HEAD, entao o diff sai sempre vazio (0 arquivos),
+        # nao importa o que o commit tenha mudado. base e' o commit anterior
+        # ao push (ou a base declarada da PR), para haver diff de verdade.
+        #
+        # has_python decide se ha' algo que a suite pytest/coverage consiga
+        # medir: um push que so muda markdown ou frontend nao tem cobertura
+        # de linha pra checar, e cairia sempre em Inconclusivo -- nao por
+        # estar errado, so por nao ter o que este job mede.
+        id: diff
+        run: |
+          BASE="${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}"
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          if git diff --name-only "$BASE" HEAD -- '*.py' | grep -q .; then
+            echo "has_python=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_python=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-python@v5
+        if: steps.diff.outputs.has_python == 'true'
         with:
           python-version: "3.12"
 
       - name: Instalar
+        if: steps.diff.outputs.has_python == 'true'
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e .
           python -m pip install pytest coverage
 
       - uses: actions/setup-node@v4
+        if: steps.diff.outputs.has_python == 'true'
         with:
           node-version: "20"
 
       - name: Instalar a suite e2e do frontend
+        if: steps.diff.outputs.has_python == 'true'
         # [e2e] em sentry.toml sobe uma segunda suite (Playwright) durante a
         # auto-analise: sem o Node e os browsers instalados, o job falharia por
         # ambiente -- exatamente a distincao que os codigos de saida existem
@@ -73,6 +97,7 @@ jobs:
           npx --prefix frontend playwright install --with-deps chromium
 
       - name: Analisar a própria mudança
+        if: steps.diff.outputs.has_python == 'true'
         # Codigo de saida: 0 aprovado, 1 com ressalvas, 2 reprovado,
         # 3 inconclusivo/infraestrutura. Aprovado e ressalva passam; acima disso
         # derruba o build.
@@ -84,12 +109,12 @@ jobs:
         # Para o job que existe para provar que o produto funciona, "nao consegui
         # medir" e' falha, nao aprovacao silenciosa.
         run: |
-          sentry run --spec all --run-tests || codigo=$?
+          sentry run --spec all --run-tests --base "${{ steps.diff.outputs.base }}" || codigo=$?
           echo "veredito (exit ${codigo:-0})"
           exit $(( ${codigo:-0} > 1 ? 1 : 0 ))
 
       - name: Publicar o relatório
-        if: always()
+        if: always() && steps.diff.outputs.has_python == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: sentry-report
