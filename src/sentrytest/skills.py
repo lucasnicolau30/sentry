@@ -263,13 +263,28 @@ genérico: roda, mas não mede.
   pool `.sentry/media/`. Sem `--yes` só mostra o que sairia. Nunca toca em
   `.sentry/specs/` nem em `.sentry/storage/`.
 - `sentry archive <modulo> --version X.Y.Z [--specs A,B,C] [--image] [--video]` —
-  executa a suíte e2e do módulo e, se aprovada, arquiva a mídia em
-  `.sentry/storage/<modulo>-<versao>/` com um `README.md` autossuficiente. Recusa
-  veredito reprovado. A composição do módulo é declarada uma única vez, com
-  `--specs`, na versão 1.0.0, e fica gravada em `[modules]` do `sentry.toml`. Sem
-  `--image`/`--video`, tudo que for produzido é arquivado; pedindo uma das duas,
-  só aquele tipo entra na mídia arquivada, e `--video` liga a gravação de vídeo
-  do Playwright para aquela execução.
+  dois modos, conforme o módulo é declarado em `sentry.toml`.
+  - **Por specs** (`[modules] <modulo> = [...]`): executa a suíte e2e do módulo
+    e, se aprovada, arquiva a mídia em `.sentry/storage/<modulo>-<versao>/` com
+    um `README.md` autossuficiente. Recusa veredito reprovado. A composição do
+    módulo é declarada uma única vez, com `--specs`, na versão 1.0.0, e fica
+    gravada em `[modules]` do `sentry.toml`.
+  - **Por rota** (`[modules.<modulo>] rotas = [...]`): fotografa cada rota
+    declarada com Playwright (desktop + mobile, vídeo opcional), uma pasta por
+    rota dentro de `.sentry/storage/<modulo>-<versao>/` — mesmo que o módulo
+    nunca tenha sido testado. `login = true` mais `[archive.login]` (rota,
+    seletor de usuário, senha e botão) faz login uma única vez antes de
+    fotografar; credenciais vêm só de `SENTRY_LOGIN_USUARIO`/
+    `SENTRY_LOGIN_SENHA`, nunca do `sentry.toml`. Uma lista `specs` opcional
+    dentro do próprio `[modules.<modulo>]` roda a suíte e carimba veredito no
+    README, igual ao modo por specs; sem ela, o README avisa que é registro
+    visual, sem certificação. Uma rota que falha ao carregar (rota errada,
+    dev server fora do ar) não derruba as demais — o comando sai com o código
+    de ressalva (1) e o README nomeia qual rota falhou.
+  - Sem `--image`/`--video`, tudo que for produzido é arquivado; pedindo uma
+    das duas, só aquele tipo entra na mídia arquivada, e `--video` liga a
+    gravação de vídeo do Playwright para aquela execução (os dois modos
+    aceitam essas flags).
 
 ## Limites
 
