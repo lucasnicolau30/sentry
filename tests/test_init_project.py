@@ -18,15 +18,15 @@ def test_initialize_project_is_idempotent(tmp_path: Path) -> None:
     assert (tmp_path/'.gitignore').read_text(encoding='utf-8').count('.sentry/sentry.db') == 1
 
 # cenario: gitignore novo nasce sem a linha de specs
-def test_gitignore_novo_nao_exclui_specs_e_mantem_latest_md_rastreavel(tmp_path: Path) -> None:
+def test_gitignore_novo_nao_exclui_specs_e_mantem_o_relatorio_atual_rastreavel(tmp_path: Path) -> None:
     """Spec e' intencao declarada, nao evidencia gerada: nao versionada, ela so
     existe na maquina de quem a escreveu e um checkout limpo nao tem o que medir."""
     initialize_project(tmp_path)
     content=(tmp_path/'.gitignore').read_text(encoding='utf-8')
     assert '.sentry/specs/' not in content
     assert '.sentry/reports/*' in content
-    assert '!.sentry/reports/latest.md' in content
-    assert '.sentry/reports/\n' not in content  # padrao antigo bloquearia latest.md
+    assert '!.sentry/reports/latest-*.md' in content
+    assert '.sentry/reports/\n' not in content  # padrao antigo bloquearia o relatorio atual
 
 # cenario: specs saem do gitignore na proxima inicializacao
 def test_gitignore_existente_perde_a_exclusao_de_specs(tmp_path: Path) -> None:
@@ -46,7 +46,7 @@ def test_remocao_de_specs_preserva_as_demais_entradas(tmp_path: Path) -> None:
     content=(tmp_path/'.gitignore').read_text(encoding='utf-8')
     assert '.sentry/specs/' not in content
     for entrada in ('.sentry/sentry.db', '.sentry/runs/', '.sentry/test-plans/',
-                    '.sentry/reports/*', '!.sentry/reports/latest.md'):
+                    '.sentry/reports/*', '!.sentry/reports/latest-*.md'):
         assert entrada in content
     assert initialize_project(tmp_path)==[]  # idempotente apos a migracao
 
@@ -61,14 +61,14 @@ def test_linha_do_usuario_parecida_com_a_obsoleta_permanece(tmp_path: Path) -> N
 # cenario: gitignore antigo e migrado sem duplicar entradas
 def test_gitignore_migrates_obsolete_reports_pattern(tmp_path: Path) -> None:
     """O padrao antigo (`.sentry/reports/`) exclui o diretorio inteiro: uma
-    negacao para latest.md depois dele nao teria efeito. Precisa ser removido,
+    negacao para o relatorio atual depois dele nao teria efeito. Precisa ser removido,
     nao só complementado."""
     (tmp_path/'.gitignore').write_text('.sentry/sentry.db\n.sentry/reports/\n.sentry/runs/\n', encoding='utf-8')
     initialize_project(tmp_path)
     content=(tmp_path/'.gitignore').read_text(encoding='utf-8')
     assert '.sentry/reports/\n' not in content
     assert '.sentry/reports/*' in content
-    assert '!.sentry/reports/latest.md' in content
+    assert '!.sentry/reports/latest-*.md' in content
     assert initialize_project(tmp_path)==[]  # idempotente apos a migracao
 
 # cenario: init instala o guia de agente na raiz do projeto

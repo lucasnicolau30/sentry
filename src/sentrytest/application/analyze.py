@@ -14,6 +14,7 @@ from .cases import build_test_cases, summarize
 from .reporting import load_runs
 from .reuse import COMPLETE, INSTANT, cached_execution, cached_run, input_fingerprint, provenance, reused_coverage
 from .traceability import DEFAULT_TEST_PATHS, TEST_DEFINITIONS, build_traceability, collect_test_files
+from .archive import collect_media
 from .frontend_evidence import evidence_by_case
 from .coverage_context import calculate_changed_coverage
 from .impact import SOURCE_EXTENSIONS, select_impacted_tests
@@ -163,7 +164,17 @@ def analyze(root:Path,slug:str|None=None,run_tests:bool|None=None,base:str|None=
     e2e_junit=e2e_config.get('junit_xml')
     if run_tests is None: run_tests=config.get('analysis',{}).get('run_tests_by_default',False)
     cases_path=config.get('specs',{}).get('path',CASES_PATH)
-    if is_all_spec(slug):
+    if isinstance(slug,(list,tuple)):
+        # Um modulo e' um conjunto nomeado de specs (`sentry archive`): o mesmo
+        # pipeline de `--spec all`, recortado nas specs que o modulo declara --
+        # senao o veredito de um modulo dependeria de spec que nao e' dele.
+        available=dict(spec_documents(root,cases_path))
+        faltando=[name for name in slug if name not in available]
+        if faltando: raise FileNotFoundError(f"spec não encontrada: {', '.join(faltando)}; esperado {cases_path}/<slug>/CASES.md")
+        entries=[(name,available[name]) for name in slug]
+        document=merge_documents([(name,CaseSpecAdapter(path).document()) for name,path in entries])
+        spec_label=', '.join(name for name,_ in entries)
+    elif is_all_spec(slug):
         entries=spec_documents(root,cases_path)
         if not entries: raise ValueError(f"nenhuma matriz de casos encontrada em {root/cases_path}; crie uma com `sentry new <nome>` e preencha o CASES.md")
         document=merge_documents([(name,CaseSpecAdapter(path).document()) for name,path in entries])
@@ -260,6 +271,9 @@ def analyze(root:Path,slug:str|None=None,run_tests:bool|None=None,base:str|None=
         if e2e_junit:
             e2e_paths=collect_test_files(root,tuple(e2e_config.get('paths') or ()))
             e2e_evidence=evidence_by_case(root/e2e_junit,e2e_paths)
+        # O Playwright limpa o proprio diretorio de saida a cada execucao: sem
+        # recolher agora, a evidencia desta rodada some na proxima.
+        collect_media(root,e2e_config.get('output_dir'))
     e2e_failed=bool(e2e_test and e2e_test.failed)
     test_cases=build_test_cases(document,traceability,run_tests,suite_failed,e2e_failed,e2e_evidence) if document else ()
     # Sem --run-tests nao ha cobertura, entao a regra nao pode afirmar ausencia de

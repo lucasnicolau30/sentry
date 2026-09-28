@@ -1,6 +1,7 @@
 from __future__ import annotations
 import argparse
 import json
+import os
 import platform
 import re
 import sys
@@ -23,9 +24,10 @@ from .adapters.terminal import (
     render_wordmark,
 )
 from .domain.models import to_json
+from .application.archive import PRIMEIRA_VERSAO, record_module, resolve_specs, write_archive
 from .application.reporting import clear_history, load_runs, staleness, write_reports, compare
 
-_COMMAND_NAMES = ("init", "new", "check", "run", "review", "watch", "status", "context", "report", "history", "clear")
+_COMMAND_NAMES = ("init", "new", "check", "run", "review", "watch", "status", "context", "report", "history", "clear", "archive")
 _CHOICES_LINE = re.compile(r'^\{[\w,]+\}$')
 # Generico -- qualquer `-x`/`--algo`, nao so' `-h`/`--help`/`--version` como antes:
 # cada subcomando tem seu proprio conjunto de flags (`--prompt`, `--spec`, `--base`...)
@@ -355,6 +357,13 @@ def build_parser():
     clear = sub.add_parser("clear", help="poda execuções e relatórios antigos")
     clear.add_argument("--keep-last", type=int, default=0, metavar="N", help="preserva as N execuções mais recentes")
     clear.add_argument("--yes", action="store_true", help="confirma a remoção; sem isto, apenas mostra o que sairia")
+
+    archive = sub.add_parser("archive", help="arquiva a mídia de um módulo numa versão")
+    archive.add_argument("module", help="nome do módulo a arquivar")
+    archive.add_argument("--version", required=True, metavar="X.Y.Z", help=f"versão a arquivar; a primeira é sempre {PRIMEIRA_VERSAO}")
+    archive.add_argument("--specs", metavar="A,B,C", help=f"specs que compõem o módulo; declaradas uma única vez, na {PRIMEIRA_VERSAO}")
+    archive.add_argument("--image", action="store_true", help="inclui prints na mídia arquivada")
+    archive.add_argument("--video", action="store_true", help="grava e inclui vídeo (.webm) na mídia arquivada")
     return parser
 
 def instructions_payload():
@@ -540,6 +549,54 @@ def _run_and_report(root: Path, slug: str | None, run_tests: bool | None,
             print(f"{paint('[infraestrutura]', 'yellow')} {error.stage}: {error.message}" + (" (pode ser repetido)" if error.retryable else ""))
     return EXIT_BY_VERDICT.get(run.verdict.status.value, EXIT_INFRA)
 
+def _archive(root: Path, args, *, parser: argparse.ArgumentParser | None = None) -> int:
+    """Executa a suíte e2e do módulo e, se aprovada, arquiva a evidência.
+
+    Executa na hora em vez de empacotar o que sobrou em `media`: fechar uma
+    versão é certificação, e evidência de outro commit certificaria o que não
+    foi medido.
+    """
+    config = load_config(root)
+    pedidas = [item.strip() for item in (args.specs or "").split(",") if item.strip()]
+    # Sem nenhuma das duas flags, tudo que a suite produzir e' promovido (o
+    # comportamento de sempre); pedir uma delas restringe a mídia arquivada
+    # aquele tipo -- é o que instrui o Playwright a gravar vídeo tambem.
+    algum_pedido = args.image or args.video
+    incluir_imagem = args.image if algum_pedido else True
+    incluir_video = args.video if algum_pedido else True
+    env_antigo = os.environ.get("SENTRY_ARCHIVE_VIDEO")
+    if incluir_video:
+        os.environ["SENTRY_ARCHIVE_VIDEO"] = "1"
+    try:
+        specs = resolve_specs(config, args.module, args.version, pedidas)
+        with Spinner("Analisando"):
+            run = analyze(root, specs, run_tests=True)
+    except (ValueError, FileNotFoundError) as error:
+        _print_app_error(str(error), parser=parser)
+        return EXIT_INFRA
+    finally:
+        if env_antigo is None:
+            os.environ.pop("SENTRY_ARCHIVE_VIDEO", None)
+        else:
+            os.environ["SENTRY_ARCHIVE_VIDEO"] = env_antigo
+    payload = json.loads(to_json(run))
+    write_reports(root, payload)
+    status = run.verdict.status.value
+    codigo = EXIT_BY_VERDICT.get(status, EXIT_INFRA)
+    # Arquivo e' afirmacao de que o modulo esta testado: gravar a gravacao de um
+    # modulo reprovado registraria o erro, que nao e' o proposito.
+    if codigo >= EXIT_REJECTED:
+        symbol = VERDICT_SYMBOL.get(status, "?")
+        print(f"{paint(symbol, VERDICT_COLOR.get(status, 'gray'))} {status.capitalize()}: nada foi arquivado.")
+        return codigo
+    destino = write_archive(root, args.module, args.version, payload, specs,
+                            incluir_imagem=incluir_imagem, incluir_video=incluir_video)
+    if pedidas:
+        record_module(root, args.module, specs)
+    print(f"{paint(VERDICT_SYMBOL['aprovado'], 'green')} {args.module} v{args.version} arquivado em "
+          f"{destino.relative_to(root).as_posix()}")
+    return codigo
+
 def _signed(value):
     if value is None: return "indisponível"
     return f"+{value}" if value > 0 else str(value)
@@ -723,6 +780,8 @@ def main(argv=None):
     elif args.command == "run":
         return _run_and_report(root, args.spec, args.run_tests, args.base,
                                parser=parser._subcommands.choices["run"])
+    elif args.command == "archive":
+        return _archive(root, args, parser=parser._subcommands.choices["archive"])
     elif args.command == "status":
         # Sempre `--spec all`, sempre a suite completa, nunca o cache: e' a medicao
         # autoritativa do projeto inteiro, nao o loop rapido que `run`/`watch` sao.

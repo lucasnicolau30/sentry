@@ -11,9 +11,10 @@ build/
 .sentry/runs/
 .sentry/test-plans/
 .sentry/reports/*
-!.sentry/reports/latest.md
+!.sentry/reports/latest-*.md
 
 # Artefatos do Playwright: trace/screenshot por execucao e o JUnit que o Sentry le.
 frontend/test-results/
 frontend/reports/
 frontend/playwright-report/
+.sentry/media/

@@ -18,6 +18,7 @@ command = "npx playwright test"
 junit_xml = "frontend/reports/junit.xml"
 cwd = "frontend"
 paths = ["frontend/e2e"]
+output_dir = "frontend/test-results"
 
 [analysis]
 run_tests_by_default = false
@@ -31,3 +32,6 @@ exclude = ["frontend/"]
 [policy.thresholds]
 changed_coverage = 90
 global_coverage = 95
+
+[modules]
+hero-tagline = ["blur-reveal-tagline"]

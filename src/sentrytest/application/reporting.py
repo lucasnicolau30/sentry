@@ -4,6 +4,8 @@ import re
 import sqlite3
 from pathlib import Path
 
+from .archive import media_path
+
 def load_runs(root: Path):
     db = root / ".sentry" / "sentry.db"
     if not db.exists():
@@ -13,11 +15,15 @@ def load_runs(root: Path):
     return [json.loads(row[0]) for row in rows]
 
 def clear_history(root: Path, keep_last: int = 0, apply: bool = False) -> dict:
-    """Poda execuções e relatórios, preservando as `keep_last` mais recentes.
+    """Poda execuções, relatórios e o pool de mídia, preservando as `keep_last`
+    execuções mais recentes.
 
-    Nunca toca em `.sentry/specs/`: spec é intenção declarada pelo usuário, não
-    evidência gerada. Com `apply=False` apenas relata o escopo — apagar
-    histórico é irreversível, então o padrão é mostrar antes de destruir.
+    Nunca toca em `.sentry/specs/` nem em `.sentry/storage/`: spec é intenção
+    declarada e mídia arquivada é evidência curada — as duas só existem porque
+    alguém as colocou ali de propósito. O que a poda alcança é o que se acumula
+    sozinho: execuções, relatórios e `.sentry/media/`. Com `apply=False` apenas
+    relata o escopo — apagar é irreversível, então o padrão é mostrar antes de
+    destruir.
     """
     reports, runs_dir = root / ".sentry" / "reports", root / ".sentry" / "runs"
     ordered = [item["data"].get("id") for item in load_runs(root)]
@@ -30,8 +36,12 @@ def clear_history(root: Path, keep_last: int = 0, apply: bool = False) -> dict:
     ) if path.exists()]
     # latest.md aponta para a execução mais recente: só sai quando nada é mantido.
     latest = reports / "latest.md"
-    if not keep and latest.exists():
-        files.append(latest)
+    if not keep:
+        if latest.exists():
+            files.append(latest)
+        # O pool de midia acompanha: ele se refaz sozinho na proxima execucao
+        # e2e, e o que precisava sobreviver ja foi promovido pelo `archive`.
+        files.extend(path for path in media_path(root).rglob("*") if path.is_file())
 
     if apply:
         for path in files:

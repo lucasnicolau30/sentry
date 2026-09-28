@@ -20,17 +20,21 @@ def default_config(project_name: str) -> str:
 # As unicas linhas que o `init` escreve no .gitignore do projeto. Nomeadas aqui
 # porque quem monta o diff precisa delas: uma alteracao composta so por estas
 # linhas e' do Sentry, e nao mudanca do usuario a revisar.
-# reports/* fica fora exceto latest.md, que fica rastreavel para aparecer no
-# diff sem precisar rodar o Sentry. Git nao reinclui arquivo dentro de diretorio
-# excluido, por isso o padrao e ".../*" (conteudo) em vez de ".../" (o diretorio
-# inteiro) antes da negacao.
+# reports/* fica fora exceto o relatorio atual (latest-<data>.md), que fica
+# rastreavel para aparecer no diff sem precisar rodar o Sentry. Git nao reinclui
+# arquivo dentro de diretorio excluido, por isso o padrao e ".../*" (conteudo)
+# em vez de ".../" (o diretorio inteiro) antes da negacao.
 #
 # `.sentry/specs/` saiu daqui: spec e' intencao declarada, nao evidencia gerada --
 # a mesma frase que o README ja usava enquanto o init a ignorava. Nao versionada,
 # ela so existia na maquina de quem a escreveu: um checkout limpo nao encontrava
 # matriz de casos, e a analise saia inconclusiva por falta de spec em vez de medir.
+# `.sentry/media/` e' pool bruto que se refaz a cada execucao e2e: fica local.
+# `.sentry/storage/` nao aparece aqui de proposito -- midia arquivada e' a
+# evidencia versionada do modulo, e' o motivo de ela existir.
 GITIGNORE_ENTRIES = ('.sentry/sentry.db', '.sentry/reports/*',
-                     '!.sentry/reports/latest.md', '.sentry/runs/', '.sentry/test-plans/')
+                     '!.sentry/reports/latest-*.md', '.sentry/runs/', '.sentry/test-plans/',
+                     '.sentry/media/')
 # Removidas do .gitignore na proxima inicializacao. A comparacao e' por linha
 # inteira: `.sentry/specs/rascunhos/`, escrita pelo usuario, nao casa com
 # `.sentry/specs/` e permanece onde esta.
