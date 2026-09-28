@@ -33,5 +33,12 @@ exclude = ["frontend/"]
 changed_coverage = 90
 global_coverage = 95
 
-[modules]
-hero-tagline = ["blur-reveal-tagline"]
+[modules.aplicacao]
+rotas = [
+  "/",
+  "/docs?tab=start",
+  "/docs?tab=setup",
+  "/docs?tab=workflow",
+  "/docs?tab=commands",
+  "/docs?tab=papers",
+]

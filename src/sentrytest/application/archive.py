@@ -13,7 +13,11 @@ limitações junto da tabela de mídia, em vez de referenciar o relatório.
 """
 from __future__ import annotations
 
+import json
+import os
 import shutil
+import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .formatting import format_instant
@@ -21,6 +25,11 @@ from .formatting import format_instant
 PRIMEIRA_VERSAO = "1.0.0"
 MEDIA_DIR = ("media",)
 STORAGE_DIR = ("storage",)
+
+LOGIN_ENV_USUARIO = "SENTRY_LOGIN_USUARIO"
+LOGIN_ENV_SENHA = "SENTRY_LOGIN_SENHA"
+DEFAULT_BASE_URL = "http://localhost:5173"
+CAPTURE_SCRIPT = ("frontend", "scripts", "sentry-capture.mjs")
 
 
 def media_path(root: Path) -> Path:
@@ -101,6 +110,163 @@ def record_module(root: Path, module: str, specs: list[str]) -> None:
     else:
         corpo = texto + ("" if texto.endswith("\n") or not texto else "\n") + f"\n[modules]\n{linha}"
     caminho.write_text(corpo, encoding="utf-8")
+
+
+def is_route_module(modulo_config) -> bool:
+    """Distingue a forma nova (`[modules.<nome>]` com `rotas`) da antiga (lista
+    de specs em `[modules]`) -- as duas convivem no mesmo `sentry.toml`, e um
+    módulo antigo não deve ser confundido com um declarado por rota."""
+    return isinstance(modulo_config, dict) and "rotas" in modulo_config
+
+
+def module_routes(modulo_config: dict) -> list[str]:
+    return list(modulo_config.get("rotas") or [])
+
+
+def module_requires_login(modulo_config: dict) -> bool:
+    return bool(modulo_config.get("login", False))
+
+
+def module_route_specs(modulo_config: dict) -> list[str]:
+    """Specs opcionais que certificam um módulo por rota. Presentes, o
+    `archive` roda a suíte e carimba veredito; ausentes, o módulo é só
+    registro visual -- a diferença central do modo por rota."""
+    return list(modulo_config.get("specs") or [])
+
+
+def resolve_login(config: dict) -> dict:
+    """`[archive.login]` declarado no `sentry.toml`. Recusa cedo, antes de
+    abrir qualquer navegador, quando um módulo com `login = true` não tem a
+    declaração completa -- abrir o navegador para descobrir isso depois
+    custaria caro e ainda deixaria o erro mais difícil de entender."""
+    login = ((config.get("archive") or {}).get("login")) or {}
+    faltando = [chave for chave in ("rota", "usuario", "senha", "enviar") if not login.get(chave)]
+    if faltando:
+        raise ValueError(
+            "módulo exige login mas [archive.login] está incompleto ou ausente no sentry.toml "
+            f"(faltando: {', '.join(faltando)})")
+    return login
+
+
+def resolve_credentials() -> dict:
+    """Só valida que as variáveis existem -- não são gravadas em nenhum
+    arquivo; o processo que fotografa as lê direto do próprio ambiente."""
+    usuario = os.environ.get(LOGIN_ENV_USUARIO)
+    senha = os.environ.get(LOGIN_ENV_SENHA)
+    faltando = [nome for nome, valor in ((LOGIN_ENV_USUARIO, usuario), (LOGIN_ENV_SENHA, senha)) if not valor]
+    if faltando:
+        raise ValueError(
+            f"módulo exige login mas faltam variáveis de ambiente: {', '.join(faltando)}")
+    return {"usuario": usuario, "senha": senha}
+
+
+def capture_routes(root: Path, routes: list[str], *, login: dict | None, destino: Path,
+                   base_url: str, gravar_video: bool, node_bin: str = "node",
+                   timeout_seconds: int = 120) -> dict:
+    """Invoca o script Node/Playwright que faz login (se pedido) e fotografa
+    cada rota em desktop e mobile, escrevendo direto em `destino/<slug>/`.
+
+    Uma sessão só de navegador para todas as rotas: login acontece uma vez,
+    não uma vez por rota. Credenciais nunca entram no JSON de configuração
+    que vai para disco -- viajam só pela herança padrão de ambiente do
+    subprocess, lidas pelo script de SENTRY_LOGIN_USUARIO/SENTRY_LOGIN_SENHA.
+    """
+    destino.mkdir(parents=True, exist_ok=True)
+    config_path = destino / "_captura.json"
+    config_path.write_text(json.dumps({
+        "baseURL": base_url,
+        "routes": routes,
+        "login": login,
+        "outDir": str(destino),
+        "video": gravar_video,
+    }), encoding="utf-8")
+    script = root.joinpath(*CAPTURE_SCRIPT)
+    try:
+        result = subprocess.run(
+            [node_bin, str(script), str(config_path)],
+            cwd=root / "frontend", capture_output=True, timeout=timeout_seconds,
+            encoding="utf-8", errors="replace")
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ValueError(f"não foi possível executar a captura de rotas: {error}") from error
+    finally:
+        config_path.unlink(missing_ok=True)
+    if result.returncode != 0:
+        raise ValueError(f"captura de rotas falhou: {(result.stderr or result.stdout).strip()}")
+    try:
+        manifesto = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"captura de rotas não devolveu JSON válido: {result.stdout[:200]}") from error
+    if manifesto.get("erro"):
+        raise ValueError(f"captura de rotas falhou: {manifesto['erro']}")
+    return manifesto
+
+
+def render_readme_rotas(module: str, version: str, manifesto: dict, *,
+                        certificado: bool, payload: dict | None = None,
+                        commit: str | None = None) -> str:
+    """README do módulo arquivado por rota. Sem specs (`certificado=False`)
+    o veredito vira uma frase que deixa claro que não há certificação --
+    do contrário um print sem asserção nenhuma passaria por prova de que o
+    módulo funciona, que não é o que ele é."""
+    timestamp = (payload or {}).get("data", {}).get("timestamp") if certificado and payload \
+        else datetime.now(timezone.utc).isoformat()
+    linhas = [
+        f"# Módulo {module} — v{version}",
+        "",
+        f"- Arquivado em: {format_instant(timestamp)}",
+        f"- Commit: {commit[:12] if commit else 'indisponível'}",
+    ]
+    if certificado and payload:
+        verdict = (payload.get("data", {}).get("verdict") or {}).get("status", "inconclusivo")
+        linhas.append(f"- Veredito: {verdict.capitalize()}")
+    else:
+        linhas.append("- Veredito: sem certificação — registro visual")
+    linhas += ["", "## Rotas fotografadas", "", "| Rota | Desktop | Mobile |", "|---|---|---|"]
+    for item in manifesto.get("rotas", []):
+        rota = item["rota"]
+        slug = item["slug"]
+        if item.get("erro"):
+            linhas.append(f"| {rota} | falhou: {item['erro']} | — |")
+            continue
+        arquivos = item.get("arquivos", [])
+        desktop = f"[print]({slug}/desktop.png)" if "desktop.png" in arquivos else "—"
+        mobile = f"[print]({slug}/mobile.png)" if "mobile.png" in arquivos else "—"
+        linhas.append(f"| {rota} | {desktop} | {mobile} |")
+    linhas += ["", "## Limitações", ""]
+    if not certificado:
+        linhas.append("- Módulo sem specs associadas: os prints e vídeos aqui são registro do "
+                      "estado visual, não certificação de que o módulo funciona.")
+    linhas.append("- Estado que a URL não alcança sozinha (dado específico já salvo no banco, "
+                  "modal aberto por interação) não é capturado nesta versão.")
+    return "\n".join(linhas) + "\n"
+
+
+def write_archive_rotas(root: Path, module: str, version: str, modulo_config: dict, config: dict, *,
+                        gravar_video: bool = False, node_bin: str = "node",
+                        payload: dict | None = None, commit: str | None = None) -> Path:
+    """Escreve `.sentry/storage/<modulo>-<versao>/` no modo por rotas: uma
+    subpasta por rota fotografada, mais o README. Sobrescreve a pasta quando
+    a versão já existe, igual ao modo por specs."""
+    routes = module_routes(modulo_config)
+    if not routes:
+        raise ValueError(
+            f"módulo {module} declara 'rotas' vazia; adicione ao menos uma rota em [modules.{module}]")
+    login = None
+    if module_requires_login(modulo_config):
+        login = resolve_login(config)
+        resolve_credentials()
+    destino = storage_path(root) / f"{module}-{version}"
+    if destino.exists():
+        shutil.rmtree(destino)
+    destino.mkdir(parents=True, exist_ok=True)
+    base_url = ((config.get("archive") or {}).get("base_url")) or DEFAULT_BASE_URL
+    manifesto = capture_routes(root, routes, login=login, destino=destino, base_url=base_url,
+                               gravar_video=gravar_video, node_bin=node_bin)
+    specs = module_route_specs(modulo_config)
+    readme = render_readme_rotas(module, version, manifesto, certificado=bool(specs),
+                                 payload=payload if specs else None, commit=commit)
+    (destino / "README.md").write_text(readme, encoding="utf-8")
+    return destino
 
 
 _EXTENSOES_IMAGEM = {".png", ".jpg", ".jpeg", ".webp"}

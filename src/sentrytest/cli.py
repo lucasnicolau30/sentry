@@ -24,7 +24,9 @@ from .adapters.terminal import (
     render_wordmark,
 )
 from .domain.models import to_json
-from .application.archive import PRIMEIRA_VERSAO, record_module, resolve_specs, write_archive
+from .application.archive import (
+    PRIMEIRA_VERSAO, is_route_module, module_route_specs, record_module, resolve_specs,
+    write_archive, write_archive_rotas)
 from .application.formatting import format_instant
 from .application.reporting import clear_history, load_runs, staleness, write_reports, compare
 
@@ -558,6 +560,9 @@ def _archive(root: Path, args, *, parser: argparse.ArgumentParser | None = None)
     foi medido.
     """
     config = load_config(root)
+    modulo_config = (config.get("modules") or {}).get(args.module)
+    if is_route_module(modulo_config):
+        return _archive_rotas(root, args, config, modulo_config, parser=parser)
     pedidas = [item.strip() for item in (args.specs or "").split(",") if item.strip()]
     # Sem nenhuma das duas flags, tudo que a suite produzir e' promovido (o
     # comportamento de sempre); pedir uma delas restringe a mídia arquivada
@@ -597,6 +602,44 @@ def _archive(root: Path, args, *, parser: argparse.ArgumentParser | None = None)
     print(f"{paint(VERDICT_SYMBOL['aprovado'], 'green')} {args.module} v{args.version} arquivado em "
           f"{destino.relative_to(root).as_posix()}")
     return codigo
+
+def _archive_rotas(root: Path, args, config: dict, modulo_config: dict, *,
+                   parser: argparse.ArgumentParser | None = None) -> int:
+    """Modo por rota de `archive`: fotografa cada rota declarada em
+    `[modules.<nome>]`, com ou sem specs associadas certificando o resultado.
+    """
+    if args.specs:
+        _print_app_error(
+            f"módulo {args.module} é declarado por rotas; a certificação vem de 'specs' dentro de "
+            f"[modules.{args.module}] no sentry.toml, não de --specs", parser=parser)
+        return EXIT_INFRA
+    specs = module_route_specs(modulo_config)
+    payload = None
+    if specs:
+        try:
+            with Spinner("Analisando"):
+                run = analyze(root, specs, run_tests=True)
+        except (ValueError, FileNotFoundError) as error:
+            _print_app_error(str(error), parser=parser)
+            return EXIT_INFRA
+        payload = json.loads(to_json(run))
+        write_reports(root, payload)
+        status = run.verdict.status.value
+        codigo = EXIT_BY_VERDICT.get(status, EXIT_INFRA)
+        if codigo >= EXIT_REJECTED:
+            symbol = VERDICT_SYMBOL.get(status, "?")
+            print(f"{paint(symbol, VERDICT_COLOR.get(status, 'gray'))} {status.capitalize()}: nada foi arquivado.")
+            return codigo
+    try:
+        destino = write_archive_rotas(root, args.module, args.version, modulo_config, config,
+                                      gravar_video=args.video,
+                                      payload=payload, commit=LocalGitAdapter(root).head())
+    except (ValueError, FileNotFoundError) as error:
+        _print_app_error(str(error), parser=parser)
+        return EXIT_INFRA
+    print(f"{paint(VERDICT_SYMBOL['aprovado'], 'green')} {args.module} v{args.version} arquivado em "
+          f"{destino.relative_to(root).as_posix()}")
+    return EXIT_OK
 
 def _signed(value):
     if value is None: return "indisponível"
