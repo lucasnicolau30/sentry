@@ -204,7 +204,7 @@ function DesktopNavDock() {
       ];
 
   return (
-    <div className="flex items-center gap-1 rounded-2xl border border-[var(--border)] bg-[var(--bg-alt)] px-2 py-1.5 shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
+    <div className="flex items-center gap-1">
       {items.map((item, index) => (
         <div key={item.key} className="flex items-center gap-1">
           {index > 0 && <DockDivider />}
