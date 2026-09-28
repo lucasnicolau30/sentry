@@ -2142,6 +2142,96 @@ const papersByLang: Record<"pt" | "en", Paper[]> = {
       ],
       href: "https://engineering.homeoffice.gov.uk/standards/test-pyramid/",
     },
+    {
+      id: "requirements-traceability",
+      eyebrow: "Requirements Traceability",
+      title: "An Analysis of the Requirements Traceability Problem",
+      authors: "Orlena Gotel, Anthony Finkelstein",
+      venue: "IEEE ICRE 1994",
+      summary:
+        "Define e categoriza o problema de rastreabilidade de requisitos, distinguindo rastreabilidade pré-especificação (por que o requisito existe) de pós-especificação (onde ele foi verificado) — a maioria dos problemas vem da primeira, não da segunda.",
+      principle: "Todo requisito precisa apontar para onde foi verificado, não só para onde foi implementado.",
+      flow: [
+        { icon: <PenIcon />, label: "Requisito" },
+        { icon: <TerminalIcon />, label: "CASES.md" },
+        { icon: <ScanIcon />, label: "Marcador # cenario:" },
+        { icon: <RunIcon />, label: "Teste real" },
+        { icon: <ReportIcon />, label: "Rastreabilidade auditável" },
+      ],
+      grounds: [
+        <>
+          <W>requirement-without-scenario</W> — dispara quando um requisito do prompt não vira nenhum caso
+        </>,
+        <>
+          <W>scenario-without-test</W> — dispara quando um caso do CASES.md não tem teste associado
+        </>,
+        <>
+          <W>orphan-scenario-marker</W> — dispara quando o marcador aponta pra um caso que não existe
+        </>,
+        <>
+          Marcador <W># cenario:</W> — liga o teste ao nome exato do caso, não a uma convenção de arquivo
+        </>,
+        <>Rastreabilidade multi-stack — o mesmo marcador funciona em qualquer linguagem com comentário</>,
+      ],
+      href: "http://csis.pace.edu/~ogotel/research/GOTEL93%20An%20Analysis%20of%20the%20Requirements%20Traceability%20Problem.pdf",
+    },
+    {
+      id: "flaky-tests",
+      eyebrow: "Flaky Tests",
+      title: "An Empirical Analysis of Flaky Tests",
+      authors: "Qingzhou Luo, Farah Hariri, Lamyaa Eloussi, Darko Marinov",
+      venue: "ACM FSE 2014",
+      summary:
+        "Estudo empírico de 201 commits que corrigiram testes instáveis (flaky) em 51 projetos open source, catalogando as causas mais comuns de um teste passar ou falhar sem nenhuma mudança de código.",
+      principle: "Um veredito só é confiável se o mesmo commit sempre produzir o mesmo resultado.",
+      flow: [
+        { icon: <BranchIcon />, label: "Commit" },
+        { icon: <RunIcon />, label: "Execução da suíte" },
+        { icon: <IssueIcon />, label: "Zero chamada de IA" },
+        { icon: <ReportIcon />, label: "Veredito determinístico" },
+        { icon: <HistoryIcon />, label: "Histórico comparável" },
+      ],
+      grounds: [
+        <>Zero chamada de IA — nenhum modelo é invocado, então não há fonte de variação do lado do Sentry</>,
+        <>
+          <W>test-failing</W> — reprova por teste que falhou de verdade, nunca por variação entre rodadas
+        </>,
+        <>
+          Suíte declarada em <W>[tests]</W>/<W>[e2e]</W> — o comando executado é sempre o mesmo, commit a commit
+        </>,
+        <>Cache por hash — reaproveita a última execução completa quando as entradas não mudaram, sem medir de novo</>,
+        <>Histórico auditável — duas execuções do mesmo commit são comparáveis porque o resultado não varia</>,
+      ],
+      href: "https://mir.cs.illinois.edu/lamyaa/publications/fse14.pdf",
+    },
+    {
+      id: "regression-test-selection",
+      eyebrow: "Regression Test Selection",
+      title: "Analyzing Regression Test Selection Techniques",
+      authors: "Gregg Rothermel, Mary Jean Harrold",
+      venue: "IEEE Transactions on Software Engineering, 1996",
+      summary:
+        "Compara técnicas de seleção de testes de regressão por segurança, precisão e custo: decidir quais testes re-executar depois de uma mudança, em vez de rodar a suíte inteira sempre.",
+      principle: "Nem toda mudança justifica rodar a suíte inteira de novo.",
+      flow: [
+        { icon: <PenIcon />, label: "Arquivo salvo" },
+        { icon: <ScanIcon />, label: "sentry watch" },
+        { icon: <SlidersIcon />, label: "Modo instantâneo" },
+        { icon: <RunIcon />, label: "Escalada pra suíte" },
+        { icon: <ReportIcon />, label: "Veredito atualizado" },
+      ],
+      grounds: [
+        <>
+          <Cmd>sentry watch</Cmd> — reavalia ao salvar, e só escala pra suíte completa quando o arquivo salvo é um
+          teste
+        </>,
+        <>Modo instantâneo — sem mudança na suíte declarada, não há por que medir de novo</>,
+        <>Cache por hash — reusa a última execução completa quando as entradas não mudaram</>,
+        <>Análise de impacto — decide o que está em escopo sem precisar re-rodar tudo</>,
+        <>Modo completo — sempre chamado antes do veredito valer para o CI</>,
+      ],
+      href: "https://doi.org/10.1109/32.536955",
+    },
   ],
   en: [
     {
@@ -2260,6 +2350,96 @@ const papersByLang: Record<"pt" | "en", Paper[]> = {
       ],
       href: "https://engineering.homeoffice.gov.uk/standards/test-pyramid/",
     },
+    {
+      id: "requirements-traceability",
+      eyebrow: "Requirements Traceability",
+      title: "An Analysis of the Requirements Traceability Problem",
+      authors: "Orlena Gotel, Anthony Finkelstein",
+      venue: "IEEE ICRE 1994",
+      summary:
+        "Defines and categorizes the requirements traceability problem, distinguishing pre-requirements-specification traceability (why the requirement exists) from post-specification traceability (where it was verified) — most traceability problems come from the former, not the latter.",
+      principle: "Every requirement must point to where it was verified, not just where it was implemented.",
+      flow: [
+        { icon: <PenIcon />, label: "Requirement" },
+        { icon: <TerminalIcon />, label: "CASES.md" },
+        { icon: <ScanIcon />, label: "# cenario: marker" },
+        { icon: <RunIcon />, label: "Real test" },
+        { icon: <ReportIcon />, label: "Auditable traceability" },
+      ],
+      grounds: [
+        <>
+          <W>requirement-without-scenario</W> — fires when a requirement from the prompt never becomes a case
+        </>,
+        <>
+          <W>scenario-without-test</W> — fires when a case in CASES.md has no associated test
+        </>,
+        <>
+          <W>orphan-scenario-marker</W> — fires when the marker points to a case that doesn't exist
+        </>,
+        <>
+          The <W># cenario:</W> marker — links the test to the case's exact name, not a file naming convention
+        </>,
+        <>Multi-stack traceability — the same marker works in any language that supports comments</>,
+      ],
+      href: "http://csis.pace.edu/~ogotel/research/GOTEL93%20An%20Analysis%20of%20the%20Requirements%20Traceability%20Problem.pdf",
+    },
+    {
+      id: "flaky-tests",
+      eyebrow: "Flaky Tests",
+      title: "An Empirical Analysis of Flaky Tests",
+      authors: "Qingzhou Luo, Farah Hariri, Lamyaa Eloussi, Darko Marinov",
+      venue: "ACM FSE 2014",
+      summary:
+        "Empirical study of 201 commits that fixed flaky tests across 51 open-source projects, cataloging the most common causes of a test passing or failing with no code change at all.",
+      principle: "A verdict is only trustworthy if the same commit always produces the same result.",
+      flow: [
+        { icon: <BranchIcon />, label: "Commit" },
+        { icon: <RunIcon />, label: "Suite run" },
+        { icon: <IssueIcon />, label: "Zero AI calls" },
+        { icon: <ReportIcon />, label: "Deterministic verdict" },
+        { icon: <HistoryIcon />, label: "Comparable history" },
+      ],
+      grounds: [
+        <>Zero AI calls — no model is ever invoked, so there's no source of variation on Sentry's side</>,
+        <>
+          <W>test-failing</W> — fails on a test that actually failed, never on variance between runs
+        </>,
+        <>
+          Suite declared in <W>[tests]</W>/<W>[e2e]</W> — the command executed is always the same, commit to commit
+        </>,
+        <>Hash-based cache — reuses the last full run when the inputs haven't changed, instead of measuring again</>,
+        <>Auditable history — two runs of the same commit are comparable because the result doesn't vary</>,
+      ],
+      href: "https://mir.cs.illinois.edu/lamyaa/publications/fse14.pdf",
+    },
+    {
+      id: "regression-test-selection",
+      eyebrow: "Regression Test Selection",
+      title: "Analyzing Regression Test Selection Techniques",
+      authors: "Gregg Rothermel, Mary Jean Harrold",
+      venue: "IEEE Transactions on Software Engineering, 1996",
+      summary:
+        "Compares regression test selection techniques by safety, precision and cost: deciding which tests to re-run after a change instead of always running the whole suite.",
+      principle: "Not every change justifies running the whole suite again.",
+      flow: [
+        { icon: <PenIcon />, label: "File saved" },
+        { icon: <ScanIcon />, label: "sentry watch" },
+        { icon: <SlidersIcon />, label: "Instant mode" },
+        { icon: <RunIcon />, label: "Escalates to the suite" },
+        { icon: <ReportIcon />, label: "Updated verdict" },
+      ],
+      grounds: [
+        <>
+          <Cmd>sentry watch</Cmd> — re-evaluates on save, and only escalates to the full suite when the saved file is
+          a test
+        </>,
+        <>Instant mode — with no change to the declared suite, there's nothing new to measure</>,
+        <>Hash-based cache — reuses the last full run when the inputs haven't changed</>,
+        <>Impact analysis — decides what's in scope without having to re-run everything</>,
+        <>Complete mode — always the one called before the verdict counts for CI</>,
+      ],
+      href: "https://doi.org/10.1109/32.536955",
+    },
   ],
 };
 
@@ -2273,24 +2453,21 @@ function PapersContent({ onPrevClick }: { onPrevClick: () => void }) {
       <div className="flex gap-8 lg:gap-12">
         <div className="min-w-0 flex-1">
           <Reveal>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
-            {t("Primeiros passos", "First steps")}
-          </p>
           <h1 className="mt-2 text-3xl font-semibold uppercase tracking-normal text-[var(--text-h)]">Papers</h1>
           <p className="mt-4 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {lang === "pt" ? (
               <>
-                As regras do <span className="text-[var(--text-h)]">Sentry</span> não foram definidas arbitrariamente. Cada
-                mecanismo da ferramenta — análise de impacto, cobertura da mudança, severidade, classes de equivalência e
-                veredito auditável — está apoiado em práticas estabelecidas da engenharia de qualidade de software. Leituras
-                para quem quer entender o raciocínio por trás das regras, não apenas como utilizá-las.
+                As regras do <span className="text-[var(--text-h)]">Sentry</span> não foram definidas arbitrariamente.
+                Cada mecanismo da ferramenta (análise de impacto, cobertura da mudança, severidade, classes de
+                equivalência e veredito auditável) está apoiado em práticas estabelecidas da engenharia de qualidade de
+                software. Leituras para quem quer entender o raciocínio por trás das regras, não apenas como utilizá-las.
               </>
             ) : (
               <>
-                <span className="text-[var(--text-h)]">Sentry</span>'s rules weren't defined arbitrarily. Every mechanism in
-                the tool — impact analysis, changed-code coverage, severity, equivalence classes and the auditable verdict —
-                is grounded in established software quality engineering practice. Reading for anyone who wants to understand
-                the reasoning behind the rules, not just how to use them.
+                <span className="text-[var(--text-h)]">Sentry</span>'s rules weren't defined arbitrarily. Every
+                mechanism in the tool (impact analysis, changed-code coverage, severity, equivalence classes and the
+                auditable verdict) is grounded in established software quality engineering practice. Reading for
+                anyone who wants to understand the reasoning behind the rules, not just how to use them.
               </>
             )}
           </p>
