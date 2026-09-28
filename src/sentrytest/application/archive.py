@@ -243,10 +243,17 @@ def render_readme_rotas(module: str, version: str, manifesto: dict, *,
 
 def write_archive_rotas(root: Path, module: str, version: str, modulo_config: dict, config: dict, *,
                         gravar_video: bool = False, node_bin: str = "node",
-                        payload: dict | None = None, commit: str | None = None) -> Path:
+                        payload: dict | None = None, commit: str | None = None) -> tuple[Path, bool]:
     """Escreve `.sentry/storage/<modulo>-<versao>/` no modo por rotas: uma
     subpasta por rota fotografada, mais o README. Sobrescreve a pasta quando
-    a versão já existe, igual ao modo por specs."""
+    a versão já existe, igual ao modo por specs.
+
+    Devolve `(destino, houve_falha)`: uma rota que falhou (ex.: rota
+    inexistente, servidor fora do ar) não derruba o arquivo inteiro -- as
+    outras rotas continuam sendo fotografadas --, mas o chamador precisa
+    saber que a pasta escrita não está completa, para não sair com código de
+    sucesso quando faltou alguma coisa.
+    """
     routes = module_routes(modulo_config)
     if not routes:
         raise ValueError(
@@ -266,7 +273,8 @@ def write_archive_rotas(root: Path, module: str, version: str, modulo_config: di
     readme = render_readme_rotas(module, version, manifesto, certificado=bool(specs),
                                  payload=payload if specs else None, commit=commit)
     (destino / "README.md").write_text(readme, encoding="utf-8")
-    return destino
+    houve_falha = any(item.get("erro") for item in manifesto.get("rotas", []))
+    return destino, houve_falha
 
 
 _EXTENSOES_IMAGEM = {".png", ".jpg", ".jpeg", ".webp"}

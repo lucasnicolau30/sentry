@@ -50,8 +50,9 @@ def test_modulo_declarado_por_rotas_fotografa_cada_rota_numa_pasta_propria(tmp_p
         return manifesto(routes)
 
     monkeypatch.setattr(archive_module, "capture_routes", fake_capture_routes)
-    destino = write_archive_rotas(tmp_path, "usuarios", "1.0.0", modulo_config, {})
+    destino, houve_falha = write_archive_rotas(tmp_path, "usuarios", "1.0.0", modulo_config, {})
 
+    assert houve_falha is False
     assert chamadas["routes"] == ["/login", "/usuarios"]
     assert (destino / "login").is_dir()
     assert (destino / "usuarios").is_dir()
@@ -69,7 +70,7 @@ def test_cada_rota_fotografada_gera_print_em_desktop_e_mobile(tmp_path: Path, mo
         return manifesto(["/login"])
 
     monkeypatch.setattr(archive_module, "capture_routes", fake_capture_routes)
-    destino = write_archive_rotas(tmp_path, "acesso", "1.0.0", modulo_config, {})
+    destino, _ = write_archive_rotas(tmp_path, "acesso", "1.0.0", modulo_config, {})
 
     assert (destino / "login" / "desktop.png").exists()
     assert (destino / "login" / "mobile.png").exists()
@@ -80,7 +81,7 @@ def test_modulo_sem_specs_e_registro_visual_sem_certificacao(tmp_path: Path, mon
     modulo_config = {"rotas": ["/usuarios"]}
     monkeypatch.setattr(archive_module, "capture_routes",
                         lambda *a, **k: manifesto(["/usuarios"]))
-    destino = write_archive_rotas(tmp_path, "usuarios", "1.0.0", modulo_config, {})
+    destino, _ = write_archive_rotas(tmp_path, "usuarios", "1.0.0", modulo_config, {})
 
     readme = (destino / "README.md").read_text(encoding="utf-8")
     assert "sem certificação" in readme
@@ -92,8 +93,8 @@ def test_modulo_com_specs_roda_a_suite_e_carimba_veredito(tmp_path: Path, monkey
     modulo_config = {"rotas": ["/usuarios"], "specs": ["cadastro-de-usuario"]}
     monkeypatch.setattr(archive_module, "capture_routes",
                         lambda *a, **k: manifesto(["/usuarios"]))
-    destino = write_archive_rotas(tmp_path, "usuarios", "1.0.0", modulo_config, {},
-                                  payload=payload_aprovado())
+    destino, _ = write_archive_rotas(tmp_path, "usuarios", "1.0.0", modulo_config, {},
+                                     payload=payload_aprovado())
 
     readme = (destino / "README.md").read_text(encoding="utf-8")
     assert "Veredito: Aprovado" in readme
@@ -191,10 +192,41 @@ def test_credenciais_de_login_nunca_sao_gravadas_no_toml(tmp_path: Path, monkeyp
 
     monkeypatch.setattr(archive_module, "capture_routes",
                         lambda *a, **k: manifesto(["/usuarios"]))
-    destino = write_archive_rotas(tmp_path, "usuarios", "1.0.0", modulo_config, config)
+    destino, _ = write_archive_rotas(tmp_path, "usuarios", "1.0.0", modulo_config, config)
 
     assert "segredo-super-secreto" not in (tmp_path / "sentry.toml").read_text(encoding="utf-8")
     assert "segredo-super-secreto" not in (destino / "README.md").read_text(encoding="utf-8")
+
+
+# cenario: rota que falha vira ressalva sem derrubar o arquivo
+def test_rota_que_falha_vira_ressalva_sem_derrubar_o_arquivo(tmp_path: Path, monkeypatch, capsys):
+    from sentrytest import cli
+    monkeypatch.chdir(tmp_path)
+    initialize_project(tmp_path)
+    (tmp_path / "sentry.toml").write_text(
+        '[project]\nname = "demo"\n\n[modules.usuarios]\nrotas = ["/usuarios", "/rota-que-nao-existe"]\n',
+        encoding="utf-8")
+
+    def fake_capture_routes(root, routes, *, login, destino, base_url, gravar_video, node_bin="node"):
+        (destino / "usuarios").mkdir(parents=True, exist_ok=True)
+        (destino / "usuarios" / "desktop.png").write_bytes(b"png")
+        (destino / "usuarios" / "mobile.png").write_bytes(b"png")
+        return {"rotas": [
+            {"rota": "/usuarios", "slug": "usuarios", "arquivos": ["desktop.png", "mobile.png"]},
+            {"rota": "/rota-que-nao-existe", "slug": "rota-que-nao-existe", "arquivos": [],
+             "erro": "net::ERR_ABORTED"},
+        ], "erro": None}
+
+    monkeypatch.setattr(archive_module, "capture_routes", fake_capture_routes)
+    codigo = cli.main(["archive", "usuarios", "--version", "1.0.0"])
+
+    assert codigo == 1
+    saida = capsys.readouterr().out
+    assert "ressalvas" in saida
+    destino = storage_path(tmp_path) / "usuarios-1.0.0"
+    assert (destino / "usuarios" / "desktop.png").exists()
+    readme = (destino / "README.md").read_text(encoding="utf-8")
+    assert "falhou" in readme
 
 
 # cenario: modulo declarado por lista de specs continua como antes

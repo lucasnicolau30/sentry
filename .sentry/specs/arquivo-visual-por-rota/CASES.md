@@ -29,6 +29,9 @@ modal aberto por clique) fica para depois.
 - **certificacao_do_modulo**: booleano — se o módulo tem specs associadas
   (composição antiga por `--specs`/`[modules]`) e portanto roda a suíte e
   carimba veredito, em vez de ser só registro visual.
+- **resultado_da_captura**: booleano — se alguma rota do módulo falhou ao ser
+  fotografada (rota inexistente, servidor fora do ar); as demais rotas
+  continuam sendo fotografadas mesmo assim.
 
 ## Caso: modulo declarado por rotas fotografa cada rota numa pasta propria
 
@@ -180,6 +183,21 @@ modal aberto por clique) fica para depois.
 - **Quando:** `sentry archive` roda para esse módulo
 - **Então:** o comportamento é exatamente o do arquivamento por specs já
   existente, sem passar pela fotografia por rota
+
+## Caso: rota que falha vira ressalva sem derrubar o arquivo
+
+- **Requisito:** implícito — uma rota inexistente ou um servidor fora do ar
+  não deveria apagar a evidência das rotas que funcionaram, mas também não é
+  honesto sair como se tudo tivesse dado certo
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** alta
+- **Classe:** resultado_da_captura/presente
+- **Dado:** um módulo com duas rotas, uma delas inexistente
+- **Quando:** `sentry archive` roda para esse módulo
+- **Então:** a rota que funcionou é fotografada normalmente, a que falhou
+  aparece como "falhou" na tabela do README, e o comando sai com o código de
+  ressalva (1), não de sucesso pleno
 
 ## Classes não aplicáveis
 

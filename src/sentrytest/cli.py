@@ -631,14 +631,21 @@ def _archive_rotas(root: Path, args, config: dict, modulo_config: dict, *,
             print(f"{paint(symbol, VERDICT_COLOR.get(status, 'gray'))} {status.capitalize()}: nada foi arquivado.")
             return codigo
     try:
-        destino = write_archive_rotas(root, args.module, args.version, modulo_config, config,
-                                      gravar_video=args.video,
-                                      payload=payload, commit=LocalGitAdapter(root).head())
+        destino, houve_falha = write_archive_rotas(
+            root, args.module, args.version, modulo_config, config,
+            gravar_video=args.video, payload=payload, commit=LocalGitAdapter(root).head())
     except (ValueError, FileNotFoundError) as error:
         _print_app_error(str(error), parser=parser)
         return EXIT_INFRA
-    print(f"{paint(VERDICT_SYMBOL['aprovado'], 'green')} {args.module} v{args.version} arquivado em "
-          f"{destino.relative_to(root).as_posix()}")
+    local = destino.relative_to(root).as_posix()
+    if houve_falha:
+        # Uma rota que falhou não é reprovação (nada foi "testado" pra reprovar) nem
+        # sucesso pleno (o arquivo saiu incompleto) -- ressalva é o que sobra entre
+        # os dois, e README já tem qual rota faltou.
+        print(f"{paint(VERDICT_SYMBOL['aprovado com ressalvas'], 'yellow')} {args.module} v{args.version} "
+              f"arquivado com ressalvas em {local}: alguma rota falhou, veja o README.")
+        return EXIT_WARNING
+    print(f"{paint(VERDICT_SYMBOL['aprovado'], 'green')} {args.module} v{args.version} arquivado em {local}")
     return EXIT_OK
 
 def _signed(value):

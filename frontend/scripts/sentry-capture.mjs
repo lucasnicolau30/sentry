@@ -33,6 +33,17 @@ function slugDeRota(rota) {
 // borrada. Ignora animação com `iterations: Infinity` (ex.: o cursor
 // piscando do terminal) -- essa nunca termina, e esperar por ela travaria
 // a captura até o timeout em toda rota que a tiver na tela.
+// O erro cru do Playwright pra um dev server fora do ar ("net::ERR_CONNECTION_REFUSED
+// at http://localhost:5173/login") é técnico e não diz o que fazer. Detecta esse
+// padrão e troca por uma dica acionável -- as outras falhas passam intactas.
+function mensagemAmigavel(erro, baseURL) {
+  const texto = String((erro && erro.message) || erro);
+  if (/ERR_CONNECTION_REFUSED|ECONNREFUSED|net::ERR_/.test(texto)) {
+    return `não foi possível conectar em ${baseURL} -- confirme que o dev server está rodando (ex.: npm run dev)`;
+  }
+  return texto;
+}
+
 async function waitForAnimationsToSettle(page, timeoutMs = 3000) {
   await page.evaluate((timeout) => {
     const finitas = document.getAnimations().filter((animacao) => {
@@ -90,7 +101,7 @@ async function main() {
         await page.screenshot({ path: path.join(pasta, "mobile.png"), fullPage: true });
         item.arquivos.push("mobile.png");
       } catch (erroRota) {
-        item.erro = String((erroRota && erroRota.message) || erroRota);
+        item.erro = mensagemAmigavel(erroRota, baseURL);
       }
       resultado.rotas.push(item);
     }
@@ -107,7 +118,7 @@ async function main() {
       await context.close();
     }
   } catch (erro) {
-    resultado.erro = String((erro && erro.message) || erro);
+    resultado.erro = mensagemAmigavel(erro, baseURL);
   } finally {
     await browser.close();
   }
