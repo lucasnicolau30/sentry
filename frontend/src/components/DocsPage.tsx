@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { TerminalWindow } from "./TerminalWindow";
 import { Reveal } from "./Reveal";
 import { BlurReveal } from "./blur-reveal";
+import { TextMarquee } from "./TextMarquee";
 import { useLanguage } from "../i18n/LanguageContext";
 
 const SCROLL_SPY_OFFSET = 120;
@@ -368,7 +369,7 @@ function CodeBlock({ lines }: { lines: string[] }) {
   }
 
   return (
-    <div className="w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] shadow-[0_0_24px_-8px_rgba(0,0,0,0.6)]">
+    <div className="w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] shadow-[0_0_24px_-8px_rgba(0,0,0,0.6)] transition-transform duration-300 hover:-translate-y-1">
       <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-2.5">
         <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
@@ -385,11 +386,11 @@ function CodeBlock({ lines }: { lines: string[] }) {
           {copied ? <CheckIcon /> : <CopyIcon />}
         </button>
       </div>
-      <div className="scroll-fade-x space-y-0.5 overflow-x-auto px-4 py-3.5 font-mono text-base">
+      <div className="space-y-0.5 px-4 py-3.5 font-mono text-base">
         {lines.map((line, index) => (
           <p
             key={index}
-            className={`whitespace-pre ${index === 0 ? "text-[var(--text-h)]" : "text-[var(--text)]/50"}`}
+            className={`whitespace-pre-wrap break-words ${index === 0 ? "text-[var(--text-h)]" : "text-[var(--text)]/50"}`}
           >
             {index === 0 ? (
               <span className="text-[var(--accent)]">$ </span>
@@ -1070,17 +1071,17 @@ const stacksSupportByLang = {
     {
       capability: "Execução da suíte",
       support:
-        "qualquer comando com saída JUnit XML — pytest, Jest, Vitest, go test (gotestsum), Surefire, dotnet test, RSpec, PHPUnit",
+        "qualquer comando com saída JUnit XML: pytest, Jest, Vitest, go test (gotestsum), Surefire, dotnet test, RSpec, PHPUnit",
     },
     {
       capability: "Cobertura",
       support:
-        "lcov (nyc, c8, Jest, simplecov), Cobertura XML (JaCoCo, coverlet), coverage.py (JSON) — detectados pelo conteúdo",
+        "lcov (nyc, c8, Jest, simplecov), Cobertura XML (JaCoCo, coverlet), coverage.py (JSON), detectados pelo conteúdo",
     },
     {
       capability: "Rastreabilidade caso↔teste",
       support:
-        ".py, .js/.jsx/.ts/.tsx, .go, .java/.kt, .cs, .rb, .php, .rs — marcador cenario: funciona em qualquer comentário",
+        ".py, .js/.jsx/.ts/.tsx, .go, .java/.kt, .cs, .rb, .php, .rs; marcador cenario: funciona em qualquer comentário",
     },
     {
       capability: "Caminhos de erro",
@@ -1092,17 +1093,17 @@ const stacksSupportByLang = {
     {
       capability: "Suite execution",
       support:
-        "any command with JUnit XML output — pytest, Jest, Vitest, go test (gotestsum), Surefire, dotnet test, RSpec, PHPUnit",
+        "any command with JUnit XML output: pytest, Jest, Vitest, go test (gotestsum), Surefire, dotnet test, RSpec, PHPUnit",
     },
     {
       capability: "Coverage",
       support:
-        "lcov (nyc, c8, Jest, simplecov), Cobertura XML (JaCoCo, coverlet), coverage.py (JSON) — detected by content",
+        "lcov (nyc, c8, Jest, simplecov), Cobertura XML (JaCoCo, coverlet), coverage.py (JSON), detected by content",
     },
     {
       capability: "Case↔test traceability",
       support:
-        ".py, .js/.jsx/.ts/.tsx, .go, .java/.kt, .cs, .rb, .php, .rs — the scenario: marker works in any comment",
+        ".py, .js/.jsx/.ts/.tsx, .go, .java/.kt, .cs, .rb, .php, .rs; the scenario: marker works in any comment",
     },
     {
       capability: "Error paths",
@@ -1162,7 +1163,7 @@ function SetupContent({
           <Reveal>
             <h2
               id="prepare-o-ambiente"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("Prepare o ambiente", "Prepare the environment")}
             </h2>
@@ -1170,14 +1171,14 @@ function SetupContent({
               {lang === "pt" ? (
                 <>
                   Quase todo mundo já tem Python instalado, mas vale confirmar a
-                  versão antes de seguir —{" "}
+                  versão antes de seguir, pois o{" "}
                   <span className="text-[var(--text-h)]">Sentry</span> requer
                   3.11+:
                 </>
               ) : (
                 <>
                   Almost everyone already has Python installed, but it's worth
-                  confirming the version before moving on —{" "}
+                  confirming the version before moving on, since{" "}
                   <span className="text-[var(--text-h)]">Sentry</span> requires
                   3.11+:
                 </>
@@ -1186,8 +1187,8 @@ function SetupContent({
             <CodeBlock lines={["python --version", "Python 3.11.0"]} />
             <p className="mb-3 mt-4 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               {t(
-                "Se a versão for menor que 3.11 ou o comando não existir, instale uma versão atual antes de continuar. Um ambiente virtual isolado por projeto evita conflito entre dependências de projetos diferentes — não é obrigatório, mas é uma boa prática:",
-                "If the version is below 3.11 or the command doesn't exist, install a current version before continuing. A per-project virtual environment avoids dependency conflicts between different projects — not required, but a good practice:",
+                "Se a versão for menor que 3.11 ou o comando não existir, instale uma versão atual antes de continuar. Um ambiente virtual isolado por projeto evita conflito entre dependências de projetos diferentes; não é obrigatório, mas é uma boa prática:",
+                "If the version is below 3.11 or the command doesn't exist, install a current version before continuing. A per-project virtual environment avoids dependency conflicts between different projects; not required, but a good practice:",
               )}
             </p>
             <CodeBlock
@@ -1198,7 +1199,7 @@ function SetupContent({
           <Reveal>
             <h2
               id="instale-a-cli"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("Instale a CLI", "Install the CLI")}
             </h2>
@@ -1217,7 +1218,7 @@ function SetupContent({
           <Reveal>
             <h2
               id="inicialize-o-repositorio"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("Inicialize o repositório", "Initialize the repository")}
             </h2>
@@ -1263,7 +1264,7 @@ function SetupContent({
           <Reveal>
             <h2
               id="dependencias"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("Dependências ausentes", "Missing dependencies")}
             </h2>
@@ -1296,7 +1297,7 @@ function SetupContent({
           <Reveal>
             <h2
               id="sentry-toml"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("Configure o sentry.toml", "Configure sentry.toml")}
             </h2>
@@ -1305,14 +1306,14 @@ function SetupContent({
                 <>
                   Fica na raiz, é versionável e sem segredos. Tudo além do que o{" "}
                   <span className="text-[var(--text-h)]">init</span> já escreve
-                  é opcional — ajuste só o que o seu projeto precisa:
+                  é opcional; ajuste só o que o seu projeto precisa:
                 </>
               ) : (
                 <>
                   Lives at the root, is versionable and holds no secrets.
                   Everything beyond what{" "}
                   <span className="text-[var(--text-h)]">init</span> already
-                  writes is optional — adjust only what your project needs:
+                  writes is optional; adjust only what your project needs:
                 </>
               )}
             </p>
@@ -1463,19 +1464,48 @@ function SetupContent({
                   )}
                 </span>
               </p>
+              <p className="mt-2 text-[var(--text-h)]">
+                [modules]{" "}
+                <span className="text-[var(--text)]/40">
+                  #{" "}
+                  {t(
+                    "sentry archive por specs certificadas",
+                    "sentry archive by certified specs",
+                  )}
+                </span>
+              </p>
+              <p className="pl-2">
+                cadastro-de-cliente ={" "}
+                <span className="text-[var(--accent)]">
+                  ["cadastro-de-cliente"]
+                </span>
+              </p>
+              <p className="mt-2 text-[var(--text-h)]">
+                [modules.pagina-inicial]{" "}
+                <span className="text-[var(--text)]/40">
+                  #{" "}
+                  {t(
+                    "sentry archive por rota fotografada",
+                    "sentry archive by photographed route",
+                  )}
+                </span>
+              </p>
+              <p className="pl-2">
+                rotas = <span className="text-[var(--accent)]">["/", "/docs"]</span>
+              </p>
             </TerminalWindow>
             <p className="mt-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               {lang === "pt" ? (
                 <>
                   Sem limiar declarado em [policy.thresholds], o{" "}
                   <span className="text-[var(--text-h)]">Sentry</span> não
-                  inventa um mínimo — quem define "quanto basta" é o projeto.
+                  inventa um mínimo: quem define "quanto basta" é o projeto.
                 </>
               ) : (
                 <>
                   Without a threshold declared in [policy.thresholds],{" "}
                   <span className="text-[var(--text-h)]">Sentry</span> never
-                  invents a minimum — the project decides what's "enough".
+                  invents a minimum: the project decides what's "enough".
                 </>
               )}
             </p>
@@ -1484,14 +1514,14 @@ function SetupContent({
           <Reveal>
             <h2
               id="stacks-suportadas"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("Stacks suportadas", "Supported stacks")}
             </h2>
             <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               {lang === "pt" ? (
                 <>
-                  A derivação — do pedido à matriz de casos — é agnóstica de
+                  A derivação, do pedido à matriz de casos, é agnóstica de
                   linguagem: o{" "}
                   <span className="text-[var(--text-h)]">CASES.md</span> é
                   markdown e o catálogo raciocina sobre tipo de dado, não sobre
@@ -1500,7 +1530,7 @@ function SetupContent({
                 </>
               ) : (
                 <>
-                  Derivation — from request to case matrix — is
+                  Derivation, from request to case matrix, is
                   language-agnostic:{" "}
                   <span className="text-[var(--text-h)]">CASES.md</span> is
                   markdown and the catalog reasons about data type, not code.
@@ -1509,7 +1539,7 @@ function SetupContent({
                 </>
               )}
             </p>
-            <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+            <div className="overflow-hidden rounded-xl border border-[var(--border)] transition-transform duration-300 hover:-translate-y-1">
               {stacksSupport.map((item, index) => (
                 <div
                   key={item.capability}
@@ -1529,7 +1559,7 @@ function SetupContent({
                 <>
                   Camada <span className="text-[var(--text-h)]">frontend</span>{" "}
                   é verificada por uma segunda suíte, declarada em{" "}
-                  <span className="text-[var(--text-h)]">[e2e]</span> — o
+                  <span className="text-[var(--text-h)]">[e2e]</span>; o
                   reporter JUnit do Playwright encaixa nativamente. Seus casos
                   nunca ganham cobertura de linha: o status vem de evidência de
                   execução (o cenário rodou e passou, trace/screenshot anexado),
@@ -1539,7 +1569,7 @@ function SetupContent({
                 <>
                   The <span className="text-[var(--text-h)]">frontend</span>{" "}
                   layer is verified by a second suite, declared under{" "}
-                  <span className="text-[var(--text-h)]">[e2e]</span> —
+                  <span className="text-[var(--text-h)]">[e2e]</span>;
                   Playwright's JUnit reporter is a native fit. Its cases never
                   get line coverage: status comes from execution evidence (the
                   scenario ran and passed, trace/screenshot attached), never
@@ -1552,22 +1582,25 @@ function SetupContent({
           <Reveal>
             <h2
               id="gitignore"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("O que fica versionado", "What gets versioned")}
             </h2>
             <p className="text-justify text-lg leading-relaxed text-[var(--text)]/80">
               {lang === "pt" ? (
                 <>
-                  A evidência gerada — execuções, banco e relatórios — fica fora
-                  do Git, com uma exceção deliberada:{" "}
+                  A evidência gerada (execuções, banco e relatórios) fica fora
+                  do Git, com duas exceções deliberadas:{" "}
                   <span className="text-[var(--text-h)]">
                     .sentry/reports/latest-&lt;data&gt;.md
                   </span>{" "}
                   é versionado, para o veredito aparecer no diff sem que quem lê
                   precise rodar o{" "}
-                  <span className="text-[var(--text-h)]">Sentry</span>. As specs
-                  em{" "}
+                  <span className="text-[var(--text-h)]">Sentry</span>, e{" "}
+                  <span className="text-[var(--text-h)]">.sentry/storage/</span>{" "}
+                  também, porque é ali que{" "}
+                  <span className="text-[var(--text-h)]">sentry archive</span>{" "}
+                  versiona print, vídeo e veredito por módulo. As specs em{" "}
                   <span className="text-[var(--text-h)]">.sentry/specs/</span>{" "}
                   são versionadas e nunca removidas: são intenção declarada, não
                   evidência gerada. Sem elas no repositório, um checkout limpo
@@ -1576,14 +1609,18 @@ function SetupContent({
                 </>
               ) : (
                 <>
-                  Generated evidence — runs, database and reports — stays out of
-                  Git, with one deliberate exception:{" "}
+                  Generated evidence (runs, database and reports) stays out of
+                  Git, with two deliberate exceptions:{" "}
                   <span className="text-[var(--text-h)]">
                     .sentry/reports/latest-&lt;date&gt;.md
                   </span>{" "}
                   is versioned, so the verdict shows up in the diff without the
                   reader having to run{" "}
-                  <span className="text-[var(--text-h)]">Sentry</span>. Specs in{" "}
+                  <span className="text-[var(--text-h)]">Sentry</span>, and{" "}
+                  <span className="text-[var(--text-h)]">.sentry/storage/</span>{" "}
+                  too, since that's where{" "}
+                  <span className="text-[var(--text-h)]">sentry archive</span>{" "}
+                  versions screenshot, video and verdict per module. Specs in{" "}
                   <span className="text-[var(--text-h)]">.sentry/specs/</span>{" "}
                   are versioned and never removed: they're declared intent, not
                   generated evidence. Without them in the repository, a clean
@@ -1599,7 +1636,7 @@ function SetupContent({
             onPrevClick={onPrevClick}
             nextLabel={t("O fluxo de trabalho", "The workflow")}
             onNextClick={onNextClick}
-            className="mt-6"
+            className="mt-14"
           />
         </div>
 
@@ -1698,8 +1735,8 @@ function WorkflowContent({
             </h1>
             <p className="mt-6 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               {t(
-                "Seis passos entre o pedido em texto livre e o veredito auditável. Todo passo também funciona sem agente, pelos comandos abaixo — o agente só automatiza a parte de redação.",
-                "Six steps between the free-text request and the auditable verdict. Every step also works without an agent, via the commands below — the agent just automates the writing part.",
+                "Seis passos entre o pedido em texto livre e o veredito auditável. Todo passo também funciona sem agente, pelos comandos abaixo; o agente só automatiza a parte de redação.",
+                "Six steps between the free-text request and the auditable verdict. Every step also works without an agent, via the commands below; the agent just automates the writing part.",
               )}
             </p>
           </Reveal>
@@ -1707,7 +1744,7 @@ function WorkflowContent({
           <Reveal>
             <h2
               id="declare-a-intencao"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("1. Declare a intenção", "1. Declare intent")}
             </h2>
@@ -1746,7 +1783,7 @@ function WorkflowContent({
           <Reveal>
             <h2
               id="preencha-com-o-agente"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("2. Preencha com o agente", "2. Fill in with the agent")}
             </h2>
@@ -1757,7 +1794,7 @@ function WorkflowContent({
                 pergunta o que estiver ambíguo antes de escrever, e preenche o{" "}
                 <span className="text-[var(--text-h)]">CASES.md</span> seguindo
                 o template. O agente declara requisito, camada, tipo,
-                prioridade, entrada e resultado esperado — nunca o status: quem
+                prioridade, entrada e resultado esperado, nunca o status: quem
                 mede a realidade é o{" "}
                 <span className="text-[var(--text-h)]">Sentry</span>.
               </p>
@@ -1767,7 +1804,7 @@ function WorkflowContent({
                 skill asks about anything ambiguous before writing, and fills in{" "}
                 <span className="text-[var(--text-h)]">CASES.md</span> following
                 the template. The agent declares requirement, layer, type,
-                priority, input and expected result — never status:{" "}
+                priority, input and expected result, never status:{" "}
                 <span className="text-[var(--text-h)]">Sentry</span> is the one
                 measuring reality.
               </p>
@@ -1813,7 +1850,7 @@ function WorkflowContent({
           <Reveal>
             <h2
               id="valide-a-estrutura"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("3. Valide a estrutura", "3. Validate the structure")}
             </h2>
@@ -1835,7 +1872,7 @@ function WorkflowContent({
             {lang === "pt" ? (
               <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
                 O catálogo é uma tabela fixa de situações que precisam de teste,
-                por tipo de campo — não gera casos, cobra os que o agente deixou
+                por tipo de campo; não gera casos, cobra os que o agente deixou
                 de declarar. Tipos conhecidos:{" "}
                 <span className="text-[var(--text-h)]">cpf</span>,{" "}
                 <span className="text-[var(--text-h)]">cnpj</span>,{" "}
@@ -1851,8 +1888,8 @@ function WorkflowContent({
                 <span className="text-[var(--text-h)]">formulario</span>,{" "}
                 <span className="text-[var(--text-h)]">navegacao</span>,{" "}
                 <span className="text-[var(--text-h)]">responsivo</span> e{" "}
-                <span className="text-[var(--text-h)]">acessibilidade</span> —
-                os quatro últimos são para casos de camada{" "}
+                <span className="text-[var(--text-h)]">acessibilidade</span>,
+                sendo que os quatro últimos são para casos de camada{" "}
                 <span className="text-[var(--text-h)]">frontend</span>,
                 verificados por evidência de execução do Playwright. Uma classe
                 que não faz sentido pode ser dispensada com justificativa em vez
@@ -1861,7 +1898,7 @@ function WorkflowContent({
             ) : (
               <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
                 The catalog is a fixed table of situations that need a test, per
-                field type — it doesn't generate cases, it charges for the ones
+                field type; it doesn't generate cases, it charges for the ones
                 the agent left undeclared. Known types:{" "}
                 <span className="text-[var(--text-h)]">cpf</span>,{" "}
                 <span className="text-[var(--text-h)]">cnpj</span>,{" "}
@@ -1880,7 +1917,7 @@ function WorkflowContent({
                 <span className="text-[var(--text-h)]">responsivo</span>{" "}
                 (responsive) and{" "}
                 <span className="text-[var(--text-h)]">acessibilidade</span>{" "}
-                (accessibility) — the last four are for
+                (accessibility), and the last four are for
                 <span className="text-[var(--text-h)]"> frontend</span>-layer
                 cases, verified by Playwright execution evidence. A class that
                 doesn't make sense can be waived with justification instead of
@@ -1893,7 +1930,7 @@ function WorkflowContent({
               </p>
               <p className="mt-1 text-[var(--text)]/70">
                 -{" "}
-                <span className="text-[var(--accent)]">
+                <span className="text-[var(--text-h)]">
                   exclude/max-length-exceeded
                 </span>
                 :{" "}
@@ -1910,7 +1947,7 @@ function WorkflowContent({
                 "Coverage is measured across five dimensions, each reporting covered, partial, not covered or not applicable, with evidence:",
               )}
             </p>
-            <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+            <div className="overflow-hidden rounded-xl border border-[var(--border)] transition-transform duration-300 hover:-translate-y-1">
               {coverageDimensions.map((item, index) => (
                 <div
                   key={item.dimension}
@@ -1936,7 +1973,7 @@ function WorkflowContent({
           <Reveal>
             <h2
               id="ligue-caso-a-teste"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("4. Ligue caso a teste", "4. Link case to test")}
             </h2>
@@ -1944,14 +1981,14 @@ function WorkflowContent({
               <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
                 Seu agente liga cada caso do{" "}
                 <span className="text-[var(--text-h)]">CASES.md</span> ao teste
-                real com um marcador de comentário, com o nome exato do caso —
+                real com um marcador de comentário, com o nome exato do caso;
                 funciona em qualquer linguagem com comentário:
               </p>
             ) : (
               <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
                 Your agent links each case in{" "}
                 <span className="text-[var(--text-h)]">CASES.md</span> to the
-                real test with a comment marker, using the case's exact name —
+                real test with a comment marker, using the case's exact name;
                 works in any language that supports comments:
               </p>
             )}
@@ -1973,7 +2010,7 @@ function WorkflowContent({
           <Reveal>
             <h2
               id="rode-e-persista"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("5. Rode e persista", "5. Run and persist")}
             </h2>
@@ -2009,7 +2046,7 @@ function WorkflowContent({
           <Reveal>
             <h2
               id="releia-e-compare"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("6. Releia e compare", "6. Read back and compare")}
             </h2>
@@ -2037,7 +2074,7 @@ function WorkflowContent({
             onPrevClick={onPrevClick}
             nextLabel={t("Comandos e Habilidades", "Commands & Skills")}
             onNextClick={onNextClick}
-            className="mt-6"
+            className="mt-14"
           />
         </div>
 
@@ -2491,6 +2528,21 @@ const deterministicRulesByLang = {
   ],
 };
 
+const ALL_COMMANDS = [
+  "init",
+  "new",
+  "check",
+  "run",
+  "review",
+  "watch",
+  "status",
+  "context",
+  "report",
+  "history",
+  "archive",
+  "clear",
+];
+
 function CommandsContent({
   onPrevClick,
   onNextClick,
@@ -2511,18 +2563,41 @@ function CommandsContent({
             <h1 className="text-3xl font-semibold uppercase tracking-normal text-[var(--text-h)]">
               {t("Comandos e Habilidades", "Commands & Skills")}
             </h1>
+            <TextMarquee
+              height={120}
+              speed={0.7}
+              className="mt-6 justify-center"
+              prefix={
+                <span className="whitespace-nowrap font-mono text-xl text-[var(--text)]/40 sm:text-2xl">
+                  <span className="text-[var(--accent)]">$</span> sentry
+                </span>
+              }
+            >
+              {ALL_COMMANDS.map((command) => (
+                <p
+                  key={command}
+                  className="flex h-11 items-center font-mono text-xl text-[var(--text-h)] sm:text-2xl"
+                >
+                  {command}
+                </p>
+              ))}
+            </TextMarquee>
             <p className="mt-6 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               {lang === "pt" ? (
                 <>
-                  Código de saída 0 em sucesso. <Cmd>sentry check</Cmd> mantém
-                  semântica própria: 0 estrutura válida, 1 erros estruturais, 2
-                  não foi possível resolver a spec.
+                  Doze comandos, um ciclo só: declarar intenção, validar
+                  estrutura, rodar com cobertura, revisar antes de commitar,
+                  reler o veredito, comparar histórico e arquivar evidência
+                  versionada. Cada um tem página própria abaixo, com sintaxe
+                  completa e o que muda em cada flag.
                 </>
               ) : (
                 <>
-                  Exit code 0 on success. <Cmd>sentry check</Cmd> keeps its own
-                  semantics: 0 valid structure, 1 structural errors, 2 couldn't
-                  resolve the spec.
+                  Twelve commands, one single cycle: declare intent, validate
+                  structure, run with coverage, review before committing, read
+                  back the verdict, compare history and archive versioned
+                  evidence. Each one gets its own entry below, with full syntax
+                  and what each flag changes.
                 </>
               )}
             </p>
@@ -2531,7 +2606,7 @@ function CommandsContent({
           <Reveal>
             <h2
               id="referencia-de-comandos"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("Referência de comandos", "Command reference")}
             </h2>
@@ -2563,7 +2638,7 @@ function CommandsContent({
           <Reveal>
             <h2
               id="codigos-de-saida"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("Códigos de saída", "Exit codes")}
             </h2>
@@ -2573,7 +2648,7 @@ function CommandsContent({
                 'Four distinguishable states, to separate "poorly tested code" from "my environment broke". An infrastructure error never produces a passing verdict.',
               )}
             </p>
-            <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+            <div className="overflow-hidden rounded-xl border border-[var(--border)] transition-transform duration-300 hover:-translate-y-1">
               {exitCodes.map((item, index) => (
                 <div
                   key={item.code}
@@ -2599,7 +2674,7 @@ function CommandsContent({
           <Reveal>
             <h2
               id="regras-deterministicas"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("Regras determinísticas", "Deterministic rules")}
             </h2>
@@ -2609,7 +2684,7 @@ function CommandsContent({
                 "Ten rules, with severity configurable per project in [policy.severities].",
               )}
             </p>
-            <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+            <div className="overflow-hidden rounded-xl border border-[var(--border)] transition-transform duration-300 hover:-translate-y-1">
               {deterministicRules.map((item, index) => (
                 <div
                   key={item.rule}
@@ -2638,7 +2713,7 @@ function CommandsContent({
           <Reveal>
             <h2
               id="skill-sentry-cases"
-              className="mt-5 text-xl font-semibold text-[var(--text-h)]"
+              className="mt-14 text-xl font-semibold text-[var(--text-h)]"
             >
               {t("Skill sentry-cases", "sentry-cases skill")}
             </h2>
@@ -2684,7 +2759,7 @@ function CommandsContent({
             onPrevClick={onPrevClick}
             nextLabel="Papers"
             onNextClick={onNextClick}
-            className="mt-6"
+            className="mt-14"
           />
         </div>
 
@@ -3553,7 +3628,7 @@ function PapersContent({ onPrevClick }: { onPrevClick: () => void }) {
           <PageFooter
             prevLabel={t("Comandos e Habilidades", "Commands & Skills")}
             onPrevClick={onPrevClick}
-            className="mt-10"
+            className="mt-14"
           />
         </div>
 
