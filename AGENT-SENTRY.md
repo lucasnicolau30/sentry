@@ -63,8 +63,9 @@ não sua.
    As dimensões que dependem de intenção declarada saem `não aplicável` dizendo
    isso — nunca `coberta`. A spec é o teto do produto, não o piso.
 
-7. Leia `.sentry/reports/latest.md`: os achados vêm primeiro, ordenados por
-   severidade; evidência bruta (arquivos alterados, saída do pytest) vem depois.
+7. Leia o relatório atual — `sentry report`, ou o `.sentry/reports/latest-<data>.md`
+   gravado pela execução: os achados vêm primeiro, ordenados por severidade;
+   evidência bruta (arquivos alterados, saída do pytest) vem depois.
 
 ## O loop
 
@@ -179,8 +180,17 @@ genérico: roda, mas não mede.
 - `sentry report` — reexibe o último relatório sem rodar nada de novo.
 - `sentry history` — lista execuções e compara as duas últimas: cobertura,
   testes, achados novos, resolvidos e persistentes.
-- `sentry clear [--keep-last N] [--yes]` — poda execuções e relatórios antigos.
-  Sem `--yes` só mostra o que sairia. Nunca toca em `.sentry/specs/`.
+- `sentry clear [--keep-last N] [--yes]` — poda execuções, relatórios antigos e o
+  pool `.sentry/media/`. Sem `--yes` só mostra o que sairia. Nunca toca em
+  `.sentry/specs/` nem em `.sentry/storage/`.
+- `sentry archive <modulo> --version X.Y.Z [--specs A,B,C] [--image] [--video]` —
+  executa a suíte e2e do módulo e, se aprovada, arquiva a mídia em
+  `.sentry/storage/<modulo>-<versao>/` com um `README.md` autossuficiente. Recusa
+  veredito reprovado. A composição do módulo é declarada uma única vez, com
+  `--specs`, na versão 1.0.0, e fica gravada em `[modules]` do `sentry.toml`. Sem
+  `--image`/`--video`, tudo que for produzido é arquivado; pedindo uma das duas,
+  só aquele tipo entra na mídia arquivada, e `--video` liga a gravação de vídeo
+  do Playwright para aquela execução.
 
 ## Limites
 

@@ -4,7 +4,7 @@
  ███████╗█████╗  ██╔██╗ ██║   ██║   ██████╔╝ ╚████╔╝
  ╚════██║██╔══╝  ██║╚██╗██║   ██║   ██╔══██╗  ╚██╔╝
  ███████║███████╗██║ ╚████║   ██║   ██║  ██║   ██║
- ╚══════╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝  v2.0.0
+ ╚══════╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝  v2.1.0
 ```
 
 [Português](README.pt.md) | English
@@ -89,9 +89,10 @@ Exit code `0` on success; see the exit code table further down.
 | `sentry watch [--spec <slug>] [--interval SECONDS]`       | Re-evaluates on save. Instant mode for the typing loop, escalating to the full run when the saved file is a test — that's where a change becomes evidence. Polls file mtime (default interval `0.4s`), so it adds no runtime dependency.                                                                                                                                      |
 | `sentry context --json`                                   | Emits the last run's gaps as JSON, for the AI agent: uncovered line ranges, error paths no test executed, failing tests by name, scenarios without a test, missing equivalence classes, orphan markers and declared limitations.                                                                                                                                              |
 | `sentry status [--json]`                                  | Measures the whole application, not just the diff: every source file is treated as changed, against every declared spec (`--spec all`). Always runs the full suite, never from the cache — it's the periodic, authoritative snapshot, not the fast loop. Reports which files have zero coverage at all.                                                                       |
-| `sentry report`                                           | Shows the latest report (`.sentry/reports/latest.md`), flagging it when its commit is no longer HEAD.                                                                                                                                                                                                                                                                         |
+| `sentry report`                                           | Shows the latest report (`.sentry/reports/latest-<date>.md`), flagging it when its commit is no longer HEAD.                                                                                                                                                                                                                                                                         |
 | `sentry history`                                          | Lists runs and compares the last two: coverage, tests, new/resolved/persistent findings.                                                                                                                                                                                                                                                                                      |
 | `sentry clear [--keep-last N] [--yes]`                    | Prunes old runs and reports. Without `--yes` it only shows what would be removed — deleting history is irreversible. Never touches `.sentry/specs/`.                                                                                                                                                                                                                          |
+| `sentry archive <module> --version X.Y.Z [--specs A,B,C] [--image] [--video]` | Runs the module's e2e suite and, once approved, archives its media under `.sentry/storage/<module>-<version>/` with a self-contained `README.md`. Refuses a rejected verdict. The composition is declared once, with `--specs`, on version 1.0.0. Without `--image`/`--video`, everything produced is archived; with either, only that media type is kept, and `--video` also turns on Playwright's video recording for that run. |
 
 ## Two modes, by design
 
@@ -232,7 +233,7 @@ matricula = ["empty", "invalid-format", "valid"]
 disabled = []
 ```
 
-`.sentry/` holds specs, runs, reports and the database. It stays out of Git, with one deliberate exception: `.sentry/reports/latest.md` is versioned, so the verdict shows up in the PR diff without the reviewer having to run Sentry.
+`.sentry/` holds specs, runs, reports and the database. It stays out of Git, with one deliberate exception: the current report, `.sentry/reports/latest-<date>.md`, is versioned, so the verdict shows up in the PR diff without the reviewer having to run Sentry. The name carries the date and time of the run, and there is only ever one: the previous one is replaced when a new run writes.
 
 History is kept indefinitely, and grows with every run. To prune it:
 
