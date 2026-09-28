@@ -105,6 +105,15 @@ function NavLinks({ className = "" }: { className?: string }) {
   );
 }
 
+function DockUnderline() {
+  return (
+    <span
+      aria-hidden="true"
+      className="absolute -bottom-0.5 left-1/2 h-px w-[calc(100%-0.75rem)] origin-center -translate-x-1/2 scale-x-0 bg-[var(--accent)] transition-transform duration-300 ease-out group-hover:scale-x-100"
+    />
+  );
+}
+
 function DockLanguageButton() {
   const { lang, toggle } = useLanguage();
   const current = lang === "pt" ? "PT" : "EN";
@@ -119,10 +128,11 @@ function DockLanguageButton() {
       }}
       animate={controls}
       aria-label="Toggle language"
-      className="flex h-9 items-center gap-1.5 rounded-full px-3 text-sm leading-none text-[var(--text)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--accent)] cursor-pointer"
+      className="group relative flex h-9 items-center gap-1.5 px-3 text-sm leading-none text-[var(--text)] transition-colors hover:text-[var(--accent)] cursor-pointer"
     >
       <GlobeIcon />
       <span className="leading-none">{current}</span>
+      <DockUnderline />
     </motion.button>
   );
 }
@@ -138,7 +148,7 @@ function DockGithubLink() {
       onClick={shake}
       animate={controls}
       aria-label="GitHub"
-      className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--accent)] cursor-pointer"
+      className="group relative flex h-9 w-9 items-center justify-center text-[var(--text)] transition-colors hover:text-[var(--accent)] cursor-pointer"
     >
       <svg
         stroke="currentColor"
@@ -151,6 +161,7 @@ function DockGithubLink() {
       >
         <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
       </svg>
+      <DockUnderline />
     </motion.a>
   );
 }
@@ -163,24 +174,43 @@ function DockDocsLink() {
       <Link
         to="/docs"
         onClick={shake}
-        className="flex h-9 items-center gap-1.5 rounded-full px-3 text-sm leading-none text-[var(--text)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--accent)] cursor-pointer"
+        className="group relative flex h-9 items-center gap-1.5 px-3 text-sm leading-none text-[var(--text)] transition-colors hover:text-[var(--accent)] cursor-pointer"
       >
         <DocsIcon />
         <span className="leading-none">DOCS</span>
+        <DockUnderline />
       </Link>
     </motion.div>
   );
+}
+
+function DockDivider() {
+  return <span aria-hidden="true" className="h-5 w-px shrink-0 bg-[var(--border)]" />;
 }
 
 function DesktopNavDock() {
   const location = useLocation();
   const isDocs = location.pathname.startsWith("/docs");
 
+  const items = isDocs
+    ? [
+        { key: "github", node: <DockGithubLink /> },
+        { key: "lang", node: <DockLanguageButton /> },
+      ]
+    : [
+        { key: "lang", node: <DockLanguageButton /> },
+        { key: "github", node: <DockGithubLink /> },
+        { key: "docs", node: <DockDocsLink /> },
+      ];
+
   return (
-    <div className="flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--bg-alt)] px-2 py-1.5 shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
-      {!isDocs && <DockLanguageButton />}
-      <DockGithubLink />
-      {isDocs ? <DockLanguageButton /> : <DockDocsLink />}
+    <div className="flex items-center gap-1 rounded-2xl border border-[var(--border)] bg-[var(--bg-alt)] px-2 py-1.5 shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
+      {items.map((item, index) => (
+        <div key={item.key} className="flex items-center gap-1">
+          {index > 0 && <DockDivider />}
+          {item.node}
+        </div>
+      ))}
     </div>
   );
 }
