@@ -15,6 +15,13 @@
   --accent: #39ff14;
   --accent-hover: #6dff4d;
   --accent-dark: #1f8f0a;
+  /* Wordmark do Sentry em três faixas, de cima pra baixo: o mesmo degrau que a
+     CLI usa no terminal (ANSI bright_green / green / dim_green). As três são o
+     verde do próprio tema, cada uma escurecida na mesma proporção — `dim_green`
+     na CLI é o verde normal com a intensidade reduzida, não um verde diferente. */
+  --wordmark-bright: var(--accent);
+  --wordmark-mid: color-mix(in srgb, var(--accent) 62%, #000);
+  --wordmark-dim: color-mix(in srgb, var(--accent) 34%, #000);
   --mono: Arial, Helvetica, sans-serif;
   color-scheme: dark;
   --background: oklch(1 0 0);
