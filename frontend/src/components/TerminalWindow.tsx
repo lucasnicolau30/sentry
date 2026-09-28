@@ -51,10 +51,16 @@ export function TerminalWindow({ title = "sentry", lines, children, className = 
         {lines
           ? lines.map((line, index) => {
               const tone = line.tone ?? "info";
+              // Só o wordmark precisa de espaçamento exato (pre): é arte ASCII,
+              // cada espaço importa. Toda outra linha, comando incluído, quebra
+              // dentro do card em vez de forçar rolagem lateral.
+              const wrapClass = bannerTones.includes(tone)
+                ? "whitespace-pre"
+                : "whitespace-pre-wrap break-words";
               return (
                 <p
                   key={index}
-                  className={`whitespace-pre ${bannerTones.includes(tone) ? "leading-[1.05]" : ""} ${
+                  className={`${wrapClass} ${bannerTones.includes(tone) ? "leading-[1.05]" : ""} ${
                     toneClass[tone]
                   }`}
                 >
