@@ -20,8 +20,13 @@ import time
 from typing import TextIO
 
 RESET = "\x1b[0m"
-_CODES = {"red": "31", "yellow": "33", "green": "32", "gray": "90", "blue": "34", "magenta": "35",
-         "bright_green": "92", "dim_green": "2;32"}
+# Os três verdes usam truecolor (38;2;R;G;B) em vez dos códigos ANSI de 16
+# cores -- são os mesmos RGB de `--wordmark-bright/mid/dim` em `index.css` do
+# frontend (accent #39ff14 e seus dois tons escurecidos via color-mix), para
+# o verde da CLI ser visualmente o mesmo verde da landing page, não o verde
+# genérico que cada terminal decide sozinho para o código 32.
+_CODES = {"red": "31", "yellow": "33", "green": "38;2;35;158;12", "gray": "90", "blue": "34", "magenta": "35",
+         "bright_green": "38;2;57;255;20", "dim_green": "38;2;19;87;7"}
 
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
 

@@ -733,8 +733,8 @@ def test_wordmark_usa_tres_faixas_de_verde():
     codigo_do_meio = linhas[2].split("m", 1)[0]
     codigo_de_baixo = linhas[5].split("m", 1)[0]
     assert len({codigo_do_topo, codigo_do_meio, codigo_de_baixo}) == 3
-    assert codigo_do_topo == "\x1b[92"  # verde vivo
-    assert codigo_de_baixo == "\x1b[2;32"  # verde apagado
+    assert codigo_do_topo == "\x1b[38;2;57;255;20"  # verde vivo (truecolor)
+    assert codigo_de_baixo == "\x1b[38;2;19;87;7"  # verde apagado (truecolor)
 
 
 # cenario: wordmark sem cor fica so' com o texto puro
