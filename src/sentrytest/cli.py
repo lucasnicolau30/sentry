@@ -25,6 +25,7 @@ from .adapters.terminal import (
 )
 from .domain.models import to_json
 from .application.archive import PRIMEIRA_VERSAO, record_module, resolve_specs, write_archive
+from .application.formatting import format_instant
 from .application.reporting import clear_history, load_runs, staleness, write_reports, compare
 
 _COMMAND_NAMES = ("init", "new", "check", "run", "review", "watch", "status", "context", "report", "history", "clear", "archive")
