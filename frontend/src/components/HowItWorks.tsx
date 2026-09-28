@@ -38,10 +38,18 @@ const ReportIcon = () => (
   </svg>
 );
 
+const ArchiveIcon = () => (
+  <svg {...iconProps} aria-hidden="true">
+    <rect x="3" y="4" width="18" height="4" rx="1" />
+    <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+    <path d="M10 13h4" />
+  </svg>
+);
+
 const Arrow = () => (
   <svg
     aria-hidden="true"
-    className="hidden shrink-0 text-[var(--accent)] sm:block"
+    className="hidden shrink-0 text-[var(--accent)] lg:block"
     width="40"
     height="16"
     viewBox="0 0 40 16"
@@ -82,6 +90,12 @@ const steps = {
       title: "Audita o resultado",
       description: "Releitura do veredito e comparação entre execuções.",
     },
+    {
+      icon: <ArchiveIcon />,
+      command: "sentry archive",
+      title: "Arquiva a evidência",
+      description: "Versiona print, vídeo e veredito por módulo, prontos para consulta futura.",
+    },
   ],
   en: [
     {
@@ -113,6 +127,12 @@ const steps = {
       title: "Audits the result",
       description: "Reads back the verdict and compares runs.",
     },
+    {
+      icon: <ArchiveIcon />,
+      command: "sentry archive",
+      title: "Archives the evidence",
+      description: "Versions screenshot, video and verdict per module, ready for later reference.",
+    },
   ],
 };
 
@@ -127,29 +147,29 @@ export function HowItWorks() {
           {t("Como funciona", "How it works")}
         </h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-base text-[var(--text)]/60 sm:text-lg">
-          {t("Quatro comandos entre o pedido e o veredito auditável.", "Four commands between the request and the auditable verdict.")}
+          {t("Cinco comandos entre o pedido e o veredito auditável.", "Five commands between the request and the auditable verdict.")}
         </p>
       </Reveal>
 
-      <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-4 sm:gap-2">
+      <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-5 lg:gap-2">
         {items.map((step, index) => (
           <Reveal key={step.command} delay={index * 0.1}>
-            <div className="flex items-start gap-4 sm:flex-col sm:items-center sm:text-center">
+            <div className="flex items-start gap-4 transition-transform duration-300 hover:-translate-y-1 sm:flex-col sm:items-center sm:text-center">
               <div className="flex items-center gap-2 sm:w-full sm:justify-center">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-alt)] text-[var(--accent)] transition-transform duration-300 hover:scale-110">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-alt)] text-[var(--accent)]">
                   {step.icon}
                 </div>
                 {index < items.length - 1 && <Arrow />}
               </div>
               <div className="sm:mt-3">
-                <code className="font-mono text-sm text-[var(--text-h)]">
+                <code className="font-mono text-xs text-[var(--text-h)]">
                   <span className="text-[var(--accent)]">$ </span>
                   {step.command}
                 </code>
-                <h3 className="mt-1 text-base font-semibold">
+                <h3 className="mt-1 text-sm font-semibold">
                   {index + 1}. {step.title}
                 </h3>
-                <p className="mt-1 text-base leading-relaxed text-[var(--text)]/60">{step.description}</p>
+                <p className="mt-1 text-sm leading-relaxed text-[var(--text)]/60">{step.description}</p>
               </div>
             </div>
           </Reveal>
