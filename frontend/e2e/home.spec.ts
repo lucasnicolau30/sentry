@@ -1,13 +1,14 @@
 import { test, expect } from "@playwright/test";
 
 // cenario: landing mostra o titulo e os cards de feature
-test("mostra o título e os quatro cards de feature", async ({ page }) => {
+test("mostra o título e os cinco cards de feature", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /seu agente escreveu o código/i })).toBeVisible();
   await expect(page.getByText("Cobertura do que mudou")).toBeVisible();
   await expect(page.getByText("Veredito com contexto")).toBeVisible();
   await expect(page.getByText("Histórico auditável")).toBeVisible();
   await expect(page.getByText("Rastreabilidade caso")).toBeVisible();
+  await expect(page.getByText("Zero chamada de IA")).toBeVisible();
 });
 
 // cenario: menu mobile abre e fecha ao clicar no hamburguer

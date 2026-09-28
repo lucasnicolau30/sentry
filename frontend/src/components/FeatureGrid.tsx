@@ -44,25 +44,45 @@ const LayersIcon = () => (
   </svg>
 );
 
+const CpuIcon = () => (
+  <svg {...iconProps} aria-hidden="true">
+    <rect x="7" y="7" width="10" height="10" rx="1.5" />
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19" />
+  </svg>
+);
+
 const featuresByLang = {
   pt: [
     {
       icon: <TargetIcon />,
       title: "Cobertura do que mudou",
-      description:
-        "Prioriza a cobertura do código alterado em cada mudança, em vez de esconder lacunas na média geral do projeto.",
+      description: (
+        <>
+          95% de cobertura no projeto inteiro não impede a linha que você acabou de mudar de ficar sem teste nenhum.
+          O <span className="text-[var(--text-h)]">Sentry</span> mede exatamente o{" "}
+          <span className="text-[var(--accent)]">diff</span>, não a média que esconde isso.
+        </>
+      ),
     },
     {
       icon: <ShieldIcon />,
       title: "Veredito com contexto",
-      description:
-        "Aprovado, reprovado ou inconclusivo com base em severidade e evidência real, nunca por ausência de dados.",
+      description: (
+        <>
+          Um CI verde não significa que alguém leu o resultado. O veredito (aprovado, reprovado ou inconclusivo)
+          sai como <span className="text-[var(--accent)]">código de saída</span>, pronto para travar o merge sozinho.
+        </>
+      ),
     },
     {
       icon: <HistoryIcon />,
       title: "Histórico auditável",
-      description:
-        "Cada execução é persistida e comparável: cobertura, testes e achados evoluindo lado a lado ao longo do tempo.",
+      description: (
+        <>
+          Queda de cobertura costuma só aparecer quando já é tarde. Cada execução fica salva e comparável com a
+          anterior, e a regressão aparece no dia em que aconteceu, não três sprints depois.
+        </>
+      ),
     },
     {
       icon: <LayersIcon />,
@@ -75,28 +95,57 @@ const featuresByLang = {
       ),
       description: (
         <>
-          Cada caso do <span className="text-[var(--text-h)]">CASES.md</span> se liga ao teste real por um marcador de
-          comentário, sem isso o <span className="text-[var(--text-h)]">Sentry</span> não inventa que foi coberto.
+          Um teste vazio passa em qualquer suíte e não prova nada. Cada caso do{" "}
+          <span className="text-[var(--text-h)]">CASES.md</span> se liga a um teste real por um marcador de
+          comentário; sem ele, o <span className="text-[var(--text-h)]">Sentry</span> não inventa que foi coberto.
         </>
       ),
+    },
+    {
+      icon: <CpuIcon />,
+      title: "Zero chamada de IA",
+      description: (
+        <>
+          Rodar a mesma mudança duas vezes num revisor de IA pode dar dois vereditos diferentes, e cada rodada tem
+          custo de token. O <span className="text-[var(--text-h)]">Sentry</span> não chama nenhum modelo: é{" "}
+          <span className="text-[var(--accent)]">determinístico</span>, e o mesmo commit sempre produz o mesmo
+          resultado, de graça.
+        </>
+      ),
+      wide: true,
     },
   ],
   en: [
     {
       icon: <TargetIcon />,
       title: "Coverage of what changed",
-      description:
-        "Prioritizes coverage of the changed code on every change, instead of hiding gaps in the project's overall average.",
+      description: (
+        <>
+          95% coverage on the whole project doesn't stop the line you just changed from having zero tests.{" "}
+          <span className="text-[var(--text-h)]">Sentry</span> measures the{" "}
+          <span className="text-[var(--accent)]">diff</span> itself, not the average that hides it.
+        </>
+      ),
     },
     {
       icon: <ShieldIcon />,
       title: "Verdict with context",
-      description: "Passed, failed or inconclusive based on severity and real evidence, never on missing data.",
+      description: (
+        <>
+          A green CI doesn't mean anyone read the result. The verdict (passed, failed or inconclusive) comes out as
+          an <span className="text-[var(--accent)]">exit code</span>, ready to block the merge on its own.
+        </>
+      ),
     },
     {
       icon: <HistoryIcon />,
       title: "Auditable history",
-      description: "Every run is persisted and comparable: coverage, tests and findings evolving side by side over time.",
+      description: (
+        <>
+          Coverage regressions usually surface once it's already too late. Every run is saved and compared against
+          the last one, and a drop shows up the day it happened, not three sprints later.
+        </>
+      ),
     },
     {
       icon: <LayersIcon />,
@@ -109,10 +158,24 @@ const featuresByLang = {
       ),
       description: (
         <>
-          Every case in <span className="text-[var(--text-h)]">CASES.md</span> links to a real test through a comment marker —
+          An empty test passes in any suite and proves nothing. Every case in{" "}
+          <span className="text-[var(--text-h)]">CASES.md</span> links to a real test through a comment marker;
           without it, <span className="text-[var(--text-h)]">Sentry</span> never assumes it was covered.
         </>
       ),
+    },
+    {
+      icon: <CpuIcon />,
+      title: "Zero AI calls",
+      description: (
+        <>
+          Running the same change twice through an AI reviewer can give two different verdicts, and every run costs
+          tokens. <span className="text-[var(--text-h)]">Sentry</span> calls no model at all: it's{" "}
+          <span className="text-[var(--accent)]">deterministic</span>, and the same commit always produces the same
+          result, for free.
+        </>
+      ),
+      wide: true,
     },
   ],
 };
@@ -124,8 +187,8 @@ export function FeatureGrid() {
   return (
     <section className="mx-auto max-w-5xl px-6 py-10">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {features.map((feature, index) => (
-          <Reveal key={index} delay={index * 0.08} className="h-full">
+        {features.map(({ wide, ...feature }, index) => (
+          <Reveal key={index} delay={index * 0.08} className={wide ? "h-full sm:col-span-2" : "h-full"}>
             <FeatureCard {...feature} />
           </Reveal>
         ))}
