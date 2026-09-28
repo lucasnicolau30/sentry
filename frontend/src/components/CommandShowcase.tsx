@@ -14,19 +14,8 @@ const commandsByLang = {
       ),
       lines: [
         { text: "sentry check cadastro-de-cliente", tone: "command" as const },
-        { text: "Validando estrutura...", tone: "info" as const },
-        { text: "Classes de equivalência: 6/6 cobertas", tone: "info" as const },
-        { text: "✓ Spec válida.", tone: "success" as const },
-      ],
-    },
-    {
-      title: "Execução com cobertura",
-      description: "Roda a suíte, lê diff e cobertura, aplica as regras e persiste o veredito.",
-      lines: [
-        { text: "sentry run --spec cadastro-de-cliente --run-tests", tone: "command" as const },
-        { text: "Executando suíte...", tone: "info" as const },
-        { text: "Cobertura do código alterado: 92%", tone: "info" as const },
-        { text: "✓ Veredito: aprovado.", tone: "success" as const },
+        { text: "3 caso(s), 1 campo(s)", tone: "info" as const },
+        { text: "✓ Estrutura válida e catálogo de classes coberto.", tone: "success" as const },
       ],
     },
     {
@@ -34,9 +23,18 @@ const commandsByLang = {
       description: "Compara as duas últimas execuções: cobertura, testes e achados novos ou resolvidos.",
       lines: [
         { text: "sentry history", tone: "command" as const },
-        { text: "Comparando execução #12 -> #13...", tone: "info" as const },
-        { text: "2 achados resolvidos, 0 novos", tone: "info" as const },
-        { text: "✓ Cobertura +4.2%.", tone: "success" as const },
+        { text: "Comparando execução 1d88027b -> 83b0123a", tone: "info" as const },
+        { text: "Cobertura global: +5.88%", tone: "info" as const },
+        { text: "✓ Veredito: aprovado -> aprovado.", tone: "success" as const },
+      ],
+    },
+    {
+      title: "Execução com cobertura",
+      description: "Roda a suíte, lê diff e cobertura, aplica as regras e persiste o veredito.",
+      lines: [
+        { text: "sentry run --spec cadastro-de-cliente --run-tests", tone: "command" as const },
+        { text: "Cobertura do código alterado: 100%", tone: "info" as const },
+        { text: "✓ Veredito: aprovado.", tone: "success" as const },
       ],
     },
   ],
@@ -50,20 +48,9 @@ const commandsByLang = {
         </>
       ),
       lines: [
-        { text: "sentry check customer-registration", tone: "command" as const },
-        { text: "Validating structure...", tone: "info" as const },
-        { text: "Equivalence classes: 6/6 covered", tone: "info" as const },
-        { text: "✓ Valid spec.", tone: "success" as const },
-      ],
-    },
-    {
-      title: "Run with coverage",
-      description: "Runs the suite, reads diff and coverage, applies the rules and persists the verdict.",
-      lines: [
-        { text: "sentry run --spec customer-registration --run-tests", tone: "command" as const },
-        { text: "Running suite...", tone: "info" as const },
-        { text: "Changed code coverage: 92%", tone: "info" as const },
-        { text: "✓ Verdict: passed.", tone: "success" as const },
+        { text: "sentry check cadastro-de-cliente", tone: "command" as const },
+        { text: "3 case(s), 1 field(s)", tone: "info" as const },
+        { text: "✓ Valid structure, class catalog covered.", tone: "success" as const },
       ],
     },
     {
@@ -71,9 +58,18 @@ const commandsByLang = {
       description: "Compares the last two runs: coverage, tests and new or resolved findings.",
       lines: [
         { text: "sentry history", tone: "command" as const },
-        { text: "Comparing run #12 -> #13...", tone: "info" as const },
-        { text: "2 findings resolved, 0 new", tone: "info" as const },
-        { text: "✓ Coverage +4.2%.", tone: "success" as const },
+        { text: "Comparing run 1d88027b -> 83b0123a", tone: "info" as const },
+        { text: "Global coverage: +5.88%", tone: "info" as const },
+        { text: "✓ Verdict: passed -> passed.", tone: "success" as const },
+      ],
+    },
+    {
+      title: "Run with coverage",
+      description: "Runs the suite, reads diff and coverage, applies the rules and persists the verdict.",
+      lines: [
+        { text: "sentry run --spec cadastro-de-cliente --run-tests", tone: "command" as const },
+        { text: "Changed code coverage: 100%", tone: "info" as const },
+        { text: "✓ Verdict: passed.", tone: "success" as const },
       ],
     },
   ],
