@@ -21,6 +21,7 @@ from sentrytest.adapters.terminal import (
     render_section, render_wordmark, spinner_frame, strip_ansi,
 )
 from sentrytest.application.analyze import analyze
+from sentrytest.application.reporting import latest_reports
 
 
 def _relatorio(veredito: str, achados: str = "") -> str:
@@ -142,7 +143,8 @@ def test_masthead_e_dashboard_nunca_aparecem_no_relatorio_salvo_em_disco(tmp_pat
     impresso = capsys.readouterr().out
     assert "┌" in impresso and "└" in impresso  # masthead/dashboard na tela
 
-    salvo = (tmp_path / ".sentry" / "reports" / "latest.md").read_text(encoding="utf-8")
+    atual, = latest_reports(tmp_path / ".sentry" / "reports")
+    salvo = atual.read_text(encoding="utf-8")
     assert "┌" not in salvo and "└" not in salvo and "│" not in salvo
     assert strip_ansi(salvo) == salvo
 

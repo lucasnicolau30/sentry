@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from sentrytest.application.formatting import format_instant
 from sentrytest.application.reporting import compare, markdown_report, staleness
 
 def payload(run_id, rules):
@@ -48,7 +49,7 @@ def test_cabecalho_registra_commit_analisado_e_instante():
     data['timestamp'] = '2026-09-10T12:00:00+00:00'
     report = markdown_report({'data': data})
     assert '- Commit analisado: a94b1fb0000000000000000000000000000000aa' in report
-    assert '- Analisado em: 2026-09-10T12:00:00+00:00' in report
+    assert f"- Analisado em: {format_instant('2026-09-10T12:00:00+00:00')}" in report
 
 # cenario: sem repositorio Git o relatorio nao inventa commit
 def test_cabecalho_declara_commit_indisponivel_fora_de_repositorio_git():

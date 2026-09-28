@@ -142,8 +142,9 @@ não sua.
    As dimensões que dependem de intenção declarada saem `não aplicável` dizendo
    isso — nunca `coberta`. A spec é o teto do produto, não o piso.
 
-7. Leia `.sentry/reports/latest.md`: os achados vêm primeiro, ordenados por
-   severidade; evidência bruta (arquivos alterados, saída do pytest) vem depois.
+7. Leia o relatório atual — `sentry report`, ou o `.sentry/reports/latest-<data>.md`
+   gravado pela execução: os achados vêm primeiro, ordenados por severidade;
+   evidência bruta (arquivos alterados, saída do pytest) vem depois.
 
 ## O loop
 

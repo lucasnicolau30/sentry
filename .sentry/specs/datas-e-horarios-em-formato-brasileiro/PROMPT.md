@@ -1,0 +1,3 @@
+# datas e horarios em formato brasileiro
+
+Timestamps exibidos ao usuario (cabecalho do relatorio, nota de cache reaproveitado, `sentry history`) passam a sair no formato brasileiro DD/MM/AAAA HH:MM:SS com o fuso declarado, ex.: 22/09/2026 07:30:45 (UTC-3), convertido para o horario local da maquina. O armazenamento continua em ISO/UTC no modelo e no JSON. Microssegundos somem da exibicao mas permanecem no JSON. Ids de run nao sao formatados, so timestamps. Um timestamp ausente ou fora do padrao ISO nunca quebra o comando: sai como esta ou como "indisponivel". Fuso com minutos quebrados (ex.: India, UTC+5:30) sai por extenso, nao truncado.

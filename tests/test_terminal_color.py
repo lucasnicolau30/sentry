@@ -10,6 +10,7 @@ import pytest
 
 from sentrytest import cli
 from sentrytest.adapters.terminal import colorize_report, paint, strip_ansi, supports_color
+from sentrytest.application.reporting import latest_reports
 
 
 class _Stream:
@@ -114,7 +115,8 @@ def test_relatorio_salvo_em_disco_nunca_contem_codigo_ansi(tmp_path: Path, monke
 
     impresso = capsys.readouterr().out
     assert '\x1b[' in impresso  # a copia no terminal saiu colorida
-    salvo = (tmp_path / '.sentry' / 'reports' / 'latest.md').read_text(encoding='utf-8')
+    atual, = latest_reports(tmp_path / '.sentry' / 'reports')
+    salvo = atual.read_text(encoding='utf-8')
     assert '\x1b[' not in salvo
     assert strip_ansi(salvo) == salvo
 

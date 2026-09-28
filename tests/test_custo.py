@@ -1,3 +1,4 @@
+from sentrytest.application.formatting import format_instant
 from sentrytest.application.reporting import markdown_report
 
 def payload(**configuration):
@@ -68,7 +69,7 @@ def test_cobertura_reusada_se_declara_da_execucao_anterior():
                   'reused_from': {'run_id': 'r0', 'timestamp': '2026-09-10T11:00:00+00:00'}}))
     contexto = report.split('## Contexto', 1)[1]
     for linha in [l for l in contexto.splitlines() if 'Cobertura' in l]:
-        assert 'medida na execução anterior (2026-09-10T11:00:00+00:00)' in linha
+        assert f"medida na execução anterior ({format_instant('2026-09-10T11:00:00+00:00')})" in linha
         assert 'não nesta rodada' in linha
 
 # cenario: cobertura reusada e declarada como da execucao anterior
@@ -87,7 +88,7 @@ def test_execucao_do_cache_e_acusada_no_cabecalho():
         from_cache=True, cached_from={'run_id': 'r0', 'timestamp': '2026-09-10T11:00:00+00:00'}))
     cabecalho = report.split('## Achados', 1)[0]
     assert 'reaproveitada do cache' in cabecalho
-    assert 'r0' in cabecalho and '2026-09-10T11:00:00+00:00' in cabecalho
+    assert 'r0' in cabecalho and format_instant('2026-09-10T11:00:00+00:00') in cabecalho
     assert 'nada foi executado agora' in cabecalho
 
 # cenario: execucao vinda do cache e declarada no relatorio

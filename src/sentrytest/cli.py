@@ -750,7 +750,7 @@ def main(argv=None):
         runs = load_runs(root)
         print(f"{paint(COMMAND_ICON['history'], 'green')} Execuções:")
         for item in runs:
-            print(item["data"].get("id"), item["data"].get("timestamp"))
+            print(item["data"].get("id"), format_instant(item["data"].get("timestamp")))
         if len(runs) < 2:
             print("Análise inicial: sem execução anterior para comparar.")
         else:

@@ -5,6 +5,7 @@ import sqlite3
 from pathlib import Path
 
 from .archive import media_path
+from .formatting import format_instant, report_slug
 
 def load_runs(root: Path):
     db = root / ".sentry" / "sentry.db"
@@ -34,11 +35,9 @@ def clear_history(root: Path, keep_last: int = 0, apply: bool = False) -> dict:
         runs_dir / f"{run_id}.json", runs_dir / f"{run_id}-coverage.json",
         reports / f"{run_id}.md", reports / f"{run_id}.json",
     ) if path.exists()]
-    # latest.md aponta para a execução mais recente: só sai quando nada é mantido.
-    latest = reports / "latest.md"
+    # O relatorio atual aponta para a execução mais recente: só sai quando nada é mantido.
     if not keep:
-        if latest.exists():
-            files.append(latest)
+        files.extend(latest_reports(reports))
         # O pool de midia acompanha: ele se refaz sozinho na proxima execucao
         # e2e, e o que precisava sobreviver ja foi promovido pelo `archive`.
         files.extend(path for path in media_path(root).rglob("*") if path.is_file())
@@ -188,7 +187,7 @@ def markdown_report(payload):
         f"- Run: {data.get('id')}",
         f"- Projeto: {data.get('project')}",
         f"- Commit analisado: {data.get('commit') or 'indisponível (não é repositório Git)'}",
-        f"- Analisado em: {data.get('timestamp') or 'indisponivel'}",
+        f"- Analisado em: {format_instant(data.get('timestamp'), 'indisponivel')}",
         f"- Veredito: **{status}** — {_VERDICT_MEANING.get(status, '')}",
     ]
     if whole_project:
@@ -201,7 +200,7 @@ def markdown_report(payload):
     if config.get("from_cache"):
         lines.append(f"- Execução reaproveitada do cache: nada foi executado agora; a evidência é da "
                      f"execução {cached_from.get('run_id') or 'anterior'} de "
-                     f"{cached_from.get('timestamp') or 'instante indisponível'}.")
+                     f"{format_instant(cached_from.get('timestamp'), 'instante indisponível')}.")
     lines.append("")
     # O achado e' o motivo do veredito: vem logo apos ele, antes de qualquer
     # evidencia bruta (arquivos, saida do pytest) que so sustenta o achado.
@@ -212,7 +211,8 @@ def markdown_report(payload):
     # Sem o carimbo, o numero da execucao completa de ontem se apresenta como
     # medicao de agora, que e' exatamente o que o modo instantaneo nao fez.
     reused = coverage.get("reused_from") or {}
-    reuse_note = (f" — medida na execução anterior ({reused.get('timestamp') or 'instante indisponível'}), "
+    reuse_note = (f" — medida na execução anterior "
+                  f"({format_instant(reused.get('timestamp'), 'instante indisponível')}), "
                   "não nesta rodada") if reused else ""
     lines += ["", "## Contexto", "",
         f"- Arquivos alterados: {len(files)}",
@@ -327,9 +327,9 @@ def markdown_report(payload):
 def staleness(payload, head: str | None) -> str | None:
     """Acusação a emitir antes de exibir um relatório cujo commit não é mais o HEAD.
 
-    O relatório é evidência datada, e o único artefato versionado (`latest.md`) é
-    justamente o que mais engana quando desatualiza: exibi-lo sem ressalva afirma um
-    veredito sobre código que já mudou.
+    O relatório é evidência datada, e o único artefato versionado (o relatório
+    atual, `latest-<data>.md`) é justamente o que mais engana quando desatualiza:
+    exibi-lo sem ressalva afirma um veredito sobre código que já mudou.
 
     None quando não há o que acusar — inclusive fora de repositório Git, onde não há
     HEAD com que comparar. Ausência de commit é limitação declarada no cabeçalho, não
@@ -341,12 +341,29 @@ def staleness(payload, head: str | None) -> str | None:
     return (f"Relatório desatualizado: analisado em {commit[:12]}, o HEAD atual é "
             f"{head[:12]}. Não é o veredito do código atual — rode sentry run de novo.")
 
+LATEST_PREFIX = "latest-"
+
+def latest_reports(reports: Path) -> list[Path]:
+    """O(s) relatório(s) atual(is) — nome muda a cada execução, então localizar
+    pelo padrão do prefixo é o que substitui o antigo `latest.md` fixo."""
+    if not reports.exists():
+        return []
+    return sorted(reports.glob(f"{LATEST_PREFIX}*.md"))
+
 def write_reports(root: Path, payload):
     reports = root / ".sentry" / "reports"
     reports.mkdir(parents=True, exist_ok=True)
     run_id = payload["data"]["id"]
     markdown = markdown_report(payload)
-    (reports / "latest.md").write_text(markdown, encoding="utf-8")
+    slug = report_slug(payload["data"].get("timestamp")) or run_id
+    # Nome fixo de versoes anteriores: sai na primeira execucao apos a migracao,
+    # senao ele e o relatorio datado coexistiriam apontando os dois para "atual".
+    legacy = reports / "latest.md"
+    if legacy.exists():
+        legacy.unlink()
+    for old in latest_reports(reports):
+        old.unlink()
+    (reports / f"{LATEST_PREFIX}{slug}.md").write_text(markdown, encoding="utf-8")
     (reports / f"{run_id}.md").write_text(markdown, encoding="utf-8")
     (reports / f"{run_id}.json").write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2), encoding="utf-8")
     return markdown
