@@ -13,7 +13,7 @@ type TextMarqueeProps = {
 // a segunda cópia já está exatamente onde a primeira começou, então o corte
 // da animação (volta de -50% pra 0%) fica invisível.
 export function TextMarquee({ height, speed = 1, prefix, children, className = "" }: TextMarqueeProps) {
-  const items = Children.toArray(children).filter(isValidElement) as ReactElement[];
+  const items = Children.toArray(children).filter(isValidElement) as ReactElement<{ children?: ReactNode }>[];
   const duplicated = [
     ...items,
     ...items.map((item, index) => cloneElement(item, { key: `dup-${index}` })),
