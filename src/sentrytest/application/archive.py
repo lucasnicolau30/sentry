@@ -18,7 +18,7 @@ import os
 import shutil
 import subprocess
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from .formatting import format_instant
 
@@ -297,6 +297,17 @@ def _rotulo(nome_do_arquivo: str) -> str | None:
     return None
 
 
+def _partes_junit(caminho: str) -> tuple[str, ...]:
+    """Segmenta um caminho vindo do JUnit do Playwright, que carrega o
+    separador do SO que o gerou (`\\` no Windows, `/` no Linux/macOS) --
+    independente de onde o Sentry roda depois. `Path` comum usa o separador
+    do SO atual e ignora o outro (ex.: um `\\` vira parte do nome do arquivo
+    no Linux), então isso quebraria a busca no pool sempre que CI e dev
+    forem SOs diferentes. `PureWindowsPath` aceita as duas barras em
+    qualquer SO, sem tocar o disco."""
+    return PureWindowsPath(caminho).parts
+
+
 def _media_nome(caminho: str) -> str:
     """Nome único do arquivo na pasta `media/` arquivada.
 
@@ -306,8 +317,8 @@ def _media_nome(caminho: str) -> str:
     Prefixar pela pasta do teste (que o Playwright já torna única por título)
     resolve a colisão sem precisar reorganizar a pasta `media/` em subpastas.
     """
-    partes = Path(caminho).parts
-    return f"{partes[-2]}-{partes[-1]}" if len(partes) >= 2 else Path(caminho).name
+    partes = _partes_junit(caminho)
+    return f"{partes[-2]}-{partes[-1]}" if len(partes) >= 2 else partes[-1]
 
 
 def _media_evidences(case: dict, *, incluir_imagem: bool = True, incluir_video: bool = True) -> list[str]:
@@ -321,7 +332,7 @@ def _media_evidences(case: dict, *, incluir_imagem: bool = True, incluir_video: 
     caminhos = [evidence.get("path") for evidence in case.get("evidences", [])
                 if evidence.get("source") == "playwright" and evidence.get("path")]
     aceita = {"print": incluir_imagem, "vídeo": incluir_video}
-    return [caminho for caminho in caminhos if aceita.get(_rotulo(Path(caminho).name))]
+    return [caminho for caminho in caminhos if aceita.get(_rotulo(_partes_junit(caminho)[-1]))]
 
 
 def render_readme(module: str, version: str, payload: dict, specs: list[str],
@@ -375,7 +386,7 @@ def render_readme(module: str, version: str, payload: dict, specs: list[str],
     elif not incluir_imagem or not incluir_video:
         excluido = "prints" if not incluir_imagem else "vídeos"
         todas = [caminho for case in data.get("test_cases", []) for caminho in _media_evidences(case)]
-        if any(_rotulo(Path(caminho).name) == ("print" if not incluir_imagem else "vídeo") for caminho in todas):
+        if any(_rotulo(_partes_junit(caminho)[-1]) == ("print" if not incluir_imagem else "vídeo") for caminho in todas):
             linhas.append(f"- {excluido.capitalize()} existem mas ficaram de fora: "
                           f"a execução pediu só {'vídeo' if not incluir_imagem else 'print'} "
                           f"(`--{'video' if not incluir_imagem else 'image'}`).")
@@ -406,9 +417,9 @@ def write_archive(root: Path, module: str, version: str, payload: dict, specs: l
                 # projeto -- so' o nome do arquivo colide entre testes diferentes
                 # (varios "test-finished-1.png"), entao o pool local precisa ser
                 # buscado pela dupla <pasta-do-teste>/<arquivo>, nao so' o nome.
-                partes = Path(caminho).parts
+                partes = _partes_junit(caminho)
                 origem = media_path(root).joinpath(*partes[-2:]) if len(partes) >= 2 \
-                    else media_path(root) / Path(caminho).name
+                    else media_path(root) / partes[-1]
             if not origem.is_file():
                 continue
             nome_unico = _media_nome(caminho)
