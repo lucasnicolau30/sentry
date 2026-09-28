@@ -1,6 +1,45 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const COMMAND = "pip install sentry-test";
+
+function useTypewriter(
+  text: string,
+  {
+    typeSpeed = 55,
+    deleteSpeed = 30,
+    pauseAfterType = 1600,
+    pauseAfterDelete = 400,
+  } = {}
+) {
+  const [length, setLength] = useState(0);
+  const [phase, setPhase] = useState<"typing" | "pausing" | "deleting">("typing");
+
+  useEffect(() => {
+    if (phase === "typing") {
+      if (length < text.length) {
+        const id = setTimeout(() => setLength((l) => l + 1), typeSpeed);
+        return () => clearTimeout(id);
+      }
+      const id = setTimeout(() => setPhase("pausing"), pauseAfterType);
+      return () => clearTimeout(id);
+    }
+
+    if (phase === "pausing") {
+      const id = setTimeout(() => setPhase("deleting"), pauseAfterDelete);
+      return () => clearTimeout(id);
+    }
+
+    // deleting
+    if (length > 0) {
+      const id = setTimeout(() => setLength((l) => l - 1), deleteSpeed);
+      return () => clearTimeout(id);
+    }
+    const id = setTimeout(() => setPhase("typing"), pauseAfterDelete);
+    return () => clearTimeout(id);
+  }, [phase, length, text, typeSpeed, deleteSpeed, pauseAfterType, pauseAfterDelete]);
+
+  return { output: text.slice(0, length), idle: phase === "pausing" };
+}
 
 const CopyIcon = () => (
   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -21,6 +60,7 @@ const CheckIcon = () => (
 
 export function InstallCommand() {
   const [copied, setCopied] = useState(false);
+  const { output, idle } = useTypewriter(COMMAND);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(COMMAND);
@@ -30,8 +70,16 @@ export function InstallCommand() {
 
   return (
     <div className="flex w-fit max-w-full items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-alt)] px-5 py-3.5 shadow-[0_0_16px_-6px_rgba(255,255,255,0.08)]">
-      <code className="whitespace-nowrap font-mono text-sm text-[var(--text-h)] sm:text-base">
-        <span className="text-[var(--accent)]">$</span> {COMMAND}
+      <code className="flex items-baseline whitespace-nowrap font-mono text-base text-[var(--accent)] sm:text-lg">
+        <span aria-hidden="true" className="flex items-baseline">
+          <span>$ {output}</span>
+          <span
+            className={`ml-0.5 inline-block h-[1em] w-[2px] shrink-0 self-center bg-[var(--accent)] ${
+              idle ? "animate-caret-blink" : "opacity-100"
+            }`}
+          />
+        </span>
+        <span className="sr-only">$ {COMMAND}</span>
       </code>
       <button
         type="button"

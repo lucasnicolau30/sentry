@@ -31,7 +31,7 @@ export function TerminalWindow({ title = "sentry", lines, children, className = 
         <span className="ml-2 font-mono text-xs text-[var(--text)]/60">{title}</span>
       </div>
       <div
-        className={`space-y-1 px-4 py-3.5 font-mono text-[13px] leading-relaxed ${
+        className={`space-y-1 px-4 py-3.5 font-mono text-sm leading-relaxed ${
           lines ? "" : "scroll-fade-x overflow-x-auto"
         }`}
       >

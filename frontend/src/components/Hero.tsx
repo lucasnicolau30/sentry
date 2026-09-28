@@ -1,70 +1,83 @@
 import { InstallCommand } from "./InstallCommand";
-import { TerminalWindow } from "./TerminalWindow";
+import { BlurReveal } from "./blur-reveal";
+import { Particles } from "./Particles";
 import { useLanguage } from "../i18n/LanguageContext";
-
-const heroLines = {
-  pt: [
-    { text: "sentry run --spec cadastro-de-cliente --run-tests", tone: "command" as const },
-    { text: "[INFO] Lendo diff e cobertura...", tone: "info" as const },
-    { text: "[INFO] 4 casos ligados a testes reais.", tone: "info" as const },
-    { text: "[SUCCESS] Cobertura do código alterado: 92%.", tone: "success" as const },
-    { text: "[SUCCESS] Veredito: aprovado.", tone: "success" as const },
-  ],
-  en: [
-    { text: "sentry run --spec customer-registration --run-tests", tone: "command" as const },
-    { text: "[INFO] Reading diff and coverage...", tone: "info" as const },
-    { text: "[INFO] 4 cases linked to real tests.", tone: "info" as const },
-    { text: "[SUCCESS] Changed code coverage: 92%.", tone: "success" as const },
-    { text: "[SUCCESS] Verdict: passed.", tone: "success" as const },
-  ],
-};
 
 export function Hero() {
   const { lang, t } = useLanguage();
 
   return (
-    <section className="relative mx-auto max-w-5xl overflow-hidden px-6 pt-20 pb-4">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-24 left-1/2 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(34,197,94,0.18),rgba(34,197,94,0.06),transparent)] blur-3xl"
-      />
-
-      <div className="relative flex flex-col items-center text-center">
-        <span
-          aria-hidden="true"
-          className="absolute -top-3 left-0 h-4 w-4 border-t-2 border-l-2 border-[var(--accent)]/60"
-        />
-        <span
-          aria-hidden="true"
-          className="absolute -top-3 right-0 h-4 w-4 border-t-2 border-r-2 border-[var(--accent)]/60"
-        />
-        <span
-          aria-hidden="true"
-          className="absolute -bottom-3 left-0 h-4 w-4 border-b-2 border-l-2 border-[var(--accent)]/60"
-        />
-        <span
-          aria-hidden="true"
-          className="absolute -bottom-3 right-0 h-4 w-4 border-b-2 border-r-2 border-[var(--accent)]/60"
-        />
-
-        <h1 className="max-w-2xl text-4xl font-semibold uppercase leading-tight tracking-normal sm:text-5xl">
-          {t("A disciplina entre", "The discipline between")}
-          <br />
-          {t("o commit e a confiança", "commit and confidence")}
-        </h1>
-        <p className="mt-4 max-w-xl text-base leading-relaxed text-[var(--accent)] sm:text-lg">
-          {t(
-            "O agente de IA declara a intenção; o Sentry mede a realidade: roda a suíte, lê o diff e a cobertura, e emite um veredito auditável.",
-            "The AI agent declares intent; Sentry measures reality: it runs the suite, reads the diff and coverage, and issues an auditable verdict."
-          )}
-        </p>
-
-        <div className="mt-8">
-          <InstallCommand />
+    <section className="relative overflow-hidden pt-16 pb-20">
+      <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center px-6 text-center">
+        {/* Bloco 1: título + subtítulo — isolado, sem nada por trás */}
+        <div className="flex w-full flex-col items-center">
+          <h1
+            className="w-full max-w-4xl font-sans text-[clamp(32px,4.2vw,64px)] font-semibold leading-[1.05] tracking-[-0.03em] text-[var(--text-h)]"
+            key={`${lang}-h1`}
+          >
+            <span className="sr-only">
+              {t(
+                "Seu agente escreveu o código. O Sentry garante que ele testou.",
+                "Your agent wrote the code. Sentry makes sure it's tested.",
+              )}
+            </span>
+            <span
+              aria-hidden="true"
+              className="pointer-events-none select-none"
+            >
+              <BlurReveal as="span" className="block" inView once={false}>
+                {t("Seu agente escreveu o código.", "Your agent wrote the code.")}
+              </BlurReveal>
+              <span className="block">
+                <BlurReveal
+                  as="span"
+                  className="inline"
+                  delay={0.15}
+                  inView
+                  once={false}
+                >
+                  {t("O Sentry garante que ele", "Sentry makes sure it's")}
+                </BlurReveal>{" "}
+                <BlurReveal
+                  as="span"
+                  className="inline text-[var(--accent)]"
+                  delay={0.25}
+                  inView
+                  once={false}
+                >
+                  {t("testou.", "tested.")}
+                </BlurReveal>
+              </span>
+            </span>
+          </h1>
+          <p className="mt-8 max-w-3xl whitespace-nowrap text-[clamp(13px,2.4vw,19px)] leading-[1.6] text-[var(--text-muted)]">
+            {t(
+              "Valide seus casos de teste e veja se o código alterado está coberto antes de aprovar a mudança.",
+              "Validate your test cases and check whether the changed code is covered before approving the change.",
+            )}
+          </p>
         </div>
 
-        <div className="mt-10 w-full max-w-lg text-left">
-          <TerminalWindow lines={heroLines[lang]} title="sentry" />
+        {/* Bloco 2: gradiente + comando de instalação — separado do bloco do título */}
+        <div
+          className="relative -mt-6 flex h-[380px] w-screen mx-[calc(50%-50vw)] items-center justify-center overflow-hidden"
+        >
+          <img
+            src="/images/hero-beam.png"
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute left-1/2 top-1/2 z-0 w-full max-w-none -translate-x-1/2 -translate-y-1/2 select-none opacity-45"
+            style={{
+              maskImage:
+                "radial-gradient(55% 60% at 50% 50%, black 35%, transparent 85%)",
+              WebkitMaskImage:
+                "radial-gradient(55% 60% at 50% 50%, black 35%, transparent 85%)",
+            }}
+          />
+          <Particles count={30} />
+          <div className="relative z-10 -translate-y-4">
+            <InstallCommand />
+          </div>
         </div>
       </div>
     </section>

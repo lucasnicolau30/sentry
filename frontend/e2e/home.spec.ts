@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 // cenario: landing mostra o titulo e os cards de feature
 test("mostra o título e os quatro cards de feature", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /disciplina entre o commit/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /seu agente escreveu o código/i })).toBeVisible();
   await expect(page.getByText("Cobertura do que mudou")).toBeVisible();
   await expect(page.getByText("Veredito com contexto")).toBeVisible();
   await expect(page.getByText("Histórico auditável")).toBeVisible();

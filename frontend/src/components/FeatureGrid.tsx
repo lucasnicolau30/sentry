@@ -1,10 +1,11 @@
 import { FeatureCard } from "./FeatureCard";
+import { Reveal } from "./Reveal";
 import { useLanguage } from "../i18n/LanguageContext";
 import arrowIcon from "../assets/arrow-icon.png";
 
 const iconProps = {
-  width: 20,
-  height: 20,
+  width: 22,
+  height: 22,
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
@@ -117,35 +118,19 @@ const featuresByLang = {
 };
 
 export function FeatureGrid() {
-  const { lang, t } = useLanguage();
+  const { lang } = useLanguage();
   const features = featuresByLang[lang];
 
   return (
     <section className="mx-auto max-w-5xl px-6 py-10">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {features.map((feature, index) => (
-          <FeatureCard key={index} {...feature} />
+          <Reveal key={index} delay={index * 0.08} className="h-full">
+            <FeatureCard {...feature} />
+          </Reveal>
         ))}
       </div>
 
-      <div className="mt-5 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-5 py-3 text-sm">
-        <div>
-          <span className="text-[var(--accent)]">sentry@cli:~&gt;</span>
-          <span className="ml-2 text-[var(--text)]">{t("pronto para carregar qualidade.", "ready to load quality.")}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <svg width="60" height="16" viewBox="0 0 60 16" fill="none" aria-hidden="true">
-            <path
-              d="M0 8h14l4-6 6 12 4-6h32"
-              stroke="var(--accent)"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
-        </div>
-      </div>
     </section>
   );
 }

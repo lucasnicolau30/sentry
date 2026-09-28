@@ -1,4 +1,5 @@
 import { TerminalWindow } from "./TerminalWindow";
+import { Reveal } from "./Reveal";
 import { useLanguage } from "../i18n/LanguageContext";
 
 const commandsByLang = {
@@ -84,22 +85,26 @@ export function CommandShowcase() {
 
   return (
     <section className="mx-auto max-w-5xl px-6 py-14">
-      <h2 className="text-center text-2xl font-semibold uppercase tracking-normal sm:text-3xl">
-        {t("Na prática", "In practice")}
-      </h2>
-      <p className="mx-auto mt-2 max-w-xl text-center text-sm text-[var(--text)]/60 sm:text-base">
-        {t("Cada comando com o output que ele realmente produz.", "Every command with the output it actually produces.")}
-      </p>
+      <Reveal>
+        <h2 className="text-center text-3xl font-semibold uppercase tracking-normal sm:text-4xl">
+          {t("Na prática", "In practice")}
+        </h2>
+        <p className="mx-auto mt-2 max-w-xl text-center text-base text-[var(--text)]/60 sm:text-lg">
+          {t("Cada comando com o output que ele realmente produz.", "Every command with the output it actually produces.")}
+        </p>
+      </Reveal>
 
       <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {commands.map((item) => (
-          <div key={item.title} className="flex flex-col gap-3">
-            <TerminalWindow lines={item.lines} title="sentry" />
-            <div>
-              <h3 className="text-sm font-semibold">{item.title}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--text)]/60">{item.description}</p>
+        {commands.map((item, index) => (
+          <Reveal key={item.title} delay={index * 0.12}>
+            <div className="flex flex-col gap-3 transition-transform duration-300 hover:-translate-y-1">
+              <TerminalWindow lines={item.lines} title="sentry" />
+              <div>
+                <h3 className="text-base font-semibold">{item.title}</h3>
+                <p className="mt-1 text-justify text-base leading-relaxed text-[var(--text)]/60">{item.description}</p>
+              </div>
             </div>
-          </div>
+          </Reveal>
         ))}
       </div>
     </section>

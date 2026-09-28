@@ -9,6 +9,10 @@ export default defineConfig({
     baseURL: "http://localhost:5173",
     trace: "on",
     screenshot: "on",
+    // `sentry archive --video` exporta SENTRY_ARCHIVE_VIDEO=1 antes de rodar a
+    // suite; sem a flag (uso normal do dev, watch, etc.) o video continua
+    // desligado, exatamente como sempre foi.
+    video: process.env.SENTRY_ARCHIVE_VIDEO === "1" ? "on" : "off",
   },
   webServer: {
     command: "npm run dev",

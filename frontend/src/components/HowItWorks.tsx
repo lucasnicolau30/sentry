@@ -1,8 +1,9 @@
 import { useLanguage } from "../i18n/LanguageContext";
+import { Reveal } from "./Reveal";
 
 const iconProps = {
-  width: 22,
-  height: 22,
+  width: 24,
+  height: 24,
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
@@ -120,34 +121,38 @@ export function HowItWorks() {
   const items = steps[lang];
 
   return (
-    <section className="mx-auto max-w-5xl px-6 py-14">
-      <h2 className="text-center text-2xl font-semibold uppercase tracking-normal sm:text-3xl">
-        {t("Como funciona", "How it works")}
-      </h2>
-      <p className="mx-auto mt-2 max-w-xl text-center text-sm text-[var(--text)]/60 sm:text-base">
-        {t("Quatro comandos entre o pedido e o veredito auditável.", "Four commands between the request and the auditable verdict.")}
-      </p>
+    <section className="mx-auto max-w-5xl px-6 pb-14 pt-10">
+      <Reveal>
+        <h2 className="text-center text-3xl font-semibold uppercase tracking-normal sm:text-4xl">
+          {t("Como funciona", "How it works")}
+        </h2>
+        <p className="mx-auto mt-2 max-w-xl text-center text-base text-[var(--text)]/60 sm:text-lg">
+          {t("Quatro comandos entre o pedido e o veredito auditável.", "Four commands between the request and the auditable verdict.")}
+        </p>
+      </Reveal>
 
       <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-4 sm:gap-2">
         {items.map((step, index) => (
-          <div key={step.command} className="flex items-start gap-4 sm:flex-col sm:items-center sm:text-center">
-            <div className="flex items-center gap-2 sm:w-full sm:justify-center">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-alt)] text-[var(--accent)]">
-                {step.icon}
+          <Reveal key={step.command} delay={index * 0.1}>
+            <div className="flex items-start gap-4 sm:flex-col sm:items-center sm:text-center">
+              <div className="flex items-center gap-2 sm:w-full sm:justify-center">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-alt)] text-[var(--accent)] transition-transform duration-300 hover:scale-110">
+                  {step.icon}
+                </div>
+                {index < items.length - 1 && <Arrow />}
               </div>
-              {index < items.length - 1 && <Arrow />}
+              <div className="sm:mt-3">
+                <code className="font-mono text-sm text-[var(--text-h)]">
+                  <span className="text-[var(--accent)]">$ </span>
+                  {step.command}
+                </code>
+                <h3 className="mt-1 text-base font-semibold">
+                  {index + 1}. {step.title}
+                </h3>
+                <p className="mt-1 text-base leading-relaxed text-[var(--text)]/60">{step.description}</p>
+              </div>
             </div>
-            <div className="sm:mt-3">
-              <code className="font-mono text-xs text-[var(--text-h)]">
-                <span className="text-[var(--accent)]">$ </span>
-                {step.command}
-              </code>
-              <h3 className="mt-1 text-sm font-semibold">
-                {index + 1}. {step.title}
-              </h3>
-              <p className="mt-1 text-sm leading-relaxed text-[var(--text)]/60">{step.description}</p>
-            </div>
-          </div>
+          </Reveal>
         ))}
       </div>
     </section>

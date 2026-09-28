@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { TerminalWindow } from "./TerminalWindow";
+import { Reveal } from "./Reveal";
+import { BlurReveal } from "./blur-reveal";
 import { useLanguage } from "../i18n/LanguageContext";
 
 const SCROLL_SPY_OFFSET = 120;
@@ -252,7 +254,7 @@ function CodeBlock({ lines }: { lines: string[] }) {
           {copied ? <CheckIcon /> : <CopyIcon />}
         </button>
       </div>
-      <div className="scroll-fade-x space-y-0.5 overflow-x-auto px-4 py-3.5 font-mono text-sm">
+      <div className="scroll-fade-x space-y-0.5 overflow-x-auto px-4 py-3.5 font-mono text-base">
         {lines.map((line, index) => (
           <p key={index} className={`whitespace-pre ${index === 0 ? "text-[var(--text-h)]" : "text-[var(--text)]/50"}`}>
             {index === 0 ? <span className="text-[var(--accent)]">$ </span> : null}
@@ -354,9 +356,9 @@ function DocCard({ icon, title, description, external, href }: Card) {
         {icon}
         {external && <ExternalIcon />}
       </div>
-      <h3 className="mb-3 text-sm font-semibold text-[var(--text-h)]">{title}</h3>
+      <h3 className="mb-3 text-base font-semibold text-[var(--text-h)]">{title}</h3>
       <div className="mb-4 h-px w-6 bg-[var(--border)]" />
-      <p className="text-sm leading-relaxed text-[var(--text)]/70">{description}</p>
+      <p className="text-justify text-base leading-relaxed text-[var(--text)]/70">{description}</p>
     </>
   );
 
@@ -366,7 +368,7 @@ function DocCard({ icon, title, description, external, href }: Card) {
         href={href}
         target="_blank"
         rel="noreferrer"
-        className="glow-card block rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-6 py-5 transition-colors duration-200 hover:border-[var(--accent)]/40"
+        className="glow-card flex h-full flex-col rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-6 py-5 transition-colors duration-200 hover:border-[var(--accent)]/40"
       >
         {content}
       </a>
@@ -374,7 +376,7 @@ function DocCard({ icon, title, description, external, href }: Card) {
   }
 
   return (
-    <div className="glow-card rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-6 py-5 transition-colors duration-200 hover:border-[var(--accent)]/40">
+    <div className="glow-card flex h-full flex-col rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-6 py-5 transition-colors duration-200 hover:border-[var(--accent)]/40">
       {content}
     </div>
   );
@@ -699,8 +701,9 @@ function GetStartedContent({ onNextClick }: { onNextClick: () => void }) {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-14">
-      <h2 className="text-lg font-semibold text-[var(--text-h)]">{t("O que é o Sentry?", "What is Sentry?")}</h2>
-      <p className="text-justify text-base leading-relaxed text-[var(--text)]/80">
+      <Reveal>
+      <h2 className="text-xl font-semibold text-[var(--text-h)]">{t("O que é o Sentry?", "What is Sentry?")}</h2>
+      <p className="text-justify text-lg leading-relaxed text-[var(--text)]/80">
         {lang === "pt" ? (
           <>
             O <span className="text-[var(--text-h)]">Sentry</span> é uma CLI de qualidade de teste orientada a mudança. O
@@ -716,7 +719,7 @@ function GetStartedContent({ onNextClick }: { onNextClick: () => void }) {
         )}
       </p>
 
-      <div className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-4 py-3 text-sm leading-relaxed text-[var(--text)]/70">
+      <div className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--bg-alt)] px-4 py-3 text-justify text-base leading-relaxed text-[var(--text)]/70">
         {lang === "pt" ? (
           <>
             <span className="text-[var(--accent)]">Não confundir</span> com o{" "}
@@ -762,37 +765,46 @@ function GetStartedContent({ onNextClick }: { onNextClick: () => void }) {
           <p className="text-[var(--text-h)]">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── PROMPT.md</p>
           <p className="text-[var(--text-h)]">│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── CASES.md</p>
           <p className="text-[var(--text)]/70">└── reports/</p>
-          <p className="text-[var(--text-h)]">&nbsp;&nbsp;&nbsp;&nbsp;└── latest.md</p>
+          <p className="text-[var(--text-h)]">&nbsp;&nbsp;&nbsp;&nbsp;└── latest-&lt;data&gt;.md</p>
         </TerminalWindow>
       </div>
+      </Reveal>
 
-      <h2 className="mt-5 text-lg font-semibold text-[var(--text-h)]">{t("Princípios do Sentry", "Sentry's principles")}</h2>
+      <Reveal>
+      <h2 className="mt-5 text-xl font-semibold text-[var(--text-h)]">{t("Princípios do Sentry", "Sentry's principles")}</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {principlesByLang[lang].map((card) => (
           <DocCard key={String(card.title)} {...card} />
         ))}
       </div>
+      </Reveal>
 
-      <h2 className="mt-5 text-lg font-semibold text-[var(--text-h)]">{t("O que você pode fazer", "What you can do")}</h2>
+      <Reveal>
+      <h2 className="mt-5 text-xl font-semibold text-[var(--text-h)]">{t("O que você pode fazer", "What you can do")}</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {actionsByLang[lang].map((card) => (
           <DocCard key={String(card.title)} {...card} />
         ))}
       </div>
+      </Reveal>
 
-      <h2 className="mt-5 text-lg font-semibold text-[var(--text-h)]">{t("Primeiros passos", "First steps")}</h2>
+      <Reveal>
+      <h2 className="mt-5 text-xl font-semibold text-[var(--text-h)]">{t("Primeiros passos", "First steps")}</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {firstStepsByLang[lang].map((card) => (
           <DocCard key={String(card.title)} {...card} />
         ))}
       </div>
+      </Reveal>
 
-      <h2 className="mt-5 text-lg font-semibold text-[var(--text-h)]">{t("Saiba mais sobre o Sentry", "Learn more about Sentry")}</h2>
+      <Reveal>
+      <h2 className="mt-5 text-xl font-semibold text-[var(--text-h)]">{t("Saiba mais sobre o Sentry", "Learn more about Sentry")}</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {learnMoreByLang[lang].map((card) => (
           <DocCard key={String(card.title)} {...card} />
         ))}
       </div>
+      </Reveal>
 
       <PageFooter nextLabel={t("Setup e configuração", "Setup & configuration")} onNextClick={onNextClick} className="mt-6" />
     </div>
@@ -849,12 +861,13 @@ function SetupContent({
     <div className="mx-auto max-w-5xl px-6 py-14">
       <div className="flex gap-8 lg:gap-12">
         <div className="min-w-0 flex-1">
+          <Reveal>
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">{t("Primeiros passos", "First steps")}</p>
           <h1 className="mt-2 text-3xl font-semibold uppercase tracking-normal text-[var(--text-h)]">
             {t("Setup e configuração", "Setup & configuration")}
           </h1>
           {lang === "pt" ? (
-            <p className="mt-4 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mt-4 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Três comandos preparam o repositório para o ciclo intenção → veredito: instalar a CLI, rodar{" "}
               <span className="text-[var(--text-h)]">
                 <span className="text-[var(--accent)]">$</span> sentry init
@@ -863,7 +876,7 @@ function SetupContent({
               <span className="text-[var(--text-h)]">init</span> é idempotente e nunca sobrescreve configuração existente.
             </p>
           ) : (
-            <p className="mt-4 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mt-4 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Three commands prepare the repository for the intent → verdict cycle: install the CLI, run{" "}
               <span className="text-[var(--text-h)]">
                 <span className="text-[var(--accent)]">$</span> sentry init
@@ -872,11 +885,13 @@ function SetupContent({
               <span className="text-[var(--text-h)]">init</span> is idempotent and never overwrites existing configuration.
             </p>
           )}
+          </Reveal>
 
-          <h2 id="prepare-o-ambiente" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="prepare-o-ambiente" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("Prepare o ambiente", "Prepare the environment")}
           </h2>
-          <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {lang === "pt" ? (
               <>
                 Quase todo mundo já tem Python instalado, mas vale confirmar a versão antes de seguir —{" "}
@@ -890,30 +905,34 @@ function SetupContent({
             )}
           </p>
           <CodeBlock lines={["python --version", "Python 3.11.0"]} />
-          <p className="mb-3 mt-4 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mb-3 mt-4 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {t(
               "Se a versão for menor que 3.11 ou o comando não existir, instale uma versão atual antes de continuar. Um ambiente virtual isolado por projeto evita conflito entre dependências de projetos diferentes — não é obrigatório, mas é uma boa prática:",
               "If the version is below 3.11 or the command doesn't exist, install a current version before continuing. A per-project virtual environment avoids dependency conflicts between different projects — not required, but a good practice:"
             )}
           </p>
           <CodeBlock lines={["python -m venv .venv", "source .venv/bin/activate"]} />
+          </Reveal>
 
-          <h2 id="instale-a-cli" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="instale-a-cli" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("Instale a CLI", "Install the CLI")}
           </h2>
-          <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {t("Com o ambiente pronto, instale via pip e confirme a versão do pacote:", "With the environment ready, install via pip and confirm the package version:")}
           </p>
           <CodeBlock lines={["pip install sentry-test"]} />
           <div className="mt-3">
             <CodeBlock lines={["sentry --version", "sentry-test x.y.z"]} />
           </div>
+          </Reveal>
 
-          <h2 id="inicialize-o-repositorio" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="inicialize-o-repositorio" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("Inicialize o repositório", "Initialize the repository")}
           </h2>
           {lang === "pt" ? (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Dentro do seu projeto, rode{" "}
               <span className="text-[var(--text-h)]">
                 <span className="text-[var(--accent)]">$</span> sentry init
@@ -926,7 +945,7 @@ function SetupContent({
               <span className="text-[var(--text-h)]">AGENT-SENTRY.md</span> na raiz, para outros agentes.
             </p>
           ) : (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Inside your project, run{" "}
               <span className="text-[var(--text-h)]">
                 <span className="text-[var(--accent)]">$</span> sentry init
@@ -940,12 +959,14 @@ function SetupContent({
             </p>
           )}
           <CodeBlock lines={["cd your-project", "sentry init"]} />
+          </Reveal>
 
-          <h2 id="dependencias" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="dependencias" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("Dependências ausentes", "Missing dependencies")}
           </h2>
           {lang === "pt" ? (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Se faltar <span className="text-[var(--text-h)]">pytest</span> ou{" "}
               <span className="text-[var(--text-h)]">coverage</span>, o{" "}
               <span className="text-[var(--text-h)]">init</span> avisa em vez de falhar. Para instalar junto, use a flag{" "}
@@ -955,7 +976,7 @@ function SetupContent({
               :
             </p>
           ) : (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               If <span className="text-[var(--text-h)]">pytest</span> or{" "}
               <span className="text-[var(--text-h)]">coverage</span> are missing,{" "}
               <span className="text-[var(--text-h)]">init</span> warns instead of failing. To install them too, use the{" "}
@@ -966,11 +987,13 @@ function SetupContent({
             </p>
           )}
           <CodeBlock lines={["sentry init --install"]} />
+          </Reveal>
 
-          <h2 id="sentry-toml" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="sentry-toml" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("Configure o sentry.toml", "Configure sentry.toml")}
           </h2>
-          <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {lang === "pt" ? (
               <>
                 Fica na raiz, é versionável e sem segredos. Tudo além do que o{" "}
@@ -1016,7 +1039,7 @@ function SetupContent({
             <p className="mt-2 text-[var(--text-h)]">[dimensions]</p>
             <p className="pl-2">disabled = <span className="text-[var(--accent)]">[]</span> <span className="text-[var(--text)]/40"># {t("eixos que não se aplicam ao projeto", "axes that don't apply to the project")}</span></p>
           </TerminalWindow>
-          <p className="mt-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mt-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {lang === "pt" ? (
               <>
                 Sem limiar declarado em [policy.thresholds], o <span className="text-[var(--text-h)]">Sentry</span> não
@@ -1029,11 +1052,13 @@ function SetupContent({
               </>
             )}
           </p>
+          </Reveal>
 
-          <h2 id="stacks-suportadas" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="stacks-suportadas" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("Stacks suportadas", "Supported stacks")}
           </h2>
-          <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {lang === "pt" ? (
               <>
                 A derivação — do pedido à matriz de casos — é agnóstica de linguagem: o{" "}
@@ -1054,12 +1079,12 @@ function SetupContent({
                 key={item.capability}
                 className={`bg-[var(--bg-alt)] px-5 py-3 ${index < stacksSupport.length - 1 ? "border-b border-[var(--border)]" : ""}`}
               >
-                <p className="text-sm font-semibold text-[var(--text-h)]">{item.capability}</p>
-                <p className="mt-1 text-sm leading-relaxed text-[var(--text)]/70">{item.support}</p>
+                <p className="text-base font-semibold text-[var(--text-h)]">{item.capability}</p>
+                <p className="mt-1 text-justify text-base leading-relaxed text-[var(--text)]/70">{item.support}</p>
               </div>
             ))}
           </div>
-          <p className="mt-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mt-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {lang === "pt" ? (
               <>
                 Camada <span className="text-[var(--text-h)]">frontend</span> é verificada por uma segunda suíte,
@@ -1076,15 +1101,17 @@ function SetupContent({
               </>
             )}
           </p>
+          </Reveal>
 
-          <h2 id="gitignore" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="gitignore" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("O que fica versionado", "What gets versioned")}
           </h2>
-          <p className="text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {lang === "pt" ? (
               <>
                 A evidência gerada — execuções, banco e relatórios — fica fora do Git, com uma exceção
-                deliberada: <span className="text-[var(--text-h)]">.sentry/reports/latest.md</span> é versionado, para o
+                deliberada: <span className="text-[var(--text-h)]">.sentry/reports/latest-&lt;data&gt;.md</span> é versionado, para o
                 veredito aparecer no diff sem que quem lê precise rodar o{" "}
                 <span className="text-[var(--text-h)]">Sentry</span>. As specs em{" "}
                 <span className="text-[var(--text-h)]">.sentry/specs/</span> são versionadas e nunca removidas: são
@@ -1094,7 +1121,7 @@ function SetupContent({
             ) : (
               <>
                 Generated evidence — runs, database and reports — stays out of Git, with one deliberate
-                exception: <span className="text-[var(--text-h)]">.sentry/reports/latest.md</span> is versioned, so the
+                exception: <span className="text-[var(--text-h)]">.sentry/reports/latest-&lt;date&gt;.md</span> is versioned, so the
                 verdict shows up in the diff without the reader having to run{" "}
                 <span className="text-[var(--text-h)]">Sentry</span>. Specs in{" "}
                 <span className="text-[var(--text-h)]">.sentry/specs/</span> are versioned and never removed: they're
@@ -1103,6 +1130,7 @@ function SetupContent({
               </>
             )}
           </p>
+          </Reveal>
 
           <PageFooter
             prevLabel={t("Comece aqui", "Getting started")}
@@ -1169,47 +1197,52 @@ function WorkflowContent({
     <div className="mx-auto max-w-5xl px-6 py-14">
       <div className="flex gap-8 lg:gap-12">
         <div className="min-w-0 flex-1">
+          <Reveal>
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">{t("Primeiros passos", "First steps")}</p>
           <h1 className="mt-2 text-3xl font-semibold uppercase tracking-normal text-[var(--text-h)]">
             {t("O fluxo de trabalho", "The workflow")}
           </h1>
-          <p className="mt-4 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mt-4 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {t(
               "Seis passos entre o pedido em texto livre e o veredito auditável. Todo passo também funciona sem agente, pelos comandos abaixo — o agente só automatiza a parte de redação.",
               "Six steps between the free-text request and the auditable verdict. Every step also works without an agent, via the commands below — the agent just automates the writing part."
             )}
           </p>
+          </Reveal>
 
-          <h2 id="declare-a-intencao" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="declare-a-intencao" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("1. Declare a intenção", "1. Declare intent")}
           </h2>
           {lang === "pt" ? (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Cria <span className="text-[var(--text-h)]">.sentry/specs/&lt;slug&gt;/</span> com o{" "}
               <span className="text-[var(--text-h)]">PROMPT.md</span> (pedido preservado) e o{" "}
               <span className="text-[var(--text-h)]">CASES.md</span> em branco.
             </p>
           ) : (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Creates <span className="text-[var(--text-h)]">.sentry/specs/&lt;slug&gt;/</span> with{" "}
               <span className="text-[var(--text-h)]">PROMPT.md</span> (the request preserved) and a blank{" "}
               <span className="text-[var(--text-h)]">CASES.md</span>.
             </p>
           )}
           <CodeBlock lines={[t('sentry new "cadastro de cliente"', 'sentry new "customer registration"')]} />
+          </Reveal>
 
-          <h2 id="preencha-com-o-agente" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="preencha-com-o-agente" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("2. Preencha com o agente", "2. Fill in with the agent")}
           </h2>
           {lang === "pt" ? (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               A skill <span className="text-[var(--text-h)]">sentry-cases</span> pergunta o que
               estiver ambíguo antes de escrever, e preenche o <span className="text-[var(--text-h)]">CASES.md</span> seguindo
               o template. O agente declara requisito, camada, tipo, prioridade, entrada e resultado esperado — nunca o
               status: quem mede a realidade é o <span className="text-[var(--text-h)]">Sentry</span>.
             </p>
           ) : (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               The <span className="text-[var(--text-h)]">sentry-cases</span> skill asks about
               anything ambiguous before writing, and fills in <span className="text-[var(--text-h)]">CASES.md</span> following
               the template. The agent declares requirement, layer, type, priority, input and expected result — never
@@ -1227,11 +1260,13 @@ function WorkflowContent({
             <p className="text-[var(--text)]/70">- **{t("entrada", "input")}**: {t("CPF com dígito verificador inválido", "CPF with invalid check digit")}</p>
             <p className="text-[var(--text)]/70">- **{t("resultado esperado", "expected result")}**: {t("rejeita com erro de validação", "rejects with a validation error")}</p>
           </TerminalWindow>
+          </Reveal>
 
-          <h2 id="valide-a-estrutura" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="valide-a-estrutura" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("3. Valide a estrutura", "3. Validate the structure")}
           </h2>
-          <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {t(
               "Confere vocabulário, estrutura e a cobrança das classes de equivalência do catálogo antes de rodar qualquer teste:",
               "Checks vocabulary, structure and required catalog equivalence classes before running any test:"
@@ -1240,7 +1275,7 @@ function WorkflowContent({
           <CodeBlock lines={[t("sentry check cadastro-de-cliente", "sentry check customer-registration")]} />
 
           {lang === "pt" ? (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               O catálogo é uma tabela fixa de situações que precisam de teste, por tipo de campo — não gera
               casos, cobra os que o agente deixou de declarar. Tipos conhecidos: <span className="text-[var(--text-h)]">cpf</span>,{" "}
               <span className="text-[var(--text-h)]">cnpj</span>,{" "}
@@ -1262,7 +1297,7 @@ function WorkflowContent({
               com justificativa em vez de virar caso artificial:
             </p>
           ) : (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               The catalog is a fixed table of situations that need a test, per field type — it doesn't generate
               cases, it charges for the ones the agent left undeclared. Known types: <span className="text-[var(--text-h)]">cpf</span>,{" "}
               <span className="text-[var(--text-h)]">cnpj</span>,{" "}
@@ -1292,7 +1327,7 @@ function WorkflowContent({
             </p>
           </TerminalWindow>
 
-          <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {t(
               "A cobertura é medida em cinco dimensões, cada uma reportando coberta, parcial, não coberta ou não aplicável, com evidência:",
               "Coverage is measured across five dimensions, each reporting covered, partial, not covered or not applicable, with evidence:"
@@ -1304,28 +1339,30 @@ function WorkflowContent({
                 key={item.dimension}
                 className={`bg-[var(--bg-alt)] px-5 py-3 ${index < coverageDimensions.length - 1 ? "border-b border-[var(--border)]" : ""}`}
               >
-                <p className="text-sm font-semibold text-[var(--text-h)]">{item.dimension}</p>
-                <p className="mt-1 text-sm leading-relaxed text-[var(--text)]/70">{item.evidence}</p>
+                <p className="text-base font-semibold text-[var(--text-h)]">{item.dimension}</p>
+                <p className="mt-1 text-justify text-base leading-relaxed text-[var(--text)]/70">{item.evidence}</p>
               </div>
             ))}
           </div>
-          <p className="mt-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mt-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {t(
               '"Não aplicável" é distinto de "não coberta": um projeto sem rotas não é punido na dimensão de segurança.',
               '"Not applicable" is different from "not covered": a project without routes isn\'t penalized on the security dimension.'
             )}
           </p>
+          </Reveal>
 
-          <h2 id="ligue-caso-a-teste" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="ligue-caso-a-teste" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("4. Ligue caso a teste", "4. Link case to test")}
           </h2>
           {lang === "pt" ? (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Seu agente liga cada caso do <span className="text-[var(--text-h)]">CASES.md</span> ao teste real com um marcador de
               comentário, com o nome exato do caso — funciona em qualquer linguagem com comentário:
             </p>
           ) : (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Your agent links each case in <span className="text-[var(--text-h)]">CASES.md</span> to the real test with a comment
               marker, using the case's exact name — works in any language that supports comments:
             </p>
@@ -1335,12 +1372,14 @@ function WorkflowContent({
             <p className="text-[var(--text-h)]">def test_customer_invalid_cpf():</p>
             <p className="pl-4 text-[var(--text)]/60">...</p>
           </TerminalWindow>
+          </Reveal>
 
-          <h2 id="rode-e-persista" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="rode-e-persista" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("5. Rode e persista", "5. Run and persist")}
           </h2>
           {lang === "pt" ? (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Roda a suíte, lê diff e cobertura, aplica as dez regras determinísticas e persiste o resultado.
               Sem{" "}
               <span className="text-[var(--text-h)]">
@@ -1349,7 +1388,7 @@ function WorkflowContent({
               não há cobertura, e o veredito tende a inconclusivo:
             </p>
           ) : (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Runs the suite, reads diff and coverage, applies the ten deterministic rules and persists the result.
               Without{" "}
               <span className="text-[var(--text-h)]">
@@ -1359,18 +1398,20 @@ function WorkflowContent({
             </p>
           )}
           <CodeBlock lines={[t("sentry run --spec cadastro-de-cliente --run-tests", "sentry run --spec customer-registration --run-tests")]} />
+          </Reveal>
 
-          <h2 id="releia-e-compare" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="releia-e-compare" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("6. Releia e compare", "6. Read back and compare")}
           </h2>
           {lang === "pt" ? (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               <Cmd>report</Cmd> exibe o último relatório;{" "}
               <Cmd>history</Cmd> lista execuções e compara as duas últimas: cobertura,
               testes, achados novos, resolvidos e persistentes.
             </p>
           ) : (
-            <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               <Cmd>report</Cmd> shows the latest report;{" "}
               <Cmd>history</Cmd> lists runs and compares the last two: coverage,
               tests, new, resolved and persistent findings.
@@ -1380,6 +1421,7 @@ function WorkflowContent({
             <CodeBlock lines={["sentry report"]} />
             <CodeBlock lines={["sentry history"]} />
           </div>
+          </Reveal>
 
           <PageFooter
             prevLabel={t("Setup e configuração", "Setup & configuration")}
@@ -1399,6 +1441,12 @@ function WorkflowContent({
 const TrashIcon = () => (
   <svg {...iconProps} aria-hidden="true">
     <path d="M4 7h16M9 7V4h6v3M6 7l1 13a2 2 0 002 2h6a2 2 0 002-2l1-13" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const ArchiveIcon = () => (
+  <svg {...iconProps} aria-hidden="true">
+    <path d="M3 7h18v3H3zM5 10v9a2 2 0 002 2h10a2 2 0 002-2v-9M10 14h4" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -1487,7 +1535,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       command: "sentry report",
       description: (
         <>
-          Exibe o último relatório (<W>.sentry/reports/latest.md</W>).
+          Exibe o último relatório (<W>.sentry/reports/latest-&lt;data&gt;.md</W>).
         </>
       ),
     },
@@ -1503,6 +1551,19 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
         <>
           Poda execuções e relatórios antigos. Sem <W>--yes</W> apenas mostra o que sairia. Nunca toca em{" "}
           <W>.sentry/specs/</W>.
+        </>
+      ),
+    },
+    {
+      icon: <ArchiveIcon />,
+      command: "sentry archive <modulo> --version X.Y.Z [--specs A,B,C] [--image] [--video]",
+      description: (
+        <>
+          Executa a suíte e2e do módulo e, aprovada, arquiva a mídia em{" "}
+          <W>.sentry/storage/&lt;modulo&gt;-&lt;versao&gt;/</W> com um <W>README.md</W> autossuficiente. Recusa
+          veredito reprovado. A composição é declarada uma vez, com <W>--specs</W>, na versão 1.0.0. Sem{" "}
+          <W>--image</W>/<W>--video</W>, tudo que for produzido é arquivado; pedindo uma das duas, só aquele tipo
+          entra, e <W>--video</W> também liga a gravação de vídeo do Playwright.
         </>
       ),
     },
@@ -1588,7 +1649,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       command: "sentry report",
       description: (
         <>
-          Shows the latest report (<W>.sentry/reports/latest.md</W>).
+          Shows the latest report (<W>.sentry/reports/latest-&lt;date&gt;.md</W>).
         </>
       ),
     },
@@ -1604,6 +1665,19 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
         <>
           Prunes old runs and reports. Without <W>--yes</W> it only shows what would be removed. Never touches{" "}
           <W>.sentry/specs/</W>.
+        </>
+      ),
+    },
+    {
+      icon: <ArchiveIcon />,
+      command: "sentry archive <module> --version X.Y.Z [--specs A,B,C] [--image] [--video]",
+      description: (
+        <>
+          Runs the module's e2e suite and, once approved, archives its media under{" "}
+          <W>.sentry/storage/&lt;module&gt;-&lt;version&gt;/</W> with a self-contained <W>README.md</W>. Refuses a
+          rejected verdict. The composition is declared once, with <W>--specs</W>, on version 1.0.0. Without{" "}
+          <W>--image</W>/<W>--video</W>, everything produced is archived; with either, only that media type is
+          kept, and <W>--video</W> also turns on Playwright's video recording.
         </>
       ),
     },
@@ -1701,11 +1775,12 @@ function CommandsContent({
     <div className="mx-auto max-w-5xl px-6 py-14">
       <div className="flex gap-8 lg:gap-12">
         <div className="min-w-0 flex-1">
+          <Reveal>
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">{t("Primeiros passos", "First steps")}</p>
           <h1 className="mt-2 text-3xl font-semibold uppercase tracking-normal text-[var(--text-h)]">
             {t("Comandos e Habilidades", "Commands & Skills")}
           </h1>
-          <p className="mt-4 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mt-4 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {lang === "pt" ? (
               <>
                 Código de saída 0 em sucesso. <Cmd>sentry check</Cmd> mantém semântica própria: 0 estrutura válida, 1 erros
@@ -1718,8 +1793,10 @@ function CommandsContent({
               </>
             )}
           </p>
+          </Reveal>
 
-          <h2 id="referencia-de-comandos" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="referencia-de-comandos" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("Referência de comandos", "Command reference")}
           </h2>
           <div className="space-y-3">
@@ -1731,20 +1808,22 @@ function CommandsContent({
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 text-[var(--accent)]">{item.icon}</div>
                   <div className="min-w-0">
-                    <code className="text-sm text-[var(--text-h)]">
+                    <code className="text-base text-[var(--text-h)]">
                       <span className="text-[var(--accent)]">$</span> {item.command}
                     </code>
-                    <p className="mt-1.5 text-sm leading-relaxed text-[var(--text)]/70">{item.description}</p>
+                    <p className="mt-1.5 text-justify text-base leading-relaxed text-[var(--text)]/70">{item.description}</p>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+          </Reveal>
 
-          <h2 id="codigos-de-saida" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="codigos-de-saida" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("Códigos de saída", "Exit codes")}
           </h2>
-          <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {t(
               'Quatro estados distinguíveis, para separar "código mal testado" de "meu ambiente quebrou". Erro de infraestrutura nunca produz veredito aprovado.',
               'Four distinguishable states, to separate "poorly tested code" from "my environment broke". An infrastructure error never produces a passing verdict.'
@@ -1758,16 +1837,18 @@ function CommandsContent({
                   index < exitCodes.length - 1 ? "border-b border-[var(--border)]" : ""
                 }`}
               >
-                <code className={`w-6 shrink-0 text-sm font-semibold ${item.tone}`}>{item.code}</code>
-                <span className="text-sm text-[var(--text)]/80">{item.label}</span>
+                <code className={`w-6 shrink-0 text-base font-semibold ${item.tone}`}>{item.code}</code>
+                <span className="text-base text-[var(--text)]/80">{item.label}</span>
               </div>
             ))}
           </div>
+          </Reveal>
 
-          <h2 id="regras-deterministicas" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="regras-deterministicas" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("Regras determinísticas", "Deterministic rules")}
           </h2>
-          <p className="mb-3 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {t(
               "Dez regras, com severidade configurável por projeto em [policy.severities].",
               "Ten rules, with severity configurable per project in [policy.severities]."
@@ -1781,18 +1862,20 @@ function CommandsContent({
                   index < deterministicRules.length - 1 ? "border-b border-[var(--border)]" : ""
                 }`}
               >
-                <code className="text-sm text-[var(--text-h)] sm:w-64 sm:shrink-0">{item.rule}</code>
+                <code className="text-base text-[var(--text-h)] sm:w-64 sm:shrink-0">{item.rule}</code>
                 <span className={`text-xs font-semibold uppercase sm:w-16 sm:shrink-0 ${item.tone}`}>{item.severity}</span>
-                <span className="text-sm text-[var(--text)]/70">{item.when}</span>
+                <span className="text-base text-[var(--text)]/70">{item.when}</span>
               </div>
             ))}
           </div>
+          </Reveal>
 
-          <h2 id="skill-sentry-cases" className="mt-5 text-lg font-semibold text-[var(--text-h)]">
+          <Reveal>
+          <h2 id="skill-sentry-cases" className="mt-5 text-xl font-semibold text-[var(--text-h)]">
             {t("Skill sentry-cases", "sentry-cases skill")}
           </h2>
           {lang === "pt" ? (
-            <p className="text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Gerada pelo <Cmd>sentry init</Cmd> em{" "}
               <span className="text-[var(--text-h)]">.claude/skills/sentry-cases/SKILL.md</span>, carregada automaticamente pelo Claude Code.
               Recebe o pedido em texto livre, cria a spec, pergunta antes de escrever toda ambiguidade que mude um
@@ -1803,7 +1886,7 @@ function CommandsContent({
               projeto.
             </p>
           ) : (
-            <p className="text-justify text-base leading-relaxed text-[var(--text)]/80">
+            <p className="text-justify text-lg leading-relaxed text-[var(--text)]/80">
               Generated by <Cmd>sentry init</Cmd> at{" "}
               <span className="text-[var(--text-h)]">.claude/skills/sentry-cases/SKILL.md</span>, loaded automatically by Claude Code.
               It receives the free-text request, creates the spec, asks before writing anything ambiguous that would change a
@@ -1814,6 +1897,7 @@ function CommandsContent({
               root.
             </p>
           )}
+          </Reveal>
 
           <PageFooter
             prevLabel={t("O fluxo de trabalho", "The workflow")}
@@ -1918,7 +2002,7 @@ function SectionLabel({ icon, children }: { icon: ReactNode; children: ReactNode
 
 function PrincipleQuote({ children }: { children: ReactNode }) {
   return (
-    <blockquote className="relative mt-3 border-l-2 border-[var(--accent)] pl-4 text-base italic leading-relaxed text-[var(--text)]/80">
+    <blockquote className="relative mt-3 border-l-2 border-[var(--accent)] pl-4 text-justify text-base italic leading-relaxed text-[var(--text)]/80">
       <span aria-hidden="true" className="mr-1 font-serif text-2xl not-italic leading-none text-[var(--accent)]">
         “
       </span>
@@ -1931,9 +2015,9 @@ function GroundsList({ items }: { items: ReactNode[] }) {
   return (
     <ul className="mt-2 rounded-lg border border-[var(--border)] px-4 py-3 space-y-1.5">
       {items.map((item, index) => (
-        <li key={index} className="flex items-start gap-2 text-sm leading-relaxed text-[var(--text)]/70">
+        <li key={index} className="flex items-start gap-2 text-base leading-relaxed text-[var(--text)]/70">
           <span aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--accent)]" />
-          <span>{item}</span>
+          <span className="text-justify">{item}</span>
         </li>
       ))}
     </ul>
@@ -2188,11 +2272,12 @@ function PapersContent({ onPrevClick }: { onPrevClick: () => void }) {
     <div className="mx-auto max-w-5xl px-6 py-14">
       <div className="flex gap-8 lg:gap-12">
         <div className="min-w-0 flex-1">
+          <Reveal>
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
             {t("Primeiros passos", "First steps")}
           </p>
           <h1 className="mt-2 text-3xl font-semibold uppercase tracking-normal text-[var(--text-h)]">Papers</h1>
-          <p className="mt-4 text-justify text-base leading-relaxed text-[var(--text)]/80">
+          <p className="mt-4 text-justify text-lg leading-relaxed text-[var(--text)]/80">
             {lang === "pt" ? (
               <>
                 As regras do <span className="text-[var(--text-h)]">Sentry</span> não foram definidas arbitrariamente. Cada
@@ -2209,6 +2294,7 @@ function PapersContent({ onPrevClick }: { onPrevClick: () => void }) {
               </>
             )}
           </p>
+          </Reveal>
 
           {papers.map((paper) => {
             const cardContent = (
@@ -2217,12 +2303,12 @@ function PapersContent({ onPrevClick }: { onPrevClick: () => void }) {
                   <PaperIcon />
                   {paper.href && <ExternalIcon />}
                 </div>
-                <h3 className="mt-3 text-base font-semibold text-[var(--accent)]">{paper.title}</h3>
-                <p className="mt-2 text-sm text-white">
+                <h3 className="mt-3 text-lg font-semibold text-[var(--accent)]">{paper.title}</h3>
+                <p className="mt-2 text-base text-white">
                   {paper.authors} · <span className="text-[var(--accent)]">{paper.venue}</span>
                 </p>
                 <div className="mb-4 mt-4 h-px w-6 bg-[var(--border)]" />
-                <p className="text-sm leading-relaxed text-[var(--text)]/70">{paper.summary}</p>
+                <p className="text-justify text-base leading-relaxed text-[var(--text)]/70">{paper.summary}</p>
 
                 <div className="mt-4">
                   <SectionLabel icon={<QuoteIcon />}>{t("Princípio", "Principle")}</SectionLabel>
@@ -2246,7 +2332,7 @@ function PapersContent({ onPrevClick }: { onPrevClick: () => void }) {
             );
 
             return (
-              <div key={paper.id} className="mt-8">
+              <Reveal key={paper.id} className="mt-8">
                 {paper.href ? (
                   <a
                     id={paper.id}
@@ -2265,7 +2351,7 @@ function PapersContent({ onPrevClick }: { onPrevClick: () => void }) {
                     {cardContent}
                   </div>
                 )}
-              </div>
+              </Reveal>
             );
           })}
 
@@ -2324,7 +2410,7 @@ export function DocsPage() {
       <div className="border-b border-[var(--border)]">
         <nav
           ref={tabsNavRef}
-          className="scroll-fade-x relative mx-auto flex max-w-5xl items-center gap-6 overflow-x-auto px-6 text-sm"
+          className="scroll-fade-x relative mx-auto flex w-fit max-w-full items-center justify-center gap-6 overflow-x-auto px-6 text-sm"
           onMouseLeave={() => setHoverTab(null)}
         >
           {tabs.map((tab) => (
@@ -2356,7 +2442,7 @@ export function DocsPage() {
           <section className="relative mx-auto max-w-5xl overflow-hidden px-6 pt-20 pb-4">
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -top-24 left-1/2 h-[360px] w-[720px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(34,197,94,0.18),rgba(34,197,94,0.06),transparent)] blur-3xl"
+              className="pointer-events-none absolute -top-24 left-1/2 h-[360px] w-[720px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(57,255,20,0.22),rgba(57,255,20,0.07),transparent)] blur-3xl"
             />
 
             <div className="relative flex flex-col items-center text-center">
@@ -2377,10 +2463,21 @@ export function DocsPage() {
                 className="absolute -bottom-3 right-0 h-4 w-4 border-b-2 border-r-2 border-[var(--accent)]/60"
               />
 
-              <h1 className="max-w-2xl text-4xl font-semibold uppercase leading-tight tracking-normal sm:text-5xl">
-                {t("Bem-vindo à documentação", "Welcome to the")}
-                <br />
-                {t("do Sentry", "Sentry docs")}
+              <h1
+                className="max-w-2xl text-4xl font-semibold uppercase leading-tight tracking-normal sm:text-5xl"
+                key={`${lang}-docs-h1`}
+              >
+                <span className="sr-only">
+                  {t("Bem-vindo à documentação do Sentry", "Welcome to the Sentry docs")}
+                </span>
+                <span aria-hidden="true" className="pointer-events-none select-none">
+                  <BlurReveal as="span" className="block">
+                    {t("Bem-vindo à documentação", "Welcome to the")}
+                  </BlurReveal>
+                  <BlurReveal as="span" className="block" delay={0.15}>
+                    {t("do Sentry", "Sentry docs")}
+                  </BlurReveal>
+                </span>
               </h1>
               <p className="mt-4 max-w-xl text-base leading-relaxed text-[var(--accent)] sm:text-lg">
                 {t(
