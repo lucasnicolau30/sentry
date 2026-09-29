@@ -1,0 +1,14 @@
+# Fallback de SPA: o app (React Router) resolve as rotas no navegador, então todo
+# caminho que não é um arquivo ou pasta real (/docs, /erro, rotas desconhecidas)
+# precisa devolver o index.html. Sem isso a hospedagem procura um arquivo
+# inexistente e a requisição trava até dar 503/504.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  RewriteRule ^index\.html$ - [L]
+
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
