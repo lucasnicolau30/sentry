@@ -97,7 +97,7 @@ export function NotFoundPage() {
         "The address may have changed or never existed. The pup has already looked everywhere.",
       )}
       image={pug}
-      imageClassName="w-[min(78vw,640px)]"
+      imageClassName="w-[min(58vw,640px)] sm:w-[min(78vw,640px)]"
     />
   );
 }
