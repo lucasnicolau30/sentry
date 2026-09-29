@@ -24,44 +24,6 @@ const GlobeIcon = () => (
   </svg>
 );
 
-function LanguageToggle({ className = "" }: { className?: string }) {
-  const { lang, toggle } = useLanguage();
-  const current = lang === "pt" ? "PT" : "EN";
-
-  return (
-    <button type="button" onClick={toggle} aria-label="Toggle language" className={`glow-btn lang-btn ${className}`}>
-      <span className="leading-none">
-        <GlobeIcon />
-        <span className="leading-none">{current}</span>
-      </span>
-    </button>
-  );
-}
-
-function GithubButton({ className = "" }: { className?: string }) {
-  return (
-    <a
-      href="https://github.com/lucasnicolau30/sentry"
-      target="_blank"
-      rel="noreferrer"
-      aria-label="GitHub"
-      className={`glow-btn social-btn github-btn ${className}`}
-    >
-      <svg
-        stroke="currentColor"
-        fill="none"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        viewBox="0 0 24 24"
-        className="h-[22px] w-[22px] -translate-y-[2px]"
-      >
-        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
-      </svg>
-    </a>
-  );
-}
-
 const DocsIcon = () => (
   <svg
     width="17"
@@ -80,30 +42,6 @@ const DocsIcon = () => (
     <path d="M9 13h6M9 17h6" />
   </svg>
 );
-
-function DocsButton({ className = "" }: { className?: string }) {
-  return (
-    <Link to="/docs" className={`glow-btn docs-btn ${className}`}>
-      <span className="leading-none">
-        <DocsIcon />
-        <span className="leading-none">DOCS</span>
-      </span>
-    </Link>
-  );
-}
-
-function NavLinks({ className = "" }: { className?: string }) {
-  const location = useLocation();
-  const isDocs = location.pathname.startsWith("/docs");
-
-  return (
-    <>
-      {!isDocs && <LanguageToggle className={className} />}
-      <GithubButton className={className} />
-      {isDocs ? <LanguageToggle className={className} /> : <DocsButton className={className} />}
-    </>
-  );
-}
 
 function DockUnderline() {
   return (
@@ -256,8 +194,8 @@ export function Nav() {
       </div>
 
       {open && (
-        <nav className="flex flex-wrap items-center justify-center gap-3 border-t border-[var(--border)] px-6 py-4 text-sm text-[var(--text)] sm:hidden">
-          <NavLinks />
+        <nav className="flex items-center justify-center border-t border-[var(--border)] px-6 py-4 text-sm text-[var(--text)] sm:hidden">
+          <DesktopNavDock />
         </nav>
       )}
     </header>

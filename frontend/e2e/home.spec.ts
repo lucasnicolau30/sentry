@@ -26,3 +26,29 @@ test("menu mobile abre e fecha ao clicar no hambúrguer", async ({ page }) => {
   await menuButton.click();
   await expect(header.getByRole("link", { name: "Docs" })).toBeHidden();
 });
+
+// cenario: menu mobile mostra os itens do dock sem pílula
+test("menu mobile mostra os itens do dock sem pílula", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.goto("/");
+  const header = page.locator("header");
+  await header.getByRole("button", { name: "Abrir menu" }).click();
+  const menu = header.locator("nav").last();
+  await expect(menu.getByRole("button", { name: "Toggle language" })).toBeVisible();
+  await expect(menu.getByRole("link", { name: "GitHub" })).toBeVisible();
+  await expect(menu.getByRole("link", { name: "Docs" })).toBeVisible();
+  await expect(menu.locator(".glow-btn")).toHaveCount(0);
+  await expect(menu.locator("span.w-px")).toHaveCount(2);
+});
+
+// cenario: menu mobile troca o idioma pelo item do dock
+test("menu mobile troca o idioma pelo item do dock", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.goto("/");
+  const header = page.locator("header");
+  await header.getByRole("button", { name: "Abrir menu" }).click();
+  const lang = header.locator("nav").last().getByRole("button", { name: "Toggle language" });
+  await expect(lang).toHaveText("PT");
+  await lang.click();
+  await expect(lang).toHaveText("EN");
+});
