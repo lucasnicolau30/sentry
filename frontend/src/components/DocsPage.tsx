@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { menuItem, menuPanel } from "../lib/menuMotion";
 import { TerminalWindow } from "./TerminalWindow";
@@ -3643,6 +3643,37 @@ function PapersContent({ onPrevClick }: { onPrevClick: () => void }) {
   );
 }
 
+function DocsBackLink() {
+  const { t } = useLanguage();
+
+  return (
+    <Link
+      to="/"
+      className="group absolute left-6 top-0 z-10 inline-flex h-11 cursor-pointer lg:left-[max(1.5rem,calc((100%-64rem)/2+1.5rem))] items-center gap-1.5 text-sm text-[var(--text)] transition-colors duration-200 hover:text-[var(--accent)]"
+    >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="transition-transform duration-300 group-hover:-translate-x-1"
+      >
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+      </svg>
+      <span className="max-[420px]:sr-only">{t("Voltar", "Back")}</span>
+      <span
+        aria-hidden="true"
+        className="absolute -bottom-0.5 left-1/2 h-px w-full origin-center -translate-x-1/2 scale-x-0 bg-[var(--accent)] transition-transform duration-300 ease-out group-hover:scale-x-100"
+      />
+    </Link>
+  );
+}
+
 export function DocsPage() {
   const { lang, t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -3686,10 +3717,11 @@ export function DocsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
-      <div className="border-b border-[var(--border)]">
+      <div className="relative border-b border-[var(--border)]">
+        <DocsBackLink />
         <nav
           ref={tabsNavRef}
-          className="scroll-fade-x relative mx-auto hidden w-fit max-w-full items-center justify-center gap-6 overflow-x-auto px-6 text-sm md:flex"
+          className="scroll-fade-x relative mx-auto hidden w-fit max-w-full items-center justify-center gap-6 overflow-x-auto px-6 text-sm lg:flex"
           onMouseLeave={() => setHoverTab(null)}
         >
           {tabs.map((tab) => (
@@ -3717,7 +3749,7 @@ export function DocsPage() {
           />
         </nav>
 
-        <div className="md:hidden">
+        <div className="lg:hidden">
           <button
             type="button"
             aria-label={t("Abrir menu das seções", "Open sections menu")}
