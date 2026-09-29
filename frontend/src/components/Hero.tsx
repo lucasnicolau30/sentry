@@ -50,7 +50,7 @@ export function Hero() {
               </span>
             </span>
           </h1>
-          <p className="mt-8 max-w-3xl whitespace-nowrap text-[clamp(13px,2.4vw,19px)] leading-[1.6] text-[var(--text-muted)]">
+          <p className="mt-8 max-w-3xl text-balance lg:whitespace-nowrap text-[clamp(13px,2.4vw,19px)] leading-[1.6] text-[var(--text-muted)]">
             {t(
               "Valide seus casos de teste e veja se o código alterado está coberto antes de aprovar a mudança.",
               "Validate your test cases and check whether the changed code is covered before approving the change.",
