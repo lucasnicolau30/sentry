@@ -10,14 +10,14 @@ na responsividade ao abrir o sanduiche os botoes ainda estao com o comportamento
 
 ## Caso: menu mobile mostra os itens do dock sem pílula
 
-- **Requisito:** ao abrir o sanduíche, PT, GitHub e Docs aparecem soltos, como no dock do desktop, sem fundo/borda de botão com brilho
+- **Requisito:** ao abrir o sanduíche, PT, GitHub, PyPI e Docs aparecem soltos, como no dock do desktop, sem fundo/borda de botão com brilho
 - **Camada:** frontend
 - **Tipo:** e2e
 - **Prioridade:** alta
 - **Classe:** menu-mobile/mobile
 - **Dado:** viewport de 390px de largura, landing carregada em `/`
 - **Quando:** o botão "Abrir menu" é clicado
-- **Então:** os itens "Toggle language", "GitHub" e "Docs" do menu ficam visíveis, sem a classe `glow-btn`, e com divisórias entre eles
+- **Então:** os itens "Toggle language", "GitHub", "PyPI" e "Docs" do menu ficam visíveis, sem a classe `glow-btn`, e com divisórias entre eles
 
 ## Caso: menu mobile troca o idioma pelo item do dock
 

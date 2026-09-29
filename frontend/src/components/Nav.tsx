@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { Package } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useLanguage } from "../i18n/LanguageContext";
 import { useShake } from "../lib/useShake";
@@ -105,6 +106,25 @@ function DockGithubLink() {
   );
 }
 
+function DockPypiLink() {
+  const { controls, shake } = useShake();
+
+  return (
+    <motion.a
+      href="https://pypi.org/project/sentry-test/#description"
+      target="_blank"
+      rel="noreferrer"
+      onClick={shake}
+      animate={controls}
+      aria-label="PyPI"
+      className="group relative flex h-9 w-9 items-center justify-center text-[var(--text)] transition-colors hover:text-[var(--accent)] cursor-pointer"
+    >
+      <Package aria-hidden="true" className="h-[22px] w-[22px] -translate-y-[2px]" strokeWidth={1.8} />
+      <DockUnderline />
+    </motion.a>
+  );
+}
+
 function DockDocsLink() {
   const { controls, shake } = useShake();
 
@@ -133,12 +153,14 @@ function DesktopNavDock() {
 
   const items = isDocs
     ? [
-        { key: "github", node: <DockGithubLink /> },
         { key: "lang", node: <DockLanguageButton /> },
+        { key: "github", node: <DockGithubLink /> },
+        { key: "pypi", node: <DockPypiLink /> },
       ]
     : [
         { key: "lang", node: <DockLanguageButton /> },
         { key: "github", node: <DockGithubLink /> },
+        { key: "pypi", node: <DockPypiLink /> },
         { key: "docs", node: <DockDocsLink /> },
       ];
 

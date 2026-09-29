@@ -35,10 +35,11 @@ test("menu mobile mostra os itens do dock sem pílula", async ({ page }) => {
   await header.getByRole("button", { name: "Abrir menu" }).click();
   const menu = header.locator("nav").last();
   await expect(menu.getByRole("button", { name: "Toggle language" })).toBeVisible();
+  await expect(menu.getByRole("link", { name: "PyPI" })).toBeVisible();
   await expect(menu.getByRole("link", { name: "GitHub" })).toBeVisible();
   await expect(menu.getByRole("link", { name: "Docs" })).toBeVisible();
   await expect(menu.locator(".glow-btn")).toHaveCount(0);
-  await expect(menu.locator("span.w-px")).toHaveCount(2);
+  await expect(menu.locator("span.w-px")).toHaveCount(3);
 });
 
 // cenario: menu mobile troca o idioma pelo item do dock
