@@ -60,7 +60,7 @@ const featuresByLang = {
         <>
           95% de cobertura no projeto inteiro não impede a linha que você acabou de mudar de ficar sem teste nenhum.
           O <span className="text-[var(--text-h)]">Sentry</span> mede exatamente o{" "}
-          <span className="text-[var(--accent)]">diff</span>, não a média que esconde isso.
+          diff, não a média que esconde isso.
         </>
       ),
     },
@@ -70,7 +70,7 @@ const featuresByLang = {
       description: (
         <>
           Um CI verde não significa que alguém leu o resultado. O veredito (aprovado, reprovado ou inconclusivo)
-          sai como <span className="text-[var(--accent)]">código de saída</span>, pronto para travar o merge sozinho.
+          sai como código de saída, pronto para travar o merge sozinho.
         </>
       ),
     },
@@ -108,7 +108,7 @@ const featuresByLang = {
         <>
           Rodar a mesma mudança duas vezes num revisor de IA pode dar dois vereditos diferentes, e cada rodada tem
           custo de token. O <span className="text-[var(--text-h)]">Sentry</span> não chama nenhum modelo: é{" "}
-          <span className="text-[var(--accent)]">determinístico</span>, e o mesmo commit sempre produz o mesmo
+          determinístico, e o mesmo commit sempre produz o mesmo
           resultado, de graça.
         </>
       ),
@@ -123,7 +123,7 @@ const featuresByLang = {
         <>
           95% coverage on the whole project doesn't stop the line you just changed from having zero tests.{" "}
           <span className="text-[var(--text-h)]">Sentry</span> measures the{" "}
-          <span className="text-[var(--accent)]">diff</span> itself, not the average that hides it.
+          diff itself, not the average that hides it.
         </>
       ),
     },
@@ -133,7 +133,7 @@ const featuresByLang = {
       description: (
         <>
           A green CI doesn't mean anyone read the result. The verdict (passed, failed or inconclusive) comes out as
-          an <span className="text-[var(--accent)]">exit code</span>, ready to block the merge on its own.
+          an exit code, ready to block the merge on its own.
         </>
       ),
     },
@@ -171,7 +171,7 @@ const featuresByLang = {
         <>
           Running the same change twice through an AI reviewer can give two different verdicts, and every run costs
           tokens. <span className="text-[var(--text-h)]">Sentry</span> calls no model at all: it's{" "}
-          <span className="text-[var(--accent)]">deterministic</span>, and the same commit always produces the same
+          deterministic, and the same commit always produces the same
           result, for free.
         </>
       ),
