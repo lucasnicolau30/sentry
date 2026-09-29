@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useLanguage } from "../i18n/LanguageContext";
 import { useShake } from "../lib/useShake";
+import { menuItem, menuPanel } from "../lib/menuMotion";
 import logo from "../assets/sentry-icon.png";
 import wordmark from "../assets/sentry-wordmark.png";
 
@@ -144,10 +145,10 @@ function DesktopNavDock() {
   return (
     <div className="flex items-center gap-1">
       {items.map((item, index) => (
-        <div key={item.key} className="flex items-center gap-1">
+        <motion.div key={item.key} variants={menuItem} className="flex items-center gap-1">
           {index > 0 && <DockDivider />}
           {item.node}
-        </div>
+        </motion.div>
       ))}
     </div>
   );
@@ -193,11 +194,22 @@ export function Nav() {
         </button>
       </div>
 
-      {open && (
-        <nav className="flex items-center justify-center border-t border-[var(--border)] px-6 py-4 text-sm text-[var(--text)] sm:hidden">
-          <DesktopNavDock />
-        </nav>
-      )}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="mobile-menu"
+            variants={menuPanel}
+            initial="hidden"
+            animate="show"
+            exit="hidden"
+            className="overflow-hidden sm:hidden"
+          >
+            <nav className="flex items-center justify-center border-t border-[var(--border)] px-6 py-4 text-sm text-[var(--text)]">
+              <DesktopNavDock />
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

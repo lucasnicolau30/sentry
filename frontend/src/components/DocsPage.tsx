@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
+import { menuItem, menuPanel } from "../lib/menuMotion";
 import { TerminalWindow } from "./TerminalWindow";
 import { Reveal } from "./Reveal";
 import { BlurReveal } from "./blur-reveal";
@@ -3650,11 +3652,13 @@ export function DocsPage() {
     requestedTab && tabIds.includes(requestedTab) ? requestedTab : tabs[0].id;
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
   const [hoverTab, setHoverTab] = useState<string | null>(null);
+  const [tabsMenuOpen, setTabsMenuOpen] = useState(false);
   const tabsNavRef = useRef<HTMLElement | null>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const indicatorTarget = hoverTab ?? activeTab;
 
   function goToTab(id: string) {
+    setTabsMenuOpen(false);
     setSearchParams((params) => {
       const next = new URLSearchParams(params);
       next.set("tab", id);
@@ -3685,7 +3689,7 @@ export function DocsPage() {
       <div className="border-b border-[var(--border)]">
         <nav
           ref={tabsNavRef}
-          className="scroll-fade-x relative mx-auto flex w-fit max-w-full items-center justify-center gap-6 overflow-x-auto px-6 text-sm"
+          className="scroll-fade-x relative mx-auto hidden w-fit max-w-full items-center justify-center gap-6 overflow-x-auto px-6 text-sm md:flex"
           onMouseLeave={() => setHoverTab(null)}
         >
           {tabs.map((tab) => (
@@ -3712,6 +3716,63 @@ export function DocsPage() {
             style={{ left: indicator.left, width: indicator.width }}
           />
         </nav>
+
+        <div className="md:hidden">
+          <button
+            type="button"
+            aria-label={t("Abrir menu das seções", "Open sections menu")}
+            aria-expanded={tabsMenuOpen}
+            aria-controls="docs-tabs-menu"
+            onClick={() => setTabsMenuOpen((value) => !value)}
+            className="flex w-full cursor-pointer items-center justify-center gap-2 px-6 py-3 text-sm text-[var(--text-h)]"
+          >
+            <span>{tabs.find((tab) => tab.id === activeTab)?.[lang]}</span>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className={`shrink-0 text-[var(--accent)] transition-transform duration-200 ${tabsMenuOpen ? "rotate-180" : ""}`}
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+          <AnimatePresence initial={false}>
+            {tabsMenuOpen && (
+            <motion.div
+              key="docs-tabs-menu"
+              variants={menuPanel}
+              initial="hidden"
+              animate="show"
+              exit="hidden"
+              className="overflow-hidden"
+            >
+            <ul id="docs-tabs-menu" className="border-t border-[var(--border)] px-6 py-2 text-sm">
+              {tabs.map((tab) => (
+                <motion.li key={tab.id} variants={menuItem}>
+                  <button
+                    type="button"
+                    onClick={() => goToTab(tab.id)}
+                    className={`w-full cursor-pointer py-2.5 text-left transition-colors duration-200 ${
+                      activeTab === tab.id
+                        ? "text-[var(--accent)]"
+                        : "text-[var(--text)]/60 hover:text-[var(--accent)]"
+                    }`}
+                  >
+                    {tab[lang]}
+                  </button>
+                </motion.li>
+              ))}
+            </ul>
+            </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {activeTab === "start" && (
