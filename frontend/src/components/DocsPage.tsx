@@ -443,7 +443,7 @@ function PageFooter({
               {prevLabel}
               <span
                 aria-hidden="true"
-                className="absolute -bottom-1 left-0 h-px w-full origin-right scale-x-0 bg-[var(--accent)] transition-transform duration-300 ease-out group-hover:scale-x-100"
+                className="absolute -bottom-1 left-0 h-px w-full origin-left scale-x-0 bg-[var(--accent)] transition-transform duration-300 ease-out group-hover:scale-x-100"
               />
             </span>
           </button>
@@ -3668,7 +3668,7 @@ function DocsBackLink() {
       <span className="max-[420px]:sr-only">{t("Voltar", "Back")}</span>
       <span
         aria-hidden="true"
-        className="absolute -bottom-0.5 left-1/2 h-px w-full origin-center -translate-x-1/2 scale-x-0 bg-[var(--accent)] transition-transform duration-300 ease-out group-hover:scale-x-100"
+        className="absolute -bottom-0.5 left-1/2 h-px w-full origin-left -translate-x-1/2 scale-x-0 bg-[var(--accent)] transition-transform duration-300 ease-out group-hover:scale-x-100"
       />
     </Link>
   );

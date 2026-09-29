@@ -48,7 +48,7 @@ function DockUnderline() {
   return (
     <span
       aria-hidden="true"
-      className="absolute -bottom-0.5 left-1/2 h-px w-[calc(100%-0.75rem)] origin-center -translate-x-1/2 scale-x-0 bg-[var(--accent)] transition-transform duration-300 ease-out group-hover:scale-x-100"
+      className="absolute -bottom-0.5 left-1/2 h-px w-[calc(100%-0.75rem)] origin-left -translate-x-1/2 scale-x-0 bg-[var(--accent)] transition-transform duration-300 ease-out group-hover:scale-x-100"
     />
   );
 }
