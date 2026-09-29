@@ -33,7 +33,9 @@ const toneClass: Record<TerminalTone, string> = {
 };
 
 // A arte do wordmark só fecha certo com entrelinha curta: o desenho foi
-// montado para linhas de terminal, uma linha por linha de texto.
+// montado para linhas de terminal, uma linha por linha de texto. A fonte
+// encolhe junto com o card (100cqw/34 ≈ 53 colunas de monoespaçada) para a arte
+// caber inteira em telas estreitas, sem rolagem lateral.
 const bannerTones: TerminalTone[] = ["banner-bright", "banner-mid", "banner-dim"];
 
 export function TerminalWindow({ title = "sentry", lines, children, className = "" }: TerminalWindowProps) {
@@ -47,7 +49,7 @@ export function TerminalWindow({ title = "sentry", lines, children, className = 
         <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
         <span className="ml-2 font-mono text-xs text-[var(--text)]/60">{title}</span>
       </div>
-      <div className="scroll-fade-x overflow-x-auto px-4 py-3.5 font-mono text-sm leading-relaxed">
+      <div className="scroll-fade-x overflow-x-auto [container-type:inline-size] px-4 py-3.5 font-mono text-sm leading-relaxed">
         {lines
           ? lines.map((line, index) => {
               const tone = line.tone ?? "info";
@@ -60,7 +62,9 @@ export function TerminalWindow({ title = "sentry", lines, children, className = 
               return (
                 <p
                   key={index}
-                  className={`${wrapClass} ${bannerTones.includes(tone) ? "leading-[1.05]" : ""} ${
+                  className={`${wrapClass} ${
+                    bannerTones.includes(tone) ? "leading-[1.05] text-[min(0.875rem,calc(100cqw/34))]" : ""
+                  } ${
                     toneClass[tone]
                   }`}
                 >
