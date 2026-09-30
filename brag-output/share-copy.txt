@@ -1,0 +1,2 @@
+Seu agente escreveu o código. O Sentry garante que ele testou.
+Cobertura do que mudou, veredito auditável e zero chamada de IA: pip install sentry-test

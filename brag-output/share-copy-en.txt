@@ -1,0 +1,2 @@
+Your agent wrote the code. Sentry makes sure it's tested.
+Coverage of what changed, an auditable verdict and zero AI calls: pip install sentry-test
