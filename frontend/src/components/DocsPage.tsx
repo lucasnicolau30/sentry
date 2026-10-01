@@ -569,7 +569,7 @@ const principlesByLang: Record<"pt" | "en", Card[]> = {
           Dez regras com severidade configurável. O{" "}
           <span className="text-[var(--text-h)]">Sentry</span> nunca chama um
           modelo para chegar ao veredito, então cada veredito é reproduzível. Os vídeos
-          opcionais usam o agente e ficam fora disso.
+          opcionais gastam tokens, só quando você pede, e ficam fora disso.
         </>
       ),
     },
@@ -596,7 +596,7 @@ const principlesByLang: Record<"pt" | "en", Card[]> = {
           Ten rules with configurable severity.{" "}
           <span className="text-[var(--text-h)]">Sentry</span> never calls a
           model to reach a verdict, so every verdict is reproducible. The optional
-          videos use the agent and sit outside that.
+          videos spend tokens, only when you ask, and sit outside that.
         </>
       ),
     },

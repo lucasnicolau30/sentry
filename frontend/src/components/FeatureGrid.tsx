@@ -109,7 +109,7 @@ const featuresByLang = {
           Rodar a mesma mudança duas vezes num revisor de IA pode dar dois vereditos diferentes, e cada rodada tem
           custo de token. O <span className="text-[var(--text-h)]">Sentry</span> não chama nenhum modelo: é{" "}
           determinístico, e o mesmo commit sempre produz o mesmo
-          resultado, de graça. Só os vídeos opcionais usam o agente e gastam tokens;
+          resultado, de graça. Só os vídeos opcionais usam o agente e gastam tokens, e só quando você pede;
           o veredito, nunca.
         </>
       ),
@@ -173,7 +173,7 @@ const featuresByLang = {
           Running the same change twice through an AI reviewer can give two different verdicts, and every run costs
           tokens. <span className="text-[var(--text-h)]">Sentry</span> calls no model at all: it's{" "}
           deterministic, and the same commit always produces the same
-          result, for free. Only the optional videos use the agent and spend tokens;
+          result, for free. Only the optional videos use the agent and spend tokens, and only when you ask;
           the verdict never does.
         </>
       ),

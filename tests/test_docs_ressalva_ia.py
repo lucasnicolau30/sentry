@@ -20,7 +20,7 @@ def _texto(rel: str) -> str:
 RESSALVAS = {
     "README.md": ("never calls a model to reach a verdict", "hand the work to the agent"),
     "README.pt.md": ("nunca chama um modelo para chegar ao veredito", "entregam o trabalho ao agente"),
-    "frontend/src/components/DocsPage.tsx": ("nunca chama um modelo para chegar ao veredito", "usam o agente"),
+    "frontend/src/components/DocsPage.tsx": ("nunca chama um modelo para chegar ao veredito", "gastam tokens, só quando você pede"),
     "frontend/src/components/FeatureGrid.tsx": ("Zero chamada de IA no veredito", "usam o agente"),
 }
 
