@@ -51,6 +51,13 @@ const CpuIcon = () => (
   </svg>
 );
 
+const FilmIcon = () => (
+  <svg {...iconProps} aria-hidden="true">
+    <rect x="3" y="5" width="18" height="14" rx="2.5" />
+    <path d="M10.2 9.4v5.2l4.4-2.6-4.4-2.6z" />
+  </svg>
+);
+
 const featuresByLang = {
   pt: [
     {
@@ -113,7 +120,18 @@ const featuresByLang = {
           o veredito, nunca.
         </>
       ),
-      wide: true,
+    },
+    {
+      icon: <FilmIcon />,
+      title: "Vídeos prontos pelo próprio Sentry",
+      description: (
+        <>
+          Gravar a tela e montar o vídeo à mão costuma ficar para depois. O <span className="text-[var(--text-h)]">sentry training</span>{" "}
+          grava o roteiro do módulo e o <span className="text-[var(--text-h)]">sentry promo</span> gera o vídeo do projeto, direto do repositório.
+          Os dois usam o agente e gastam tokens, só quando você pede; para mudar o vídeo, peça ao agente. O vídeo
+          mostra, só o veredito certifica.
+        </>
+      ),
     },
   ],
   en: [
@@ -177,7 +195,18 @@ const featuresByLang = {
           the verdict never does.
         </>
       ),
-      wide: true,
+    },
+    {
+      icon: <FilmIcon />,
+      title: "Videos made by Sentry itself",
+      description: (
+        <>
+          Recording the screen and cutting a video by hand usually gets pushed to later.{" "}
+          <span className="text-[var(--text-h)]">sentry training</span> records the module's script and <span className="text-[var(--text-h)]">sentry promo</span> builds the
+          project video, straight from the repository. Both use the agent and spend tokens, only when you ask; to
+          change a video, ask the agent. The video shows, only the verdict certifies.
+        </>
+      ),
     },
   ],
 };
@@ -189,8 +218,8 @@ export function FeatureGrid() {
   return (
     <section className="mx-auto max-w-5xl px-6 py-10">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {features.map(({ wide, ...feature }, index) => (
-          <Reveal key={index} delay={index * 0.08} className={wide ? "h-full sm:col-span-2" : "h-full"}>
+        {features.map((feature, index) => (
+          <Reveal key={index} delay={index * 0.08} className="h-full">
             <FeatureCard {...feature} />
           </Reveal>
         ))}
