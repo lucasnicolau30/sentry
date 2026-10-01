@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import { Nav } from "./components/Nav";
 import { Hero } from "./components/Hero";
+import { VideoShowcase } from "./components/VideoShowcase";
 import { HowItWorks } from "./components/HowItWorks";
 import { FeatureGrid } from "./components/FeatureGrid";
 import { CommandShowcase } from "./components/CommandShowcase";
@@ -13,6 +14,7 @@ function HomePage() {
   return (
     <>
       <Hero />
+      <VideoShowcase />
       <HowItWorks />
       <FeatureGrid />
       <CommandShowcase />
