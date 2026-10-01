@@ -5,6 +5,7 @@ subprocess com `claude -p`. Faltou `claude`, a skill ou o `ffmpeg`, ou o
 `claude` falhou: erro claro, sem fallback silencioso -- um vídeo "gerado" por
 um caminho que o usuário não pediu esconderia que o brag não rodou.
 """
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -17,8 +18,10 @@ TEMPO_MAXIMO = 1800
 TEMPO_DA_INSTALACAO = 300
 
 # `claude -p` não tem quem aprove permissão: sem esta lista o brag pararia no
-# primeiro `npx hyperframes`. Lista de ferramentas, não bypass geral.
-FERRAMENTAS = "Bash,Read,Write,Edit,Glob,Grep,Skill"
+# primeiro `npx hyperframes`. Lista de ferramentas, não bypass geral. No Windows o
+# Claude Code roda comandos pela ferramenta PowerShell, não pela Bash: liberar só
+# a Bash deixava o brag sem poder rodar node, npx e ffmpeg.
+FERRAMENTAS = "Bash,PowerShell,Read,Write,Edit,Glob,Grep,Skill"
 
 INSTALAR_CLAUDE = "https://claude.com/claude-code"
 INSTALAR_BRAG = "/plugin marketplace add latent-spaces/brag  e depois  /plugin install brag@brag"
@@ -38,14 +41,24 @@ def validar_idioma(idioma: str) -> str:
     return idioma
 
 
+def _plugin_brag_instalado(home: Path) -> bool:
+    """O Claude Code registra os plugins em `installed_plugins.json`; a pasta de cache
+    sobrevive à desinstalação, então olhar o disco acharia um brag que já saiu."""
+    registro = home / ".claude" / "plugins" / "installed_plugins.json"
+    try:
+        plugins = json.loads(registro.read_text(encoding="utf-8")).get("plugins", {})
+    except (OSError, ValueError, AttributeError):
+        return False
+    return any(nome.split("@")[0] == "brag" and instalacoes for nome, instalacoes in plugins.items())
+
+
 def brag_instalado(root: Path, home: Path) -> bool:
-    """A skill pode viver no projeto, na conta ou dentro de um plugin instalado."""
+    """A skill pode viver no projeto, na conta ou num plugin instalado."""
     if (root / ".claude" / "skills" / "brag" / "SKILL.md").is_file():
         return True
     if (home / ".claude" / "skills" / "brag" / "SKILL.md").is_file():
         return True
-    plugins = home / ".claude" / "plugins"
-    return plugins.is_dir() and any(plugins.glob("**/skills/brag/SKILL.md"))
+    return _plugin_brag_instalado(home)
 
 
 def _detalhe(resultado) -> str:
@@ -97,32 +110,47 @@ def checar_dependencias(root: Path, *, which=None, home: Path | None = None, run
     return claude
 
 
-def _estado_dos_videos(pasta: Path) -> dict[Path, int]:
-    return {v: v.stat().st_mtime_ns for v in pasta.glob("*.mp4")} if pasta.is_dir() else {}
+def _estado_dos_videos(root: Path) -> dict[Path, int]:
+    """Os .mp4 de `brag-output/` e de `brag-output-<data>/`: o brag grava numa pasta com
+    data quando `brag-output/` já existe, para não sobrescrever a rodada anterior."""
+    return {v: v.stat().st_mtime_ns for pasta in root.glob(f"{SAIDA_DO_BRAG}*") if pasta.is_dir()
+            for v in pasta.glob("*.mp4")}
 
 
-def _videos_novos(pasta: Path, antes: dict[Path, int]) -> list[Path]:
+def _videos_novos(root: Path, antes: dict[Path, int]) -> list[Path]:
     """Os .mp4 que não existiam ou foram reescritos desde `antes`, o mais recente primeiro.
 
     Compara com o estado anterior em vez de com a hora do relógio: o relógio do
     sistema e o carimbo do arquivo têm granularidades diferentes no Windows, e
     um vídeo gravado no mesmo instante pareceria mais antigo que o início.
     """
-    agora = _estado_dos_videos(pasta)
+    agora = _estado_dos_videos(root)
     return sorted((v for v, mtime in agora.items() if antes.get(v) != mtime),
                   key=lambda v: agora[v], reverse=True)
 
 
-def acionar_brag(root: Path, prompt: str, destino: Path, *, claude: str, run=None) -> Path:
+def acionar_brag(root: Path, prompt: str, destino: Path, *, claude: str, run=None,
+                 saida: Path | None = None) -> Path:
     """Roda `claude -p` com o prompt do brag e copia o vídeo novo para `destino`.
+
+    Com `saida`, o prompt pediu esse caminho exato: um arquivo velho nele é apagado antes
+    (é saída nossa, de uma rodada anterior), senão o claude o encontraria pronto e não
+    geraria nada novo -- e o Sentry não distinguiria isso de uma falha.
 
     Copia em vez de mover: `brag-output/` já tem vídeos versionados, e mover o
     arquivo apagaria um que o git conhece.
     """
     run = run or subprocess.run
-    antes = _estado_dos_videos(root / SAIDA_DO_BRAG)
+    if saida is not None:
+        saida.unlink(missing_ok=True)
+    antes = _estado_dos_videos(root)
+    comando = [claude, "-p", prompt, "--allowedTools", FERRAMENTAS]
+    # A música e os efeitos do brag vivem na pasta de plugins, fora do projeto.
+    plugins = Path.home() / ".claude" / "plugins"
+    if plugins.is_dir():
+        comando += ["--add-dir", str(plugins)]
     try:
-        resultado = run([claude, "-p", prompt, "--allowedTools", FERRAMENTAS],
+        resultado = run(comando,
                         cwd=root, capture_output=True, timeout=TEMPO_MAXIMO,
                         text=True, encoding="utf-8", errors="replace")
     except subprocess.TimeoutExpired:
@@ -133,10 +161,14 @@ def acionar_brag(root: Path, prompt: str, destino: Path, *, claude: str, run=Non
         detalhe = (resultado.stderr or resultado.stdout or "").strip()[-600:]
         raise ValueError(f"o claude -p terminou com código {resultado.returncode}"
                          + (f": {detalhe}" if detalhe else ""))
-    videos = _videos_novos(root / SAIDA_DO_BRAG, antes)
+    videos = [saida] if saida is not None and saida.is_file() else _videos_novos(root, antes)
     if not videos:
-        raise ValueError(f"o claude terminou, mas não deixou nenhum .mp4 novo em {SAIDA_DO_BRAG}/; "
-                         "o vídeo não foi gerado")
+        # O que o claude disse é a única pista de por que o brag parou (pediu algo, negou uma
+        # permissão, desistiu): sem isto o erro seria um beco sem saída.
+        resposta = (resultado.stdout or "").strip()[-800:]
+        raise ValueError(f"o claude terminou, mas não deixou nenhum .mp4 novo em {SAIDA_DO_BRAG}*/; "
+                         "o vídeo não foi gerado"
+                         + (f". O claude respondeu: {resposta}" if resposta else ""))
     destino.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(videos[0], destino)
     return destino

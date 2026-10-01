@@ -21,7 +21,7 @@ except ImportError:  # sem o pacote: `checar_dependencias_training` explica o qu
     PlaywrightError = Exception
     sync_playwright = None
 
-from .promo import PASTA_DE_MIDIA, acionar_brag, checar_dependencias, validar_idioma
+from .promo import PASTA_DE_MIDIA, SAIDA_DO_BRAG, acionar_brag, checar_dependencias, validar_idioma
 
 PASTA_DE_ROTEIROS = Path(".sentry") / "training"
 ACOES = ("ir", "digitar", "clicar", "apontar")
@@ -255,7 +255,7 @@ def gravar(root: Path, roteiro: dict, destino: Path, *, timeout_ms: int = TEMPO_
     return {"webm": str(webm), "duracao": duracao, "passos": passos}
 
 
-def montar_prompt(roteiro: dict, gravacao: dict, idioma: str, root: Path) -> str:
+def montar_prompt(roteiro: dict, gravacao: dict, idioma: str, root: Path, saida: Path) -> str:
     webm = Path(gravacao["webm"])
     try:
         webm = webm.relative_to(root)
@@ -270,7 +270,7 @@ def montar_prompt(roteiro: dict, gravacao: dict, idioma: str, root: Path) -> str
             "numa faixa própria abaixo do quadro, para não taparem a tela, uma por passo, nos tempos "
             "abaixo (em segundos a partir do início da gravação; 'fala' é o texto da legenda). "
             f"Idioma de todo texto do vídeo: {IDIOMA_NO_PROMPT[idioma]}; traduza as falas se preciso. "
-            "Salve o .mp4 final em brag-output/.\n\nPassos:\n"
+            f"Salve o .mp4 final exatamente em {saida.as_posix()}.\n\nPassos:\n"
             + json.dumps(passos, ensure_ascii=False, indent=2))
 
 
@@ -288,5 +288,6 @@ def gerar_training(root: Path, modulo: str, idioma: str = "pt", *, which=None, r
     pasta = root / PASTA_DE_MIDIA / f"training-{modulo}"
     gravacao = (gravar_fn or gravar)(root, roteiro, pasta)
     destino = root / PASTA_DE_MIDIA / f"training-{modulo}-{idioma}.mp4"
-    return acionar_brag(root, montar_prompt(roteiro, gravacao, idioma, root), destino,
-                        claude=claude, run=run)
+    saida = Path(SAIDA_DO_BRAG) / f"training-{modulo}-{idioma}.mp4"
+    return acionar_brag(root, montar_prompt(roteiro, gravacao, idioma, root, saida), destino,
+                        claude=claude, run=run, saida=root / saida)

@@ -343,8 +343,34 @@ def test_gravar_sem_o_pacote_playwright_diz_como_instalar(tmp_path, monkeypatch)
 def test_prompt_aceita_gravacao_fora_do_projeto(tmp_path):
     gravacao = {"webm": str(tmp_path / "fora" / "g.webm"), "duracao": 3.0,
                 "passos": [{"n": 1, "titulo": "t", "fala": "f", "inicio": 0.5, "fim": 2.0}]}
-    prompt = training.montar_prompt(ROTEIRO, gravacao, "pt", tmp_path / "projeto")
+    prompt = training.montar_prompt(ROTEIRO, gravacao, "pt", tmp_path / "projeto",
+                                    Path("brag-output/training-x-pt.mp4"))
     assert "g.webm" in prompt and "inicio_s" in prompt
+    assert "exatamente em brag-output/training-x-pt.mp4" in prompt
+
+
+def test_training_pede_um_caminho_exato_e_apaga_o_video_velho_dele(ambiente):
+    velho = ambiente["projeto"] / "brag-output" / "training-cadastro-pt.mp4"
+    velho.parent.mkdir()
+    velho.write_bytes(b"VELHO")
+    assert cli.main(["training", "cadastro"]) == cli.EXIT_OK
+    assert "exatamente em brag-output/training-cadastro-pt.mp4" in ambiente["chamadas"][0][2]
+    assert not velho.exists()  # o velho saiu do caminho antes do claude rodar
+
+
+def test_training_usa_o_video_do_caminho_pedido_quando_o_claude_o_grava(ambiente, monkeypatch):
+    def run(comando, **kwargs):
+        if comando[1] == "plugin":
+            return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
+        alvo = ambiente["projeto"] / "brag-output" / "training-cadastro-pt.mp4"
+        alvo.parent.mkdir(exist_ok=True)
+        alvo.write_bytes(b"NO-CAMINHO-PEDIDO")
+        (alvo.parent / "outro.mp4").write_bytes(b"OUTRO")
+        return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
+    monkeypatch.setattr(promo.subprocess, "run", run)
+    assert cli.main(["training", "cadastro"]) == cli.EXIT_OK
+    video = ambiente["projeto"] / ".sentry" / "media" / "training-cadastro-pt.mp4"
+    assert video.read_bytes() == b"NO-CAMINHO-PEDIDO"
 
 
 # cenario: training instala o brag quando ele esta ausente

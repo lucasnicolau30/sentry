@@ -68,6 +68,31 @@ def test_promo_gera_o_video_em_portugues_por_padrao(ambiente, capsys):
     assert ".sentry/media/promo-pt.mp4" in capsys.readouterr().out
 
 
+def test_promo_acha_o_video_na_pasta_com_data_que_o_brag_cria(ambiente, monkeypatch):
+    """Com `brag-output/` já existente, o brag grava em `brag-output-<data>/`."""
+    (ambiente["projeto"] / "brag-output").mkdir()
+    (ambiente["projeto"] / "brag-output" / "antigo.mp4").write_bytes(b"ANTIGO")
+
+    def run(comando, **kwargs):
+        if comando[1] == "plugin":
+            return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
+        nova = ambiente["projeto"] / "brag-output-2026-10-01-110000"
+        nova.mkdir()
+        (nova / "brag.mp4").write_bytes(b"NOVO")
+        return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
+    monkeypatch.setattr(promo.subprocess, "run", run)
+    assert cli.main(["promo"]) == cli.EXIT_OK
+    assert (ambiente["projeto"] / ".sentry" / "media" / "promo-pt.mp4").read_bytes() == b"NOVO"
+
+
+def test_promo_libera_a_powershell_e_a_pasta_de_plugins_para_o_brag(ambiente):
+    (ambiente["home"] / ".claude" / "plugins").mkdir(parents=True)
+    assert cli.main(["promo"]) == cli.EXIT_OK
+    comando = ambiente["chamadas"][0]
+    assert "PowerShell" in comando[comando.index("--allowedTools") + 1].split(",")
+    assert comando[comando.index("--add-dir") + 1].endswith("plugins")
+
+
 # cenario: promo com lang en roda o brag de novo em ingles
 def test_promo_com_lang_en_roda_o_brag_de_novo_em_ingles(ambiente):
     assert cli.main(["promo"]) == cli.EXIT_OK
@@ -122,6 +147,37 @@ def test_promo_para_quando_a_instalacao_do_brag_falha(ambiente, monkeypatch, cap
     saida = capsys.readouterr().out
     assert "marketplace inacessível" in saida and "latent-spaces/brag" in saida
     assert ambiente["chamadas"] == []
+
+
+def registrar_plugins(home, conteudo):
+    pasta = home / ".claude" / "plugins"
+    pasta.mkdir(parents=True, exist_ok=True)
+    (pasta / "installed_plugins.json").write_text(conteudo, encoding="utf-8")
+
+
+def test_brag_instalado_como_plugin_conta_como_instalado(ambiente):
+    (ambiente["home"] / ".claude" / "skills" / "brag" / "SKILL.md").unlink()
+    registrar_plugins(ambiente["home"], '{"plugins": {"brag@brag": [{"scope": "user"}]}}')
+    assert cli.main(["promo"]) == cli.EXIT_OK
+    assert ambiente["instalacoes"] == []
+
+
+def test_cache_de_plugin_desinstalado_nao_conta_como_instalado(ambiente):
+    (ambiente["home"] / ".claude" / "skills" / "brag" / "SKILL.md").unlink()
+    cache = ambiente["home"] / ".claude" / "plugins" / "cache" / "brag" / "brag" / "0.4.0" / "skills" / "brag"
+    cache.mkdir(parents=True)
+    (cache / "SKILL.md").write_text("---\nname: brag\n---\n", encoding="utf-8")
+    registrar_plugins(ambiente["home"], '{"plugins": {"outro@mercado": [{"scope": "user"}]}}')
+    assert cli.main(["promo"]) == cli.EXIT_OK
+    assert ["install", "brag@brag"] in ambiente["instalacoes"]
+
+
+@pytest.mark.parametrize("conteudo", ["isto não é json", "[]", '{"plugins": {"brag@brag": []}}'])
+def test_registro_de_plugins_ilegivel_ou_vazio_conta_como_brag_ausente(ambiente, conteudo):
+    (ambiente["home"] / ".claude" / "skills" / "brag" / "SKILL.md").unlink()
+    registrar_plugins(ambiente["home"], conteudo)
+    assert cli.main(["promo"]) == cli.EXIT_OK
+    assert ["install", "brag@brag"] in ambiente["instalacoes"]
 
 
 def test_promo_aceita_marketplace_ja_adicionado(ambiente, monkeypatch):
@@ -185,7 +241,9 @@ def test_promo_nao_afirma_sucesso_quando_o_claude_nao_gerou_o_video(ambiente, mo
     monkeypatch.setattr(promo.subprocess, "run", sem_video)
     codigo = cli.main(["promo"])
     assert codigo == cli.EXIT_INFRA
-    assert "não foi gerado" in capsys.readouterr().out
+    saida = capsys.readouterr().out
+    assert "não foi gerado" in saida
+    assert "pronto!" in saida  # o que o claude disse, para o usuário entender por que parou
     assert not (ambiente["projeto"] / ".sentry" / "media" / "promo-pt.mp4").exists()
 
 
