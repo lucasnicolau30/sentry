@@ -7,21 +7,39 @@ um -- dentro do pacote, para funcionar em qualquer projeto, sem depender de
 Node nem de um `frontend/` -- e o brag (via `claude -p`, como no `promo`)
 monta o vídeo com as legendas.
 """
+import importlib
 import json
 import re
 import shutil
+import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
-try:
-    from playwright.sync_api import Error as PlaywrightError, sync_playwright
-except ImportError:  # sem o pacote: `checar_dependencias_training` explica o que fazer
-    PlaywrightError = Exception
-    sync_playwright = None
+from .promo import (
+    PASTA_DE_MIDIA, SAIDA_DO_BRAG, _detalhe, acionar_brag, checar_dependencias, validar_idioma)
 
-from .promo import PASTA_DE_MIDIA, SAIDA_DO_BRAG, acionar_brag, checar_dependencias, validar_idioma
+sync_playwright = None
+PlaywrightError = Exception
+
+
+def _carregar_playwright() -> bool:
+    """(Re)carrega o Playwright; é chamado de novo depois que o Sentry o instala, para
+    não obrigar o usuário a rodar o comando duas vezes."""
+    global sync_playwright, PlaywrightError
+    importlib.invalidate_caches()
+    try:
+        from playwright.sync_api import Error, sync_playwright as carregado
+    except ImportError:
+        sync_playwright, PlaywrightError = None, Exception
+        return False
+    sync_playwright, PlaywrightError = carregado, Error
+    return True
+
+
+_carregar_playwright()
 
 PASTA_DE_ROTEIROS = Path(".sentry") / "training"
 ACOES = ("ir", "digitar", "clicar", "apontar")
@@ -31,6 +49,8 @@ MS_POR_PALAVRA = 380
 MINIMO_POR_PASSO_MS = 2500
 TEMPO_DO_SELETOR_MS = 10000
 INSTALAR_PLAYWRIGHT = "pip install playwright && playwright install chromium"
+TEMPO_DA_INSTALACAO_DO_PLAYWRIGHT = 900
+_LOCAL_DA_INSTALACAO = re.compile(r"Install location:\s+(.+)")
 _NOME_DE_MODULO = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
 IDIOMA_NO_PROMPT = {"pt": "português do Brasil (PT-BR)", "en": "English"}
@@ -123,12 +143,62 @@ def validar_roteiros_declarados(root: Path) -> list[str]:
     return erros
 
 
+def navegador_instalado(*, python: str | None = None, run=None) -> bool:
+    """O Chromium e o que o Playwright precisa para gravar vídeo estão em disco?
+
+    Pergunta ao próprio Playwright onde cada coisa deveria estar (`--dry-run`) em vez de
+    subir o driver, que imprime ruído no stderr só por ser consultado.
+    """
+    run = run or subprocess.run
+    try:
+        resultado = run([python or sys.executable, "-m", "playwright", "install", "--dry-run", "chromium"],
+                        capture_output=True, timeout=60, text=True, encoding="utf-8", errors="replace")
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    if resultado.returncode != 0:
+        return False
+    locais = [Path(achado.strip()) for achado in _LOCAL_DA_INSTALACAO.findall(resultado.stdout or "")]
+    return bool(locais) and all(local.is_dir() for local in locais)
+
+
+def _instalar(comando: list[str], o_que: str, run) -> None:
+    try:
+        resultado = run(comando, capture_output=True, timeout=TEMPO_DA_INSTALACAO_DO_PLAYWRIGHT,
+                        text=True, encoding="utf-8", errors="replace")
+    except (OSError, subprocess.TimeoutExpired) as erro:
+        raise ValueError(f"não foi possível instalar {o_que}: {erro}; "
+                         f"instale à mão com: {INSTALAR_PLAYWRIGHT}") from None
+    if resultado.returncode != 0:
+        raise ValueError(f"a instalação {o_que} falhou: {_detalhe(resultado)}; "
+                         f"instale à mão com: {INSTALAR_PLAYWRIGHT}")
+
+
+def garantir_playwright(*, python: str | None = None, run=None, avisar=print) -> None:
+    """Instala o que faltar do Playwright (pacote e Chromium) com o Python que executa o Sentry.
+
+    O mesmo Python, e não o `pip` do PATH, porque é nele que o comando vai procurar o pacote.
+    """
+    python = python or sys.executable
+    run = run or subprocess.run
+    if sync_playwright is None:
+        avisar("O Playwright não está instalado; instalando com pip...")
+        _instalar([python, "-m", "pip", "install", "playwright"], "do Playwright (pip)", run)
+        if not _carregar_playwright():
+            raise ValueError("o pip instalou o Playwright, mas o Python do Sentry não o carregou; "
+                             f"instale à mão com: {INSTALAR_PLAYWRIGHT}")
+    if not navegador_instalado(python=python, run=run):
+        avisar("O navegador do Playwright não está instalado; baixando o Chromium (cerca de 150 MB)...")
+        _instalar([python, "-m", "playwright", "install", "chromium"], "do Chromium", run)
+        if not navegador_instalado(python=python, run=run):
+            raise ValueError("o Chromium foi instalado, mas o Playwright não o encontrou; "
+                             f"instale à mão com: {INSTALAR_PLAYWRIGHT}")
+
+
 def checar_dependencias_training(root: Path, *, which=None, home: Path | None = None, run=None,
                                  avisar=print) -> str:
-    """As do `promo` mais o Playwright do Python. Devolve o caminho do `claude`."""
+    """As do `promo` mais o Playwright, instalado se faltar. Devolve o caminho do `claude`."""
     claude = checar_dependencias(root, which=which, home=home, run=run, avisar=avisar)
-    if sync_playwright is None:
-        raise ValueError(f"falta o Playwright do Python; instale com: {INSTALAR_PLAYWRIGHT}")
+    garantir_playwright(run=run, avisar=avisar)
     return claude
 
 

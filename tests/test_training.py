@@ -20,6 +20,7 @@ from sentrytest.application import promo, training
 REPO = Path(__file__).resolve().parent.parent
 # As reais, guardadas antes de a fixture trocá-las.
 GRAVAR_REAL = training.gravar
+GARANTIR_NAVEGADOR = training.navegador_instalado
 APP_RESPONDE_REAL = training.app_responde
 
 ROTEIRO = {
@@ -86,10 +87,11 @@ def ambiente(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(promo.shutil, "which", which)
     monkeypatch.setattr(promo.subprocess, "run", run)
     monkeypatch.setattr(training, "app_responde", lambda base, timeout=5: None)
+    monkeypatch.setattr(training, "navegador_instalado", lambda **kwargs: True)
     monkeypatch.setattr(training, "gravar", gravar)
     monkeypatch.chdir(projeto)
     return {"projeto": projeto, "home": home, "chamadas": chamadas, "gravacoes": gravacoes,
-            "which": which, "instalacoes": instalacoes}
+            "which": which, "instalacoes": instalacoes, "run": run}
 
 
 # cenario: roteiro valido e aceito
@@ -227,14 +229,11 @@ def test_training_para_quando_o_app_da_base_nao_responde(ambiente, monkeypatch, 
     assert ambiente["gravacoes"] == []
 
 
-@pytest.mark.parametrize("ausente", ["claude", "ffmpeg", "playwright"])
+@pytest.mark.parametrize("ausente", ["claude", "ffmpeg"])
 # cenario: training para quando falta uma dependencia
 def test_training_para_quando_falta_uma_dependencia(ambiente, monkeypatch, capsys, ausente):
-    if ausente == "playwright":
-        monkeypatch.setattr(training, "sync_playwright", None)
-    else:
-        original = ambiente["which"]
-        monkeypatch.setattr(promo.shutil, "which", lambda nome: None if nome == ausente else original(nome))
+    original = ambiente["which"]
+    monkeypatch.setattr(promo.shutil, "which", lambda nome: None if nome == ausente else original(nome))
     codigo = cli.main(["training", "cadastro"])
     assert codigo == cli.EXIT_INFRA
     assert ausente.lower() in capsys.readouterr().out.lower()
@@ -371,6 +370,117 @@ def test_training_usa_o_video_do_caminho_pedido_quando_o_claude_o_grava(ambiente
     assert cli.main(["training", "cadastro"]) == cli.EXIT_OK
     video = ambiente["projeto"] / ".sentry" / "media" / "training-cadastro-pt.mp4"
     assert video.read_bytes() == b"NO-CAMINHO-PEDIDO"
+
+
+def comando_de_playwright(ambiente, monkeypatch, *, pacote_ausente=False, navegador_ausente=False,
+                          falha_em=None, excecao=None):
+    """Troca o `run` para registrar as instalações do Playwright. `falha_em` é um trecho do
+    comando que devolve código 1 (ou levanta `excecao`)."""
+    instalados = {"navegador": not navegador_ausente}
+    comandos = []
+    original = ambiente["run"]
+
+    def run(comando, **kwargs):
+        texto = " ".join(str(parte) for parte in comando)
+        if "-m pip" in texto or "-m playwright" in texto:
+            comandos.append(comando)
+            if falha_em and falha_em in texto:
+                if excecao:
+                    raise excecao
+                return subprocess.CompletedProcess(comando, 1, stdout="", stderr="sem rede")
+            if "install chromium" in texto and "--dry-run" not in texto:
+                instalados["navegador"] = True
+            return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
+        return original(comando, **kwargs)
+
+    monkeypatch.setattr(promo.subprocess, "run", run)
+    monkeypatch.setattr(training, "navegador_instalado", lambda **kwargs: instalados["navegador"])
+    if pacote_ausente:
+        monkeypatch.setattr(training, "sync_playwright", None)
+        monkeypatch.setattr(training, "_carregar_playwright", lambda: True)
+    return comandos
+
+
+# cenario: training instala o playwright quando falta o pacote
+def test_training_instala_o_playwright_quando_falta_o_pacote(ambiente, monkeypatch, capsys):
+    comandos = comando_de_playwright(ambiente, monkeypatch, pacote_ausente=True)
+    assert cli.main(["training", "cadastro"]) == cli.EXIT_OK
+    assert comandos == [[sys.executable, "-m", "pip", "install", "playwright"]]
+    assert "instalando com pip" in capsys.readouterr().out
+    assert len(ambiente["gravacoes"]) == 1  # depois de instalar, segue para a gravação
+
+
+# cenario: training instala o chromium quando falta so o navegador
+def test_training_instala_o_chromium_quando_falta_so_o_navegador(ambiente, monkeypatch, capsys):
+    comandos = comando_de_playwright(ambiente, monkeypatch, navegador_ausente=True)
+    assert cli.main(["training", "cadastro"]) == cli.EXIT_OK
+    assert comandos == [[sys.executable, "-m", "playwright", "install", "chromium"]]
+    assert "150 MB" in capsys.readouterr().out
+    assert len(ambiente["gravacoes"]) == 1
+
+
+# cenario: training para quando a instalacao do playwright falha
+@pytest.mark.parametrize("opcoes, trecho", [
+    ({"pacote_ausente": True, "falha_em": "pip install"}, "sem rede"),
+    ({"navegador_ausente": True, "falha_em": "install chromium"}, "sem rede"),
+    ({"pacote_ausente": True, "falha_em": "pip install", "excecao": OSError("pip sumiu")}, "pip sumiu"),
+    ({"navegador_ausente": True, "falha_em": "install chromium",
+      "excecao": subprocess.TimeoutExpired("playwright", 900)}, "não foi possível instalar"),
+])
+def test_training_para_quando_a_instalacao_do_playwright_falha(ambiente, monkeypatch, capsys, opcoes, trecho):
+    comando_de_playwright(ambiente, monkeypatch, **opcoes)
+    assert cli.main(["training", "cadastro"]) == cli.EXIT_INFRA
+    saida = capsys.readouterr().out
+    assert trecho in saida
+    assert "pip install playwright && playwright install chromium" in saida
+    assert ambiente["gravacoes"] == [] and ambiente["chamadas"] == []
+
+
+def test_training_avisa_quando_o_pip_instala_mas_o_pacote_nao_carrega(ambiente, monkeypatch, capsys):
+    comando_de_playwright(ambiente, monkeypatch, pacote_ausente=True)
+    monkeypatch.setattr(training, "_carregar_playwright", lambda: False)
+    assert cli.main(["training", "cadastro"]) == cli.EXIT_INFRA
+    assert "não o carregou" in capsys.readouterr().out
+
+
+def test_training_avisa_quando_o_chromium_instala_mas_nao_aparece(ambiente, monkeypatch, capsys):
+    comando_de_playwright(ambiente, monkeypatch, navegador_ausente=True)
+    monkeypatch.setattr(training, "navegador_instalado", lambda **kwargs: False)
+    assert cli.main(["training", "cadastro"]) == cli.EXIT_INFRA
+    assert "não o encontrou" in capsys.readouterr().out
+
+
+DRY_RUN = (
+    "Chrome for Testing 151 (playwright chromium v1234)\n  Install location:    {a}\n"
+    "  Download url:        https://x\n\nFFmpeg (playwright ffmpeg v1011)\n  Install location:    {b}\n"
+)
+
+
+@pytest.mark.parametrize("existem, esperado", [(("a", "b"), True), (("a",), False), ((), False)])
+def test_navegador_instalado_exige_que_todos_os_locais_existam(tmp_path, existem, esperado):
+    locais = {"a": tmp_path / "chromium-1", "b": tmp_path / "ffmpeg-1"}
+    for nome in existem:
+        locais[nome].mkdir()
+
+    def run(comando, **kwargs):
+        assert comando[1:5] == ["-m", "playwright", "install", "--dry-run"]
+        return subprocess.CompletedProcess(comando, 0, stdout=DRY_RUN.format(a=locais["a"], b=locais["b"]), stderr="")
+    assert GARANTIR_NAVEGADOR(run=run) is esperado
+
+
+@pytest.mark.parametrize("resultado", [
+    subprocess.CompletedProcess([], 1, stdout="", stderr="erro"),
+    subprocess.CompletedProcess([], 0, stdout="sem locais", stderr=""),
+])
+def test_navegador_instalado_e_falso_quando_o_playwright_nao_informa_locais(resultado):
+    assert GARANTIR_NAVEGADOR(run=lambda comando, **kwargs: resultado) is False
+
+
+@pytest.mark.parametrize("falha", [OSError("sem python"), subprocess.TimeoutExpired("playwright", 60)])
+def test_navegador_instalado_e_falso_quando_a_consulta_nao_executa(falha):
+    def run(comando, **kwargs):
+        raise falha
+    assert GARANTIR_NAVEGADOR(run=run) is False
 
 
 # cenario: training instala o brag quando ele esta ausente

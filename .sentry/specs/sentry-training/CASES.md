@@ -12,10 +12,13 @@ com `base`, `titulo` e `passos`; cada passo tem `titulo`, `fala` e `acao`, e as 
 dados (`ir`, `digitar`, `clicar`, `apontar`), nunca código. A gravação é própria do
 `training` (não reaproveita o `archive --video`), com marcação de tempo por passo para as
 legendas. A gravação usa o Playwright do Python, dentro do pacote do Sentry, para funcionar em
-qualquer projeto (sem depender de `frontend/` nem de Node). Faltando `claude`, `ffmpeg` ou o
-Playwright, ou com falha do `claude -p` ou do app, o comando para com erro claro e código
-diferente de zero, sem fallback silencioso. Se falta só a skill brag, o Sentry a instala como o
-`promo` faz. `--lang en` roda o brag outra vez em inglês. O vídeo vai para `.sentry/media/`; o `check`
+qualquer projeto (sem depender de `frontend/` nem de Node). Faltando `claude` ou `ffmpeg`, ou com falha do
+`claude -p` ou do app, o comando para com erro claro e código diferente de zero, sem fallback
+silencioso. Se falta só a skill brag, o Sentry a instala como o `promo` faz. Se falta o Playwright
+(o pacote Python ou o navegador Chromium), o Sentry também instala, com o mesmo Python que o
+executa (`python -m pip install playwright` e `python -m playwright install chromium`), avisando
+antes que o Chromium pesa cerca de 150 MB; se a instalação falha, para com erro claro e mostra os
+comandos manuais. `--lang en` roda o brag outra vez em inglês. O vídeo vai para `.sentry/media/`; o `check`
 também valida o roteiro.
 
 ## Campos
@@ -26,8 +29,8 @@ também valida o roteiro.
 - **acao**: roteiro — o que o passo faz na tela: `ir`, `digitar`, `clicar` ou `apontar`.
 - **idioma**: idioma — o valor de `--lang`; `pt` por padrão, `en` opcional.
 - **app_na_base**: booleano — se a URL `base` do roteiro responde.
-- **dependencias**: booleano — se `claude`, `ffmpeg` e o Playwright do Python estão
-  disponíveis (a skill brag é instalada pelo Sentry quando falta).
+- **dependencias**: booleano — se `claude` e `ffmpeg` estão disponíveis; o Playwright do
+  Python (pacote e Chromium) e a skill brag são instalados pelo Sentry quando faltam.
 
 ## Caso: roteiro valido e aceito
 
@@ -172,13 +175,13 @@ também valida o roteiro.
 
 ## Caso: training para quando falta uma dependencia
 
-- **Requisito:** "Faltando `claude`, `ffmpeg` ou o Playwright, o comando para com erro
+- **Requisito:** "Faltando `claude` ou `ffmpeg`, o comando para com erro
   claro e código diferente de zero, sem fallback silencioso"
 - **Camada:** backend
 - **Tipo:** unitário
 - **Prioridade:** crítica
 - **Classe:** dependencias/ausente
-- **Dado:** um ambiente sem uma das três dependências
+- **Dado:** um ambiente sem uma das duas dependências
 - **Quando:** o usuário roda `sentry training cadastro`
 - **Então:** o comando nomeia a dependência que falta e como instalá-la, sai com código
   diferente de zero e não grava nada
@@ -196,6 +199,50 @@ também valida o roteiro.
 - **Então:** o Sentry instala o brag pelo Claude Code antes de chamar o `claude -p` e gera o
   vídeo
 - **Entrada:** `dependencias = brag-ausente`
+
+## Caso: training instala o playwright quando falta o pacote
+
+- **Requisito:** "Se falta o Playwright [...] o Sentry também instala, com o mesmo Python que o
+  executa" — quem nunca instalou o Playwright não precisa saber o comando
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** crítica
+- **Classe:** dependencias/playwright-ausente
+- **Dado:** `claude` e `ffmpeg` disponíveis e o pacote `playwright` não instalado no Python do
+  Sentry
+- **Quando:** o usuário roda `sentry training cadastro`
+- **Então:** o Sentry avisa, roda `<python do Sentry> -m pip install playwright`, carrega o pacote
+  recém-instalado e segue para a gravação
+- **Entrada:** `dependencias = playwright-ausente`
+
+## Caso: training instala o chromium quando falta so o navegador
+
+- **Requisito:** "o pacote Python ou o navegador Chromium" — o pacote instalado sem o navegador
+  é o erro mais comum e não pode estourar no meio da gravação
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** crítica
+- **Classe:** dependencias/navegador-ausente
+- **Dado:** o pacote `playwright` instalado e o Chromium ausente
+- **Quando:** o usuário roda `sentry training cadastro`
+- **Então:** o Sentry avisa que o Chromium pesa cerca de 150 MB, roda
+  `<python do Sentry> -m playwright install chromium` e segue para a gravação
+- **Entrada:** `dependencias = navegador-ausente`
+
+## Caso: training para quando a instalacao do playwright falha
+
+- **Requisito:** "se a instalação falha, para com erro claro e mostra os comandos manuais"
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** alta
+- **Classe:** dependencias/instalacao-playwright-falhou
+- **Dado:** o Playwright ausente e uma instalação (pip ou Chromium) que sai com código diferente
+  de zero, estoura o tempo ou não executa
+- **Quando:** o usuário roda `sentry training cadastro`
+- **Então:** o comando mostra o erro da instalação e os comandos manuais
+  (`pip install playwright && playwright install chromium`), sai com código diferente de zero e
+  não grava nem chama o `claude -p`
+- **Entrada:** `dependencias = instalacao-playwright-falhou`
 
 ## Caso: training monta o video em portugues por padrao
 

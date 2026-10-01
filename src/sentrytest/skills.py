@@ -297,13 +297,15 @@ genérico: roda, mas não mede.
   módulo. Lê o roteiro declarativo `.sentry/training/<modulo>.json` (versionado):
   `base`, `titulo` e `passos`, cada passo com `titulo`, `fala` e uma `acao` que é
   dado, nunca código (`ir`, `digitar` com `valor`, `clicar` ou `apontar`). Grava
-  com o Playwright do Python (já no Sentry; exige `pip install playwright &&
-  playwright install chromium`), marcando o tempo de cada passo, e a skill brag (via
+  com o Playwright do Python (já no Sentry), marcando o tempo de cada passo, e a skill brag (via
   `claude -p "/brag ..."`) monta o vídeo com as legendas em
   `.sentry/media/training-<modulo>-<idioma>.mp4`. Para com erro claro e código 3
   se o nome do módulo for inseguro, o roteiro faltar ou for inválido, o app de
-  `base` não responder, ou faltar Claude Code, `ffmpeg` ou Playwright. A skill
-  brag ausente é instalada automaticamente. O `sentry check` valida todos os roteiros. `--lang en` roda o brag
+  `base` não responder, ou faltar Claude Code ou `ffmpeg`. O que faltar do brag
+  e do Playwright o Sentry instala sozinho: o Playwright com o mesmo Python que o
+  executa (`python -m pip install playwright` e `python -m playwright install
+  chromium`, cerca de 150 MB); se a instalação falhar, para e mostra os comandos
+  manuais. O `sentry check` valida todos os roteiros. `--lang en` roda o brag
   de novo em inglês.
 
 ## Limites
