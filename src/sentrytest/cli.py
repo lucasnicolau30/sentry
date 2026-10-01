@@ -29,9 +29,10 @@ from .application.archive import (
     write_archive, write_archive_rotas)
 from .application.formatting import format_instant
 from .application.promo import IDIOMA_PADRAO, IDIOMAS, gerar_promo
+from .application.training import gerar_training, validar_roteiros_declarados
 from .application.reporting import clear_history, load_runs, staleness, write_reports, compare
 
-_COMMAND_NAMES = ("init", "new", "check", "run", "review", "watch", "status", "context", "report", "history", "clear", "archive", "promo")
+_COMMAND_NAMES = ("init", "new", "check", "run", "review", "watch", "status", "context", "report", "history", "clear", "archive", "promo", "training")
 _CHOICES_LINE = re.compile(r'^\{[\w,]+\}$')
 # Generico -- qualquer `-x`/`--algo`, nao so' `-h`/`--help`/`--version` como antes:
 # cada subcomando tem seu proprio conjunto de flags (`--prompt`, `--spec`, `--base`...)
@@ -372,6 +373,11 @@ def build_parser():
     promo = sub.add_parser("promo", help="gera o vídeo promocional do projeto com a skill brag")
     promo.add_argument("--lang", default=IDIOMA_PADRAO, metavar="IDIOMA",
                        help=f"idioma do vídeo: {', '.join(IDIOMAS)} (padrão: {IDIOMA_PADRAO}); en roda o brag de novo em inglês")
+
+    training = sub.add_parser("training", help="grava o roteiro de um módulo no Playwright e monta o vídeo de treinamento com o brag")
+    training.add_argument("module", help="nome do módulo; o roteiro é .sentry/training/<modulo>.json")
+    training.add_argument("--lang", default=IDIOMA_PADRAO, metavar="IDIOMA",
+                          help=f"idioma do vídeo: {', '.join(IDIOMAS)} (padrão: {IDIOMA_PADRAO}); en roda o brag de novo em inglês")
     return parser
 
 def instructions_payload():
@@ -449,6 +455,7 @@ def _check(root: Path, slug: str | None, tolerate_missing: bool = False, *,
         _print_app_error(str(error), parser=parser)
         return 2
     errors = validate_document(document)
+    errors += validar_roteiros_declarados(root)
     missing = missing_classes(document.fields, document.cases, catalog, not_applicable=document.not_applicable)
     unknown = unknown_field_types(document.fields, catalog)
     if parser is not None and parser._wordmark:
@@ -617,6 +624,18 @@ def _promo(root: Path, args, *, parser: argparse.ArgumentParser | None = None) -
         _print_app_error(str(error), parser=parser)
         return EXIT_INFRA
     print(f"{paint(VERDICT_SYMBOL['aprovado'], 'green')} vídeo promocional ({args.lang}) em "
+          f"{destino.relative_to(root).as_posix()}")
+    return EXIT_OK
+
+def _training(root: Path, args, *, parser: argparse.ArgumentParser | None = None) -> int:
+    """Grava o roteiro do módulo e monta o vídeo de treinamento com o brag."""
+    try:
+        with Spinner("Gravando e montando o vídeo de treinamento (pode levar vários minutos)"):
+            destino = gerar_training(root, args.module, args.lang)
+    except ValueError as error:
+        _print_app_error(str(error), parser=parser)
+        return EXIT_INFRA
+    print(f"{paint(VERDICT_SYMBOL['aprovado'], 'green')} vídeo de treinamento de {args.module} ({args.lang}) em "
           f"{destino.relative_to(root).as_posix()}")
     return EXIT_OK
 
@@ -852,6 +871,8 @@ def main(argv=None):
         return _archive(root, args, parser=parser._subcommands.choices["archive"])
     elif args.command == "promo":
         return _promo(root, args, parser=parser._subcommands.choices["promo"])
+    elif args.command == "training":
+        return _training(root, args, parser=parser._subcommands.choices["training"])
     elif args.command == "status":
         # Sempre `--spec all`, sempre a suite completa, nunca o cache: e' a medicao
         # autoritativa do projeto inteiro, nao o loop rapido que `run`/`watch` sao.

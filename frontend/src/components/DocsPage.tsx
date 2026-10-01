@@ -816,7 +816,8 @@ const firstStepsByLang: Record<"pt" | "en", Card[]> = {
           <span className="text-[var(--text-h)]">report</span>,{" "}
           <span className="text-[var(--text-h)]">history</span>,{" "}
           <span className="text-[var(--text-h)]">archive</span>,{" "}
-          <span className="text-[var(--text-h)]">promo</span> e{" "}
+          <span className="text-[var(--text-h)]">promo</span>,{" "}
+          <span className="text-[var(--text-h)]">training</span> e{" "}
           <span className="text-[var(--text-h)]">clear</span>.
         </>
       ),
@@ -861,7 +862,8 @@ const firstStepsByLang: Record<"pt" | "en", Card[]> = {
           <span className="text-[var(--text-h)]">report</span>,{" "}
           <span className="text-[var(--text-h)]">history</span>,{" "}
           <span className="text-[var(--text-h)]">archive</span>,{" "}
-          <span className="text-[var(--text-h)]">promo</span> and{" "}
+          <span className="text-[var(--text-h)]">promo</span>,{" "}
+          <span className="text-[var(--text-h)]">training</span> and{" "}
           <span className="text-[var(--text-h)]">clear</span>.
         </>
       ),

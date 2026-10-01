@@ -22,11 +22,18 @@ def ambiente(tmp_path: Path, monkeypatch):
     projeto = tmp_path / "projeto"
     projeto.mkdir()
     chamadas = []
+    instalacoes = []
 
     def which(nome):
         return f"/bin/{nome}"
 
     def run(comando, **kwargs):
+        if comando[1] == "plugin":  # a instalação do brag pelo Claude Code
+            instalacoes.append(comando[2:])
+            if comando[2] == "install":
+                skill.mkdir(parents=True, exist_ok=True)
+                (skill / "SKILL.md").write_text("---\nname: brag\n---\n", encoding="utf-8")
+            return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
         chamadas.append(comando)
         saida = projeto / "brag-output"
         saida.mkdir(exist_ok=True)
@@ -37,7 +44,8 @@ def ambiente(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(promo.shutil, "which", which)
     monkeypatch.setattr(promo.subprocess, "run", run)
     monkeypatch.chdir(projeto)
-    return {"projeto": projeto, "home": home, "chamadas": chamadas, "which": which, "run": run}
+    return {"projeto": projeto, "home": home, "chamadas": chamadas, "which": which, "run": run,
+            "instalacoes": instalacoes}
 
 
 def sem(ambiente, monkeypatch, ausente):
@@ -90,13 +98,62 @@ def test_promo_para_quando_o_claude_nao_esta_no_path(ambiente, monkeypatch, caps
     assert ambiente["chamadas"] == []
 
 
-# cenario: promo para quando a skill brag nao esta instalada
-def test_promo_para_quando_a_skill_brag_nao_esta_instalada(ambiente, capsys):
+# cenario: promo instala o brag quando ele esta ausente
+def test_promo_instala_o_brag_quando_ele_esta_ausente(ambiente, capsys):
     (ambiente["home"] / ".claude" / "skills" / "brag" / "SKILL.md").unlink()
     codigo = cli.main(["promo"])
+    assert codigo == cli.EXIT_OK
+    assert ambiente["instalacoes"] == [["marketplace", "add", "latent-spaces/brag"],
+                                       ["install", "brag@brag"]]
+    assert len(ambiente["chamadas"]) == 1  # só depois de instalar o claude -p roda
+    assert "instalando" in capsys.readouterr().out
+    assert (ambiente["projeto"] / ".sentry" / "media" / "promo-pt.mp4").exists()
+
+
+# cenario: promo para quando a instalacao do brag falha
+def test_promo_para_quando_a_instalacao_do_brag_falha(ambiente, monkeypatch, capsys):
+    (ambiente["home"] / ".claude" / "skills" / "brag" / "SKILL.md").unlink()
+
+    def falha(comando, **kwargs):
+        return subprocess.CompletedProcess(comando, 1, stdout="", stderr="marketplace inacessível")
+    monkeypatch.setattr(promo.subprocess, "run", falha)
+    codigo = cli.main(["promo"])
     assert codigo == cli.EXIT_INFRA
-    assert "latent-spaces/brag" in capsys.readouterr().out
+    saida = capsys.readouterr().out
+    assert "marketplace inacessível" in saida and "latent-spaces/brag" in saida
     assert ambiente["chamadas"] == []
+
+
+def test_promo_aceita_marketplace_ja_adicionado(ambiente, monkeypatch):
+    (ambiente["home"] / ".claude" / "skills" / "brag" / "SKILL.md").unlink()
+    original = ambiente["run"]
+
+    def run(comando, **kwargs):
+        if comando[2:4] == ["marketplace", "add"]:
+            return subprocess.CompletedProcess(comando, 1, stdout="", stderr="Marketplace already exists")
+        return original(comando, **kwargs)
+    monkeypatch.setattr(promo.subprocess, "run", run)
+    assert cli.main(["promo"]) == cli.EXIT_OK
+    assert ambiente["instalacoes"] == [["install", "brag@brag"]]
+
+
+@pytest.mark.parametrize("falha", [subprocess.TimeoutExpired("claude", 300), OSError("sem permissão")])
+def test_promo_explica_quando_a_instalacao_nao_executa(ambiente, monkeypatch, capsys, falha):
+    (ambiente["home"] / ".claude" / "skills" / "brag" / "SKILL.md").unlink()
+
+    def quebra(comando, **kwargs):
+        raise falha
+    monkeypatch.setattr(promo.subprocess, "run", quebra)
+    assert cli.main(["promo"]) == cli.EXIT_INFRA
+    assert "latent-spaces/brag" in capsys.readouterr().out
+
+
+def test_promo_avisa_quando_o_brag_nao_aparece_depois_de_instalar(ambiente, monkeypatch, capsys):
+    (ambiente["home"] / ".claude" / "skills" / "brag" / "SKILL.md").unlink()
+    monkeypatch.setattr(promo.subprocess, "run",
+                        lambda comando, **kw: subprocess.CompletedProcess(comando, 0, stdout="", stderr=""))
+    assert cli.main(["promo"]) == cli.EXIT_INFRA
+    assert "não apareceu" in capsys.readouterr().out
 
 
 # cenario: promo para quando o ffmpeg esta ausente

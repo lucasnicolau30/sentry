@@ -208,11 +208,24 @@ genérico: roda, mas não mede.
     aceitam essas flags).
 - `sentry promo [--lang pt|en]` — gera o vídeo promocional do projeto com a skill
   brag, acionada por baixo dos panos como `claude -p "/brag ..."`. Exige o Claude
-  Code, a skill brag e o `ffmpeg`; faltando algum, ou se o `claude` falhar ou não
+  Code e o `ffmpeg`; faltando algum, ou se o `claude` falhar ou não
   deixar um `.mp4` novo em `brag-output/`, para com erro claro e código 3, sem
   fallback silencioso. Grava `.sentry/media/promo-<idioma>.mp4` (cópia; o original
-  fica em `brag-output/`). `--lang en` roda o brag de novo em inglês; o padrão é
-  português.
+  fica em `brag-output/`). Se falta só a skill brag, o Sentry a instala (`claude plugin
+  marketplace add latent-spaces/brag` e `claude plugin install brag@brag`) e segue.
+  `--lang en` roda o brag de novo em inglês; o padrão é português.
+- `sentry training <modulo> [--lang pt|en]` — grava o vídeo de treinamento de um
+  módulo. Lê o roteiro declarativo `.sentry/training/<modulo>.json` (versionado):
+  `base`, `titulo` e `passos`, cada passo com `titulo`, `fala` e uma `acao` que é
+  dado, nunca código (`ir`, `digitar` com `valor`, `clicar` ou `apontar`). Grava
+  com o Playwright do Python (já no Sentry; exige `pip install playwright &&
+  playwright install chromium`), marcando o tempo de cada passo, e a skill brag (via
+  `claude -p "/brag ..."`) monta o vídeo com as legendas em
+  `.sentry/media/training-<modulo>-<idioma>.mp4`. Para com erro claro e código 3
+  se o nome do módulo for inseguro, o roteiro faltar ou for inválido, o app de
+  `base` não responder, ou faltar Claude Code, `ffmpeg` ou Playwright. A skill
+  brag ausente é instalada automaticamente. O `sentry check` valida todos os roteiros. `--lang en` roda o brag
+  de novo em inglês.
 
 ## Limites
 

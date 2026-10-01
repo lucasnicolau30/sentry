@@ -7,9 +7,11 @@ para gerar o vídeo promocional do projeto em `.sentry/media/`, PT por padrão e
 opcional.
 
 Decisões do Lucas: o brag é uma skill do Claude Code (não um binário), então o Sentry a
-aciona por subprocess com `claude -p`. Se falta `claude`, a skill brag ou o `ffmpeg`, ou se
-o `claude -p` falha, o comando para com erro claro e código de saída diferente de zero, sem
-fallback silencioso. `--lang en` roda o brag outra vez com o prompt em inglês, em vez de
+aciona por subprocess com `claude -p`. Se falta `claude` ou o `ffmpeg`, ou se o `claude -p`
+falha, o comando para com erro claro e código de saída diferente de zero, sem
+fallback silencioso. Se falta só a skill brag, o Sentry a instala (`claude plugin marketplace add
+latent-spaces/brag` e `claude plugin install brag@brag`) e segue; se a instalação falha, para com
+erro claro. `--lang en` roda o brag outra vez com o prompt em inglês, em vez de
 traduzir legendas. O brag escreve em `brag-output/` (onde já há vídeos versionados); o
 Sentry copia o `.mp4` novo para `.sentry/media/`, sem apagar o original.
 
@@ -18,7 +20,8 @@ Sentry copia o `.mp4` novo para `.sentry/media/`, sem apagar o original.
 - **idioma**: idioma — o valor de `--lang`; `pt` por padrão, `en` opcional, qualquer outro
   é recusado.
 - **claude_no_path**: booleano — se o executável `claude` é encontrado no PATH.
-- **brag_instalado**: booleano — se a skill brag está instalada para o Claude Code.
+- **brag_instalado**: booleano — se a skill brag está instalada para o Claude Code; se não,
+  o Sentry a instala antes de gerar o vídeo.
 - **ffmpeg_no_path**: booleano — se o `ffmpeg` é encontrado no PATH.
 - **saida_do_claude**: booleano — se o `claude -p` terminou com código zero e deixou um
   `.mp4` em `brag-output/`.
@@ -77,19 +80,35 @@ Sentry copia o `.mp4` novo para `.sentry/media/`, sem apagar o original.
   de zero e não cria nada em `.sentry/media/`
 - **Entrada:** `claude_no_path = falso`
 
-## Caso: promo para quando a skill brag nao esta instalada
+## Caso: promo instala o brag quando ele esta ausente
 
-- **Requisito:** "para com erro claro e código de saída diferente de zero" quando falta o brag
-- **Camada:** backend
-- **Tipo:** unitário
+- **Requisito:** "Se falta só a skill brag, o Sentry a instala e segue" — quem nunca instalou
+  o brag não precisa saber o comando de plugin
+- **Camada:** integração
+- **Tipo:** integração
 - **Prioridade:** crítica
 - **Classe:** brag_instalado/ausente
-- **Dado:** `claude` no PATH e nenhuma skill brag instalada
+- **Dado:** `claude` e `ffmpeg` no PATH e nenhuma skill brag instalada
 - **Quando:** o usuário roda `sentry promo`
-- **Então:** o comando diz que falta o brag e mostra o comando de instalação
-  (`/plugin marketplace add latent-spaces/brag`), sai com código diferente de zero e não
-  chama o `claude -p`
+- **Então:** o Sentry avisa que vai instalar, roda `claude plugin marketplace add
+  latent-spaces/brag` e `claude plugin install brag@brag`, e só então chama o `claude -p` e
+  gera o vídeo
 - **Entrada:** `brag_instalado = falso`
+
+## Caso: promo para quando a instalacao do brag falha
+
+- **Requisito:** "se a instalação falha, para com erro claro" — gerar sem a skill seria
+  inventar um vídeo que o brag não fez
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** alta
+- **Classe:** brag_instalado/instalacao-falhou
+- **Dado:** `claude` e `ffmpeg` no PATH, nenhuma skill brag e um `claude plugin install` que
+  sai com código diferente de zero
+- **Quando:** o usuário roda `sentry promo`
+- **Então:** o comando mostra o erro da instalação e como instalar à mão, sai com código
+  diferente de zero e não chama o `claude -p`
+- **Entrada:** `brag_instalado = instalacao-falhou`
 
 ## Caso: promo para quando o ffmpeg esta ausente
 
