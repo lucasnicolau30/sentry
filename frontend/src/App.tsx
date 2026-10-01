@@ -14,10 +14,10 @@ function HomePage() {
   return (
     <>
       <Hero />
-      <VideoShowcase />
       <HowItWorks />
       <FeatureGrid />
       <CommandShowcase />
+      <VideoShowcase />
     </>
   );
 }
