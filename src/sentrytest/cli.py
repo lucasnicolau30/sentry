@@ -28,9 +28,10 @@ from .application.archive import (
     PRIMEIRA_VERSAO, is_route_module, module_route_specs, record_module, resolve_specs,
     write_archive, write_archive_rotas)
 from .application.formatting import format_instant
+from .application.promo import IDIOMA_PADRAO, IDIOMAS, gerar_promo
 from .application.reporting import clear_history, load_runs, staleness, write_reports, compare
 
-_COMMAND_NAMES = ("init", "new", "check", "run", "review", "watch", "status", "context", "report", "history", "clear", "archive")
+_COMMAND_NAMES = ("init", "new", "check", "run", "review", "watch", "status", "context", "report", "history", "clear", "archive", "promo")
 _CHOICES_LINE = re.compile(r'^\{[\w,]+\}$')
 # Generico -- qualquer `-x`/`--algo`, nao so' `-h`/`--help`/`--version` como antes:
 # cada subcomando tem seu proprio conjunto de flags (`--prompt`, `--spec`, `--base`...)
@@ -367,6 +368,10 @@ def build_parser():
     archive.add_argument("--specs", metavar="A,B,C", help=f"specs que compõem o módulo; declaradas uma única vez, na {PRIMEIRA_VERSAO}")
     archive.add_argument("--image", action="store_true", help="inclui prints na mídia arquivada")
     archive.add_argument("--video", action="store_true", help="grava e inclui vídeo (.webm) na mídia arquivada")
+
+    promo = sub.add_parser("promo", help="gera o vídeo promocional do projeto com a skill brag")
+    promo.add_argument("--lang", default=IDIOMA_PADRAO, metavar="IDIOMA",
+                       help=f"idioma do vídeo: {', '.join(IDIOMAS)} (padrão: {IDIOMA_PADRAO}); en roda o brag de novo em inglês")
     return parser
 
 def instructions_payload():
@@ -603,6 +608,18 @@ def _archive(root: Path, args, *, parser: argparse.ArgumentParser | None = None)
           f"{destino.relative_to(root).as_posix()}")
     return codigo
 
+def _promo(root: Path, args, *, parser: argparse.ArgumentParser | None = None) -> int:
+    """Aciona o brag por baixo dos panos e guarda o vídeo em `.sentry/media/`."""
+    try:
+        with Spinner("Gerando o vídeo promocional (pode levar vários minutos)"):
+            destino = gerar_promo(root, args.lang)
+    except ValueError as error:
+        _print_app_error(str(error), parser=parser)
+        return EXIT_INFRA
+    print(f"{paint(VERDICT_SYMBOL['aprovado'], 'green')} vídeo promocional ({args.lang}) em "
+          f"{destino.relative_to(root).as_posix()}")
+    return EXIT_OK
+
 def _archive_rotas(root: Path, args, config: dict, modulo_config: dict, *,
                    parser: argparse.ArgumentParser | None = None) -> int:
     """Modo por rota de `archive`: fotografa cada rota declarada em
@@ -833,6 +850,8 @@ def main(argv=None):
                                parser=parser._subcommands.choices["run"])
     elif args.command == "archive":
         return _archive(root, args, parser=parser._subcommands.choices["archive"])
+    elif args.command == "promo":
+        return _promo(root, args, parser=parser._subcommands.choices["promo"])
     elif args.command == "status":
         # Sempre `--spec all`, sempre a suite completa, nunca o cache: e' a medicao
         # autoritativa do projeto inteiro, nao o loop rapido que `run`/`watch` sao.

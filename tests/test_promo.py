@@ -1,0 +1,151 @@
+"""`sentry promo`: o brag acionado por `claude -p`, sem gastar token nem exigir login.
+
+O `claude` é simulado: o que importa aqui é o que o Sentry decide antes e depois
+dele (pré-requisitos, idioma, onde o vídeo cai, quando recusa afirmar sucesso).
+"""
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from sentrytest import cli
+from sentrytest.application import promo
+
+
+@pytest.fixture
+def ambiente(tmp_path: Path, monkeypatch):
+    """Projeto com tudo instalado e um `claude` que grava um .mp4 em brag-output/."""
+    home = tmp_path / "home"
+    skill = home / ".claude" / "skills" / "brag"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text("---\nname: brag\n---\n", encoding="utf-8")
+    projeto = tmp_path / "projeto"
+    projeto.mkdir()
+    chamadas = []
+
+    def which(nome):
+        return f"/bin/{nome}"
+
+    def run(comando, **kwargs):
+        chamadas.append(comando)
+        saida = projeto / "brag-output"
+        saida.mkdir(exist_ok=True)
+        (saida / "brag.mp4").write_bytes(b"video-" + comando[2].encode())
+        return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(promo.Path, "home", classmethod(lambda cls: home))
+    monkeypatch.setattr(promo.shutil, "which", which)
+    monkeypatch.setattr(promo.subprocess, "run", run)
+    monkeypatch.chdir(projeto)
+    return {"projeto": projeto, "home": home, "chamadas": chamadas, "which": which, "run": run}
+
+
+def sem(ambiente, monkeypatch, ausente):
+    original = ambiente["which"]
+    monkeypatch.setattr(promo.shutil, "which", lambda nome: None if nome == ausente else original(nome))
+
+
+# cenario: promo gera o video em portugues por padrao
+def test_promo_gera_o_video_em_portugues_por_padrao(ambiente, capsys):
+    codigo = cli.main(["promo"])
+    assert codigo == cli.EXIT_OK
+    assert len(ambiente["chamadas"]) == 1
+    comando = ambiente["chamadas"][0]
+    assert comando[1] == "-p"
+    assert comando[2].startswith("/brag")
+    assert "português" in comando[2]
+    video = ambiente["projeto"] / ".sentry" / "media" / "promo-pt.mp4"
+    assert video.read_bytes().startswith(b"video-")
+    assert (ambiente["projeto"] / "brag-output" / "brag.mp4").exists()
+    assert ".sentry/media/promo-pt.mp4" in capsys.readouterr().out
+
+
+# cenario: promo com lang en roda o brag de novo em ingles
+def test_promo_com_lang_en_roda_o_brag_de_novo_em_ingles(ambiente):
+    assert cli.main(["promo"]) == cli.EXIT_OK
+    assert cli.main(["promo", "--lang", "en"]) == cli.EXIT_OK
+    assert len(ambiente["chamadas"]) == 2
+    assert "English" in ambiente["chamadas"][1][2]
+    media = ambiente["projeto"] / ".sentry" / "media"
+    pt, en = (media / "promo-pt.mp4").read_bytes(), (media / "promo-en.mp4").read_bytes()
+    assert pt != en
+
+
+# cenario: promo recusa idioma desconhecido
+def test_promo_recusa_idioma_desconhecido(ambiente, capsys):
+    codigo = cli.main(["promo", "--lang", "fr"])
+    assert codigo == cli.EXIT_INFRA
+    saida = capsys.readouterr().out
+    assert "pt" in saida and "en" in saida
+    assert ambiente["chamadas"] == []
+
+
+# cenario: promo para quando o claude nao esta no PATH
+def test_promo_para_quando_o_claude_nao_esta_no_path(ambiente, monkeypatch, capsys):
+    sem(ambiente, monkeypatch, "claude")
+    codigo = cli.main(["promo"])
+    assert codigo == cli.EXIT_INFRA
+    assert "Claude Code" in capsys.readouterr().out
+    assert not (ambiente["projeto"] / ".sentry" / "media").exists()
+    assert ambiente["chamadas"] == []
+
+
+# cenario: promo para quando a skill brag nao esta instalada
+def test_promo_para_quando_a_skill_brag_nao_esta_instalada(ambiente, capsys):
+    (ambiente["home"] / ".claude" / "skills" / "brag" / "SKILL.md").unlink()
+    codigo = cli.main(["promo"])
+    assert codigo == cli.EXIT_INFRA
+    assert "latent-spaces/brag" in capsys.readouterr().out
+    assert ambiente["chamadas"] == []
+
+
+# cenario: promo para quando o ffmpeg esta ausente
+def test_promo_para_quando_o_ffmpeg_esta_ausente(ambiente, monkeypatch, capsys):
+    sem(ambiente, monkeypatch, "ffmpeg")
+    codigo = cli.main(["promo"])
+    assert codigo == cli.EXIT_INFRA
+    assert "ffmpeg" in capsys.readouterr().out
+    assert ambiente["chamadas"] == []
+
+
+# cenario: promo propaga a falha do claude sem deixar video parcial
+def test_promo_propaga_a_falha_do_claude_sem_deixar_video_parcial(ambiente, monkeypatch, capsys):
+    def falha(comando, **kwargs):
+        return subprocess.CompletedProcess(comando, 7, stdout="", stderr="sessão expirada")
+    monkeypatch.setattr(promo.subprocess, "run", falha)
+    codigo = cli.main(["promo"])
+    assert codigo == cli.EXIT_INFRA
+    saida = capsys.readouterr().out
+    assert "sessão expirada" in saida
+    assert not list((ambiente["projeto"] / ".sentry" / "media").glob("*.mp4")) \
+        if (ambiente["projeto"] / ".sentry" / "media").exists() else True
+
+
+# cenario: promo nao afirma sucesso quando o claude nao gerou o video
+def test_promo_nao_afirma_sucesso_quando_o_claude_nao_gerou_o_video(ambiente, monkeypatch, capsys):
+    def sem_video(comando, **kwargs):
+        return subprocess.CompletedProcess(comando, 0, stdout="pronto!", stderr="")
+    monkeypatch.setattr(promo.subprocess, "run", sem_video)
+    codigo = cli.main(["promo"])
+    assert codigo == cli.EXIT_INFRA
+    assert "não foi gerado" in capsys.readouterr().out
+    assert not (ambiente["projeto"] / ".sentry" / "media" / "promo-pt.mp4").exists()
+
+
+# cenario: promo propaga a falha do claude sem deixar video parcial
+def test_promo_explica_quando_o_claude_estoura_o_tempo(ambiente, monkeypatch, capsys):
+    def demora(comando, **kwargs):
+        raise subprocess.TimeoutExpired(comando, kwargs["timeout"])
+    monkeypatch.setattr(promo.subprocess, "run", demora)
+    assert cli.main(["promo"]) == cli.EXIT_INFRA
+    assert "sem terminar" in capsys.readouterr().out
+    assert not (ambiente["projeto"] / ".sentry" / "media" / "promo-pt.mp4").exists()
+
+
+# cenario: promo propaga a falha do claude sem deixar video parcial
+def test_promo_explica_quando_o_claude_nao_executa(ambiente, monkeypatch, capsys):
+    def quebra(comando, **kwargs):
+        raise OSError("acesso negado")
+    monkeypatch.setattr(promo.subprocess, "run", quebra)
+    assert cli.main(["promo"]) == cli.EXIT_INFRA
+    assert "acesso negado" in capsys.readouterr().out

@@ -35,7 +35,7 @@ def test_lista_de_subcomandos_no_uso_da_raiz_usa_colchete_reto(capsys) -> None:
     with pytest.raises(SystemExit):
         main(["--bogus"])
     saida = capsys.readouterr().err
-    assert "[init, new, check, run, review, watch, status, context, report, history, clear, archive]" in saida
+    assert "[init, new, check, run, review, watch, status, context, report, history, clear, archive, promo]" in saida
     assert "{init,new,check" not in saida
     assert "} ..." not in saida
 

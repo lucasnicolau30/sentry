@@ -285,6 +285,13 @@ genérico: roda, mas não mede.
     das duas, só aquele tipo entra na mídia arquivada, e `--video` liga a
     gravação de vídeo do Playwright para aquela execução (os dois modos
     aceitam essas flags).
+- `sentry promo [--lang pt|en]` — gera o vídeo promocional do projeto com a skill
+  brag, acionada por baixo dos panos como `claude -p "/brag ..."`. Exige o Claude
+  Code, a skill brag e o `ffmpeg`; faltando algum, ou se o `claude` falhar ou não
+  deixar um `.mp4` novo em `brag-output/`, para com erro claro e código 3, sem
+  fallback silencioso. Grava `.sentry/media/promo-<idioma>.mp4` (cópia; o original
+  fica em `brag-output/`). `--lang en` roda o brag de novo em inglês; o padrão é
+  português.
 
 ## Limites
 
