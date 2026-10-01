@@ -4,7 +4,7 @@
 
 Adicionar na home uma nova área com o vídeo gerado pelo brag (apresentação do Sentry), em PT e EN conforme o idioma da página.
 
-Decisões do Lucas: o layout do player foi refeito (janela com os três pontos, botão grande de assistir sobre o pôster, brilho verde e chips); a área é sobre o vídeo promocional (título "Vídeo promocional", não "em ação") e fica
+Decisões do Lucas: o layout refeito (janela, botão grande de assistir, brilho e chips) foi descartado por ficar demais, e o player voltou ao layout simples; a área é sobre o vídeo promocional (título "Vídeo promocional", não "em ação") e fica
 no fim da home, como a última área. Usa o vídeo do brag (`brag.mp4` em PT,
 `brag-en.mp4` em EN). Para a web, o vídeo é servido em versão leve (1280 px, cerca de 2 MB) copiada
 para `frontend/public/video/`; os originais continuam em `brag-output/`. O vídeo não toca sozinho: o
@@ -29,14 +29,14 @@ usuário aperta o play.
 
 ## Caso: o video nao toca sozinho e tem controles
 
-- **Requisito:** "o usuário aperta o play"
+- **Requisito:** "o usuário aperta o play"; a barra nativa foi trocada por uma barra própria, com o visual do site
 - **Camada:** frontend
 - **Tipo:** e2e
 - **Prioridade:** média
 - **Classe:** viewport/desktop
 - **Dado:** a home aberta em tela de desktop
 - **Quando:** a área do vídeo é exibida
-- **Então:** o player tem controles, não tem `autoplay` e carrega só os metadados
+- **Então:** o vídeo não tem `autoplay`, carrega só os metadados e a barra de controles tem progresso, tempo, volume e tela cheia
 - **Entrada:** `viewport = desktop`
 
 ## Caso: o video e o texto trocam com o idioma da pagina
@@ -75,28 +75,40 @@ usuário aperta o play.
 - **Então:** a área do vídeo promocional é a última seção da home, depois de todas as outras
 - **Entrada:** `viewport = desktop`
 
-## Caso: o poster tem um botao grande de assistir que some ao dar play
+## Caso: o player sobe ao passar o mouse como os terminais
 
-- **Requisito:** "melhorar esse layout do vídeo, tá muito fraco" — o player ganha um botão de assistir em destaque
-- **Camada:** frontend
-- **Tipo:** e2e
-- **Prioridade:** média
-- **Classe:** viewport/desktop
-- **Dado:** a home aberta em tela de desktop, com o vídeo parado no pôster
-- **Quando:** o usuário clica no botão grande de assistir
-- **Então:** o vídeo começa a tocar e o botão grande some
-- **Entrada:** `viewport = desktop`
-
-## Caso: a area mostra a duracao, os idiomas e o comando que gera o video
-
-- **Requisito:** "melhorar esse layout do vídeo, tá muito fraco" — a área explica de onde vem o vídeo
+- **Requisito:** "coloca o hover ao passar o mouse como tem nos terminais" e "tira esse brilho, quero o comportamento do hover dos terminais"
 - **Camada:** frontend
 - **Tipo:** e2e
 - **Prioridade:** baixa
 - **Classe:** viewport/desktop
-- **Dado:** a home aberta em tela de desktop
-- **Quando:** a área do vídeo é exibida
-- **Então:** aparecem os chips com a duração (1:06 min), os idiomas (PT e EN) e o comando `sentry promo`, e o aviso de que o vídeo se muda pedindo ao agente
+- **Dado:** a home aberta em tela de desktop, com o mouse fora do player
+- **Quando:** o mouse passa por cima do player
+- **Então:** o player sobe alguns pixels, igual aos terminais da home, sem borda brilhante; ao tirar o mouse, ele volta
+- **Entrada:** `viewport = desktop`
+
+## Caso: o play do centro e verde com icone branco e alterna com o pause
+
+- **Requisito:** "um play bonitinho no centro que o usuário apertasse, não aquele na borda esquerda inferior; verde e o svg em branco, o mesmo para o pause", "centraliza o svg" e "o botão não some"
+- **Camada:** frontend
+- **Tipo:** e2e
+- **Prioridade:** média
+- **Classe:** viewport/desktop
+- **Dado:** a home aberta em tela de desktop, com o vídeo parado
+- **Quando:** o usuário clica no botão do centro, espera o vídeo tocar sem mexer o mouse, mexe o mouse e clica de novo
+- **Então:** o botão é um círculo verde com o ícone branco centralizado; ao clicar o vídeo toca e o botão vira o de pausar, que some sozinho se o mouse fica parado e volta quando o mouse se mexe; o segundo clique pausa e o botão de assistir volta à vista
+- **Entrada:** `viewport = desktop`
+
+## Caso: os icones ficam verdes no hover e o volume e uma barra vertical
+
+- **Requisito:** "o hover em verde só nos ícones, mas mantenha as sombras, e ponha a barra de volume vertical"
+- **Camada:** frontend
+- **Tipo:** e2e
+- **Prioridade:** média
+- **Classe:** viewport/desktop
+- **Dado:** a home aberta em tela de desktop, com a barra de controles à vista
+- **Quando:** o mouse passa sobre o botão de volume e sobre o de tela cheia
+- **Então:** o ícone vira verde e o botão mantém o fundo escuro translúcido; sobre o volume aparece uma barra vertical (mais alta que larga) e silenciar liga e desliga o som
 - **Entrada:** `viewport = desktop`
 
 ## Classes não aplicáveis
