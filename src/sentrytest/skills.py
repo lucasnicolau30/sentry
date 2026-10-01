@@ -1,6 +1,6 @@
 """Skills instaladas pelo `sentry init` para agentes que leem .claude/skills.
 
-O Sentry nunca chama um modelo: a skill instrui o agente a preencher o artefato
+O Sentry nunca chama um modelo para chegar ao veredito: a skill instrui o agente a preencher o artefato
 e devolve o controle para a CLI, que valida de forma determinística.
 """
 from __future__ import annotations
@@ -292,7 +292,9 @@ genérico: roda, mas não mede.
   fallback silencioso. Grava `.sentry/media/promo-<idioma>.mp4` (cópia; o original
   fica em `brag-output/`). Se falta só a skill brag, o Sentry a instala (`claude plugin
   marketplace add latent-spaces/brag` e `claude plugin install brag@brag`) e segue.
-  `--lang en` roda o brag de novo em inglês; o padrão é português.
+  `--lang en` roda o brag de novo em inglês; o padrão é português. Para alterar o
+  vídeo o usuário não precisa rodar o comando de novo: ele pede ao agente que mude o
+  script (o projeto do brag em `brag-output/`) até chegar no resultado desejado.
 - `sentry training <modulo> [--lang pt|en]` — grava o vídeo de treinamento de um
   módulo. Lê o roteiro declarativo `.sentry/training/<modulo>.json` (versionado):
   `base`, `titulo` e `passos`, cada passo com `titulo`, `fala` e uma `acao` que é
@@ -306,7 +308,10 @@ genérico: roda, mas não mede.
   executa (`python -m pip install playwright` e `python -m playwright install
   chromium`, cerca de 150 MB); se a instalação falhar, para e mostra os comandos
   manuais. O `sentry check` valida todos os roteiros. `--lang en` roda o brag
-  de novo em inglês.
+  de novo em inglês. Para alterar o vídeo o usuário não precisa rodar o comando de
+  novo: ele pede ao agente que ajuste o roteiro (`.sentry/training/<modulo>.json`)
+  até chegar no resultado desejado. O training não certifica nada: só grava e não dá
+  veredito; só o veredito certifica.
 
 ## Limites
 

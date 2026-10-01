@@ -568,7 +568,8 @@ const principlesByLang: Record<"pt" | "en", Card[]> = {
         <>
           Dez regras com severidade configurável. O{" "}
           <span className="text-[var(--text-h)]">Sentry</span> nunca chama um
-          modelo, então cada veredito é reproduzível.
+          modelo para chegar ao veredito, então cada veredito é reproduzível. Os vídeos
+          opcionais usam o agente e ficam fora disso.
         </>
       ),
     },
@@ -594,7 +595,8 @@ const principlesByLang: Record<"pt" | "en", Card[]> = {
         <>
           Ten rules with configurable severity.{" "}
           <span className="text-[var(--text-h)]">Sentry</span> never calls a
-          model, so every verdict is reproducible.
+          model to reach a verdict, so every verdict is reproducible. The optional
+          videos use the agent and sit outside that.
         </>
       ),
     },
@@ -2231,6 +2233,36 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
         </>
       ),
     },
+    {
+      icon: <RunIcon />,
+      command: "sentry promo [--lang pt|en]",
+      description: (
+        <>
+          Gera o vídeo promocional do projeto com a skill brag, em{" "}
+          <W>.sentry/media/promo-&lt;idioma&gt;.mp4</W>. Exige Claude Code e{" "}
+          <W>ffmpeg</W>; se faltar a skill, o Sentry a instala. Para alterar o
+          vídeo você não precisa rodar o comando de novo: peça ao agente para
+          mudar o script (o projeto do brag em <W>brag-output/</W>) até chegar
+          no resultado que você quer.
+        </>
+      ),
+    },
+    {
+      icon: <FlowIcon />,
+      command: "sentry training <modulo> [--lang pt|en]",
+      description: (
+        <>
+          Grava o vídeo de treinamento de um módulo a partir do roteiro{" "}
+          <W>.sentry/training/&lt;modulo&gt;.json</W> (passos com título, fala e
+          uma ação que é dado, nunca código), em{" "}
+          <W>.sentry/media/training-&lt;modulo&gt;-&lt;idioma&gt;.mp4</W>. Para
+          alterar o vídeo você não precisa rodar o comando de novo: peça ao
+          agente para ajustar o roteiro até chegar no resultado que você quer. O
+          training não certifica nada: só grava e não dá veredito; só o veredito
+          certifica.
+        </>
+      ),
+    },
   ],
   en: [
     {
@@ -2351,6 +2383,36 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
           Without <W>--image</W>/<W>--video</W>, everything produced is
           archived; with either, only that media type is kept, and{" "}
           <W>--video</W> also turns on Playwright's video recording.
+        </>
+      ),
+    },
+    {
+      icon: <RunIcon />,
+      command: "sentry promo [--lang pt|en]",
+      description: (
+        <>
+          Generates the project's promo video with the brag skill, at{" "}
+          <W>.sentry/media/promo-&lt;lang&gt;.mp4</W>. Needs Claude Code and{" "}
+          <W>ffmpeg</W>; if the skill is missing, the Sentry installs it. To
+          change the video you don't need to run the command again: ask the
+          agent to change the script (the brag project in{" "}
+          <W>brag-output/</W>) until you get the result you want.
+        </>
+      ),
+    },
+    {
+      icon: <FlowIcon />,
+      command: "sentry training <module> [--lang pt|en]",
+      description: (
+        <>
+          Records a module's training video from the script{" "}
+          <W>.sentry/training/&lt;module&gt;.json</W> (steps with a title, a
+          line and an action that is data, never code), at{" "}
+          <W>.sentry/media/training-&lt;module&gt;-&lt;lang&gt;.mp4</W>. To
+          change the video you don't need to run the command again: ask the
+          agent to adjust the script until you get the result you want. Training
+          certifies nothing: it only records and issues no verdict; only the
+          verdict certifies.
         </>
       ),
     },
@@ -2546,6 +2608,8 @@ const ALL_COMMANDS = [
   "report",
   "history",
   "archive",
+  "promo",
+  "training",
   "clear",
 ];
 
@@ -2571,7 +2635,7 @@ function CommandsContent({
             </h1>
             <TextMarquee
               height={120}
-              speed={0.7}
+              speed={0.9}
               className="mt-6 justify-center"
               prefix={
                 <span className="whitespace-nowrap font-mono text-xl text-[var(--text)]/40 sm:text-2xl">
@@ -3176,8 +3240,8 @@ const papersByLang: Record<"pt" | "en", Paper[]> = {
       ],
       grounds: [
         <>
-          Zero chamada de IA — nenhum modelo é invocado, então não há fonte de
-          variação do lado do Sentry
+          Zero chamada de IA no veredito — nenhum modelo é invocado para chegar a
+          ele, então não há fonte de variação do lado do Sentry
         </>,
         <>
           <W>test-failing</W> — reprova por teste que falhou de verdade, nunca
@@ -3454,8 +3518,8 @@ const papersByLang: Record<"pt" | "en", Paper[]> = {
       ],
       grounds: [
         <>
-          Zero AI calls — no model is ever invoked, so there's no source of
-          variation on Sentry's side
+          Zero AI calls in the verdict — no model is invoked to reach it, so there's
+          no source of variation on Sentry's side
         </>,
         <>
           <W>test-failing</W> — fails on a test that actually failed, never on
