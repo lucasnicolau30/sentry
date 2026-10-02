@@ -23,7 +23,10 @@ def test_arvore_do_sentry_mostra_training_e_media():
     arvore = _arvore()
     assert "├── training/" in arvore
     assert ".json" in arvore
+    assert '{t("# o roteiro que gera o treinamento", "# the script that makes the training")}' in arvore
+    assert '{t("# é aqui que se altera o promo", "# edit this to change the promo")}' in arvore
     assert "├── video/" in arvore
+    assert "├── composition/" in arvore and "├── share-copy.txt" in arvore
     assert re.search(r"promo-\{t\(\"pt\", \"en\"\)\}\.mp4", arvore)
     assert re.search(r"training-\{t\(\"cadastro-de-cliente\", \"customer-registration\"\)\}-\{t\(\"pt\", \"en\"\)\}\.mp4", arvore)
     # ao lado dos .mp4, a nota de que podem ser versionados; a pasta de trabalho do brag não entra na árvore
@@ -44,9 +47,10 @@ def test_secao_de_versionamento_diz_o_que_vai_para_o_git():
     texto = " ".join(texto.split())
     assert "Os roteiros de vídeo em .sentry/training/ também são versionados" in texto
     assert ".sentry/video/ , fora do Git" in texto or ".sentry/video/, fora do Git" in texto
-    assert re.search(r"A pasta de trabalho do brag, brag-output/ ?, também fica fora do Git", texto)
-    assert "git add -f" in texto and "sentry clear não toca nessa pasta" in texto
-    assert re.search(r"Brag's working folder, brag-output/ ?, stays out of Git too", texto)
-    assert "force-adds it" in texto and "sentry clear doesn't touch that folder" in texto
-    # o pool media deixou de existir: nada na árvore nem no texto o cita
+    assert re.search(r"A pasta de trabalho do brag, brag-output/ ?, também fica fora do Git e fica vazia", texto)
+    assert "!.sentry/video/ no .gitignore" in texto and "o init respeita essa escolha" in texto
+    assert "sentry clear não toca nessa pasta" in texto
+    assert re.search(r"Brag's working folder, brag-output/ ?, stays out of Git too and ends up empty", texto)
+    assert "writes !.sentry/video/ in the .gitignore" in texto and "init respects that choice" in texto
+    assert "sentry clear doesn't touch that folder" in texto
     assert ".sentry/media/" not in texto

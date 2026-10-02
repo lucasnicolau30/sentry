@@ -989,6 +989,7 @@ function GetStartedContent({ onNextClick }: { onNextClick: () => void }) {
             <p className="text-[var(--text-h)]">
               │&nbsp;&nbsp;&nbsp;&nbsp;└──{" "}
               {t("cadastro-de-cliente", "customer-registration")}.json
+              <span className="text-[var(--text)]/50">  {t("# o roteiro que gera o treinamento", "# the script that makes the training")}</span>
             </p>
             <p className="text-[var(--text)]/70">├── storage/</p>
             <p className="text-[var(--text)]/70">
@@ -1005,6 +1006,13 @@ function GetStartedContent({ onNextClick }: { onNextClick: () => void }) {
             <p className="text-[var(--text-h)]">
               │&nbsp;&nbsp;&nbsp;&nbsp;├── promo-{t("pt", "en")}.mp4
               <span className="text-[var(--text)]/50">  {t("# pode ser versionado", "# can be versioned")}</span>
+            </p>
+            <p className="text-[var(--text)]/70">
+              │&nbsp;&nbsp;&nbsp;&nbsp;├── composition/
+              <span className="text-[var(--text)]/50">  {t("# é aqui que se altera o promo", "# edit this to change the promo")}</span>
+            </p>
+            <p className="text-[var(--text-h)]">
+              │&nbsp;&nbsp;&nbsp;&nbsp;├── share-copy.txt
             </p>
             <p className="text-[var(--text-h)]">
               │&nbsp;&nbsp;&nbsp;&nbsp;└── training-{t("cadastro-de-cliente", "customer-registration")}-{t("pt", "en")}.mp4
@@ -1640,13 +1648,17 @@ function SetupContent({
                   <span className="text-[var(--text-h)]">.sentry/training/</span>{" "}
                   também são versionados, como intenção declarada. Os vídeos
                   que o <span className="text-[var(--text-h)]">promo</span> e o{" "}
-                  <span className="text-[var(--text-h)]">training</span> geram ficam em{" "}
+                  <span className="text-[var(--text-h)]">training</span> geram, com o resto da saída do brag (composição e texto
+                  de divulgação), ficam em{" "}
                   <span className="text-[var(--text-h)]">.sentry/video/</span>, fora do
                   Git: o <span className="text-[var(--text-h)]">init</span> a coloca no{" "}
-                  <span className="text-[var(--text-h)]">.gitignore</span>, e quem precisar versionar um vídeo o força
-                  com <span className="text-[var(--text-h)]">git add -f</span>. O{" "}
+                  <span className="text-[var(--text-h)]">.gitignore</span>. Quem precisar versionar escreve{" "}
+                  <span className="text-[var(--text-h)]">!.sentry/video/</span> no{" "}
+                  <span className="text-[var(--text-h)]">.gitignore</span>, e o <span className="text-[var(--text-h)]">init</span> respeita essa escolha. O{" "}
                   <span className="text-[var(--text-h)]">sentry clear</span> não toca nessa pasta. A pasta de
-                  trabalho do brag, <span className="text-[var(--text-h)]">brag-output/</span>, também fica fora do Git.
+                  trabalho do brag, <span className="text-[var(--text-h)]">brag-output/</span>, também fica fora do Git e
+                  fica vazia, porque o Sentry leva o conteúdo dela para{" "}
+                  <span className="text-[var(--text-h)]">.sentry/video/</span>.
                 </>
               ) : (
                 <>
@@ -1671,13 +1683,17 @@ function SetupContent({
                   <span className="text-[var(--text-h)]">.sentry/training/</span>{" "}
                   are versioned too, as declared intent. The videos that{" "}
                   <span className="text-[var(--text-h)]">promo</span> and{" "}
-                  <span className="text-[var(--text-h)]">training</span> generate land in{" "}
+                  <span className="text-[var(--text-h)]">training</span> generate, with the rest of brag's output (composition and
+                  share copy), land in{" "}
                   <span className="text-[var(--text-h)]">.sentry/video/</span>, outside
                   Git: <span className="text-[var(--text-h)]">init</span> adds it to{" "}
-                  <span className="text-[var(--text-h)]">.gitignore</span>, and whoever needs to version a video
-                  force-adds it with <span className="text-[var(--text-h)]">git add -f</span>.{" "}
+                  <span className="text-[var(--text-h)]">.gitignore</span>. Whoever needs to version it writes{" "}
+                  <span className="text-[var(--text-h)]">!.sentry/video/</span> in the{" "}
+                  <span className="text-[var(--text-h)]">.gitignore</span>, and <span className="text-[var(--text-h)]">init</span> respects that choice.{" "}
                   <span className="text-[var(--text-h)]">sentry clear</span> doesn't touch that folder. Brag's
-                  working folder, <span className="text-[var(--text-h)]">brag-output/</span>, stays out of Git too.
+                  working folder, <span className="text-[var(--text-h)]">brag-output/</span>, stays out of Git too and ends up
+                  empty, because Sentry moves its contents to{" "}
+                  <span className="text-[var(--text-h)]">.sentry/video/</span>.
                 </>
               )}
             </p>
@@ -2285,7 +2301,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
           Gera o vídeo promocional do projeto com a skill brag, em{" "}
           <W>.sentry/video/promo-&lt;idioma&gt;.mp4</W>. Exige Claude Code e{" "}
           <W>ffmpeg</W>; se faltar a skill, o Sentry a instala. Roda o agente, então gasta tokens, só quando você pede. Para alterar o vídeo você não precisa rodar o comando de novo: peça ao agente para
-          mudar o script (o projeto do brag em <W>brag-output/</W>) até chegar
+          mudar o script (o projeto do brag em <W>.sentry/video/</W>) até chegar
           no resultado que você quer.
         </>
       ),
@@ -2437,7 +2453,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
           <W>.sentry/video/promo-&lt;lang&gt;.mp4</W>. Needs Claude Code and{" "}
           <W>ffmpeg</W>; if the skill is missing, the Sentry installs it. It runs the agent, so it spends tokens, only when you ask. To change the video you don't need to run the command again: ask the
           agent to change the script (the brag project in{" "}
-          <W>brag-output/</W>) until you get the result you want.
+          <W>.sentry/video/</W>) until you get the result you want.
         </>
       ),
     },

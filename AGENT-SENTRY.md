@@ -210,12 +210,13 @@ genérico: roda, mas não mede.
   brag, acionada por baixo dos panos como `claude -p "/brag ..."`. Exige o Claude
   Code e o `ffmpeg`; faltando algum, ou se o `claude` falhar ou não
   deixar um `.mp4` novo em `brag-output/`, para com erro claro e código 3, sem
-  fallback silencioso. Grava `.sentry/video/promo-<idioma>.mp4` (cópia; o original
-  fica em `brag-output/`, a pasta de trabalho do brag, que o `init` põe no `.gitignore`). Se falta só a skill brag, o Sentry a instala (`claude plugin
+  fallback silencioso. Grava `.sentry/video/promo-<idioma>.mp4` (movido de
+  `brag-output/`, a pasta de trabalho do brag, junto com o resto da saída dele: composição e
+  texto de divulgação; o `init` põe `brag-output/` no `.gitignore`). Se falta só a skill brag, o Sentry a instala (`claude plugin
   marketplace add latent-spaces/brag` e `claude plugin install brag@brag`) e segue.
   `--lang en` roda o brag de novo em inglês; o padrão é português. Roda o agente e gasta tokens, só quando o usuário pede. Para alterar o
   vídeo o usuário não precisa rodar o comando de novo: ele pede ao agente que mude o
-  script (o projeto do brag em `brag-output/`) até chegar no resultado desejado.
+  script (o projeto do brag em `.sentry/video/`) até chegar no resultado desejado.
 - `sentry training <modulo> [--lang pt|en]` — grava o vídeo de treinamento de um
   módulo. Lê o roteiro declarativo `.sentry/training/<modulo>.json` (versionado):
   `base`, `titulo` e `passos`, cada passo com `titulo`, `fala` e uma `acao` que é

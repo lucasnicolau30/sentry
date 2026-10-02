@@ -28,7 +28,7 @@ vídeos vira só `.sentry/video/`.
 - **Classe:** documento/valido
 - **Dado:** a árvore de `.sentry/` da página de documentação
 - **Quando:** o texto da árvore é lido
-- **Então:** a árvore mostra `training/` com o arquivo `.json` do roteiro, `video/` com `promo-<idioma>.mp4` e `training-<modulo>-<idioma>.mp4` e, ao lado dos `.mp4`, a nota de que podem ser versionados; e não mostra `brag-output/`, que é a pasta de trabalho do brag e fica ignorada pelo `init`
+- **Então:** a árvore mostra `training/` com o arquivo `.json` do roteiro, `video/` com `promo-<idioma>.mp4` e `training-<modulo>-<idioma>.mp4` `composition/` e `share-copy.txt` (a saída do brag que o Sentry leva para lá) e, ao lado dos `.mp4`, a nota de que podem ser versionados; ao lado do roteiro de `training/`, a nota de que é o roteiro que gera o treinamento, e ao lado de `composition/`, a nota de que é ali que se altera o promo; e não mostra `brag-output/`, que é a pasta de trabalho do brag e fica ignorada pelo `init`
 - **Entrada:** `documento = DocsPage.tsx`
 
 ## Caso: a secao o que fica versionado diz o que vai para o git
