@@ -180,9 +180,9 @@ genérico: roda, mas não mede.
 - `sentry report` — reexibe o último relatório sem rodar nada de novo.
 - `sentry history` — lista execuções e compara as duas últimas: cobertura,
   testes, achados novos, resolvidos e persistentes.
-- `sentry clear [--keep-last N] [--yes]` — poda execuções, relatórios antigos e o
-  pool `.sentry/media/`. Sem `--yes` só mostra o que sairia. Nunca toca em
-  `.sentry/specs/` nem em `.sentry/storage/`.
+- `sentry clear [--keep-last N] [--yes]` — poda execuções e relatórios antigos.
+  Sem `--yes` só mostra o que sairia. Nunca toca em `.sentry/specs/`, em
+  `.sentry/storage/` nem em `.sentry/video/`.
 - `sentry archive <modulo> --version X.Y.Z [--specs A,B,C] [--image] [--video]` —
   dois modos, conforme o módulo é declarado em `sentry.toml`.
   - **Por specs** (`[modules] <modulo> = [...]`): executa a suíte e2e do módulo
@@ -210,10 +210,10 @@ genérico: roda, mas não mede.
   brag, acionada por baixo dos panos como `claude -p "/brag ..."`. Exige o Claude
   Code e o `ffmpeg`; faltando algum, ou se o `claude` falhar ou não
   deixar um `.mp4` novo em `brag-output/`, para com erro claro e código 3, sem
-  fallback silencioso. Grava `.sentry/media/promo-<idioma>.mp4` (cópia; o original
-  fica em `brag-output/`). Se falta só a skill brag, o Sentry a instala (`claude plugin
+  fallback silencioso. Grava `.sentry/video/promo-<idioma>.mp4` (cópia; o original
+  fica em `brag-output/`, a pasta de trabalho do brag, que o `init` põe no `.gitignore`). Se falta só a skill brag, o Sentry a instala (`claude plugin
   marketplace add latent-spaces/brag` e `claude plugin install brag@brag`) e segue.
-  `--lang en` roda o brag de novo em inglês; o padrão é português. Para alterar o
+  `--lang en` roda o brag de novo em inglês; o padrão é português. Roda o agente e gasta tokens, só quando o usuário pede. Para alterar o
   vídeo o usuário não precisa rodar o comando de novo: ele pede ao agente que mude o
   script (o projeto do brag em `brag-output/`) até chegar no resultado desejado.
 - `sentry training <modulo> [--lang pt|en]` — grava o vídeo de treinamento de um
@@ -222,14 +222,14 @@ genérico: roda, mas não mede.
   dado, nunca código (`ir`, `digitar` com `valor`, `clicar` ou `apontar`). Grava
   com o Playwright do Python (já no Sentry), marcando o tempo de cada passo, e a skill brag (via
   `claude -p "/brag ..."`) monta o vídeo com as legendas em
-  `.sentry/media/training-<modulo>-<idioma>.mp4`. Para com erro claro e código 3
+  `.sentry/video/training-<modulo>-<idioma>.mp4`. Para com erro claro e código 3
   se o nome do módulo for inseguro, o roteiro faltar ou for inválido, o app de
   `base` não responder, ou faltar Claude Code ou `ffmpeg`. O que faltar do brag
   e do Playwright o Sentry instala sozinho: o Playwright com o mesmo Python que o
   executa (`python -m pip install playwright` e `python -m playwright install
   chromium`, cerca de 150 MB); se a instalação falhar, para e mostra os comandos
   manuais. O `sentry check` valida todos os roteiros. `--lang en` roda o brag
-  de novo em inglês. Para alterar o vídeo o usuário não precisa rodar o comando de
+  de novo em inglês. Roda o agente e gasta tokens, só quando o usuário pede. Para alterar o vídeo o usuário não precisa rodar o comando de
   novo: ele pede ao agente que ajuste o roteiro (`.sentry/training/<modulo>.json`)
   até chegar no resultado desejado. O training não certifica nada: só grava e não dá
   veredito; só o veredito certifica.

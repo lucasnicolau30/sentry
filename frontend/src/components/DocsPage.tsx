@@ -815,6 +815,10 @@ const firstStepsByLang: Record<"pt" | "en", Card[]> = {
           <span className="text-[var(--text-h)]">new</span>,{" "}
           <span className="text-[var(--text-h)]">check</span>,{" "}
           <span className="text-[var(--text-h)]">run</span>,{" "}
+          <span className="text-[var(--text-h)]">review</span>,{" "}
+          <span className="text-[var(--text-h)]">watch</span>,{" "}
+          <span className="text-[var(--text-h)]">status</span>,{" "}
+          <span className="text-[var(--text-h)]">context</span>,{" "}
           <span className="text-[var(--text-h)]">report</span>,{" "}
           <span className="text-[var(--text-h)]">history</span>,{" "}
           <span className="text-[var(--text-h)]">archive</span>,{" "}
@@ -861,6 +865,10 @@ const firstStepsByLang: Record<"pt" | "en", Card[]> = {
           <span className="text-[var(--text-h)]">new</span>,{" "}
           <span className="text-[var(--text-h)]">check</span>,{" "}
           <span className="text-[var(--text-h)]">run</span>,{" "}
+          <span className="text-[var(--text-h)]">review</span>,{" "}
+          <span className="text-[var(--text-h)]">watch</span>,{" "}
+          <span className="text-[var(--text-h)]">status</span>,{" "}
+          <span className="text-[var(--text-h)]">context</span>,{" "}
           <span className="text-[var(--text-h)]">report</span>,{" "}
           <span className="text-[var(--text-h)]">history</span>,{" "}
           <span className="text-[var(--text-h)]">archive</span>,{" "}
@@ -963,7 +971,7 @@ function GetStartedContent({ onNextClick }: { onNextClick: () => void }) {
           )}
         </p>
 
-        <div className="mx-auto mt-5 max-w-lg">
+        <div className="mx-auto mt-5 max-w-2xl">
           <TerminalWindow title="tree">
             <p className="text-[var(--text-h)]">.sentry/</p>
             <p className="text-[var(--text)]/70">├── specs/</p>
@@ -977,6 +985,11 @@ function GetStartedContent({ onNextClick }: { onNextClick: () => void }) {
             <p className="text-[var(--text-h)]">
               │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── CASES.md
             </p>
+            <p className="text-[var(--text)]/70">├── training/</p>
+            <p className="text-[var(--text-h)]">
+              │&nbsp;&nbsp;&nbsp;&nbsp;└──{" "}
+              {t("cadastro-de-cliente", "customer-registration")}.json
+            </p>
             <p className="text-[var(--text)]/70">├── storage/</p>
             <p className="text-[var(--text)]/70">
               │&nbsp;&nbsp;&nbsp;&nbsp;└──{" "}
@@ -987,6 +1000,15 @@ function GetStartedContent({ onNextClick }: { onNextClick: () => void }) {
             </p>
             <p className="text-[var(--text-h)]">
               │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── media/
+            </p>
+            <p className="text-[var(--text)]/70">├── video/</p>
+            <p className="text-[var(--text-h)]">
+              │&nbsp;&nbsp;&nbsp;&nbsp;├── promo-{t("pt", "en")}.mp4
+              <span className="text-[var(--text)]/50">  {t("# pode ser versionado", "# can be versioned")}</span>
+            </p>
+            <p className="text-[var(--text-h)]">
+              │&nbsp;&nbsp;&nbsp;&nbsp;└── training-{t("cadastro-de-cliente", "customer-registration")}-{t("pt", "en")}.mp4
+              <span className="text-[var(--text)]/50">  {t("# pode ser versionado", "# can be versioned")}</span>
             </p>
             <p className="text-[var(--text)]/70">└── reports/</p>
             <p className="text-[var(--text-h)]">
@@ -1614,6 +1636,17 @@ function SetupContent({
                   evidência gerada. Sem elas no repositório, um checkout limpo
                   não tem matriz de casos e a análise sai inconclusiva por falta
                   de spec, em vez de medir.
+                  Os roteiros de vídeo em{" "}
+                  <span className="text-[var(--text-h)]">.sentry/training/</span>{" "}
+                  também são versionados, como intenção declarada. Os vídeos
+                  que o <span className="text-[var(--text-h)]">promo</span> e o{" "}
+                  <span className="text-[var(--text-h)]">training</span> geram ficam em{" "}
+                  <span className="text-[var(--text-h)]">.sentry/video/</span>, fora do
+                  Git: o <span className="text-[var(--text-h)]">init</span> a coloca no{" "}
+                  <span className="text-[var(--text-h)]">.gitignore</span>, e quem precisar versionar um vídeo o força
+                  com <span className="text-[var(--text-h)]">git add -f</span>. O{" "}
+                  <span className="text-[var(--text-h)]">sentry clear</span> não toca nessa pasta. A pasta de
+                  trabalho do brag, <span className="text-[var(--text-h)]">brag-output/</span>, também fica fora do Git.
                 </>
               ) : (
                 <>
@@ -1634,6 +1667,17 @@ function SetupContent({
                   generated evidence. Without them in the repository, a clean
                   checkout has no case matrix and the analysis comes back
                   inconclusive for lack of a spec instead of measuring.
+                  Video scripts in{" "}
+                  <span className="text-[var(--text-h)]">.sentry/training/</span>{" "}
+                  are versioned too, as declared intent. The videos that{" "}
+                  <span className="text-[var(--text-h)]">promo</span> and{" "}
+                  <span className="text-[var(--text-h)]">training</span> generate land in{" "}
+                  <span className="text-[var(--text-h)]">.sentry/video/</span>, outside
+                  Git: <span className="text-[var(--text-h)]">init</span> adds it to{" "}
+                  <span className="text-[var(--text-h)]">.gitignore</span>, and whoever needs to version a video
+                  force-adds it with <span className="text-[var(--text-h)]">git add -f</span>.{" "}
+                  <span className="text-[var(--text-h)]">sentry clear</span> doesn't touch that folder. Brag's
+                  working folder, <span className="text-[var(--text-h)]">brag-output/</span>, stays out of Git too.
                 </>
               )}
             </p>
@@ -2239,9 +2283,8 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       description: (
         <>
           Gera o vídeo promocional do projeto com a skill brag, em{" "}
-          <W>.sentry/media/promo-&lt;idioma&gt;.mp4</W>. Exige Claude Code e{" "}
-          <W>ffmpeg</W>; se faltar a skill, o Sentry a instala. Para alterar o
-          vídeo você não precisa rodar o comando de novo: peça ao agente para
+          <W>.sentry/video/promo-&lt;idioma&gt;.mp4</W>. Exige Claude Code e{" "}
+          <W>ffmpeg</W>; se faltar a skill, o Sentry a instala. Roda o agente, então gasta tokens, só quando você pede. Para alterar o vídeo você não precisa rodar o comando de novo: peça ao agente para
           mudar o script (o projeto do brag em <W>brag-output/</W>) até chegar
           no resultado que você quer.
         </>
@@ -2255,8 +2298,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
           Grava o vídeo de treinamento de um módulo a partir do roteiro{" "}
           <W>.sentry/training/&lt;modulo&gt;.json</W> (passos com título, fala e
           uma ação que é dado, nunca código), em{" "}
-          <W>.sentry/media/training-&lt;modulo&gt;-&lt;idioma&gt;.mp4</W>. Para
-          alterar o vídeo você não precisa rodar o comando de novo: peça ao
+          <W>.sentry/video/training-&lt;modulo&gt;-&lt;idioma&gt;.mp4</W>. Roda o agente, então gasta tokens, só quando você pede. Para alterar o vídeo você não precisa rodar o comando de novo: peça ao
           agente para ajustar o roteiro até chegar no resultado que você quer. O
           training não certifica nada: só grava e não dá veredito; só o veredito
           certifica.
@@ -2392,9 +2434,8 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       description: (
         <>
           Generates the project's promo video with the brag skill, at{" "}
-          <W>.sentry/media/promo-&lt;lang&gt;.mp4</W>. Needs Claude Code and{" "}
-          <W>ffmpeg</W>; if the skill is missing, the Sentry installs it. To
-          change the video you don't need to run the command again: ask the
+          <W>.sentry/video/promo-&lt;lang&gt;.mp4</W>. Needs Claude Code and{" "}
+          <W>ffmpeg</W>; if the skill is missing, the Sentry installs it. It runs the agent, so it spends tokens, only when you ask. To change the video you don't need to run the command again: ask the
           agent to change the script (the brag project in{" "}
           <W>brag-output/</W>) until you get the result you want.
         </>
@@ -2408,8 +2449,7 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
           Records a module's training video from the script{" "}
           <W>.sentry/training/&lt;module&gt;.json</W> (steps with a title, a
           line and an action that is data, never code), at{" "}
-          <W>.sentry/media/training-&lt;module&gt;-&lt;lang&gt;.mp4</W>. To
-          change the video you don't need to run the command again: ask the
+          <W>.sentry/video/training-&lt;module&gt;-&lt;lang&gt;.mp4</W>. It runs the agent, so it spends tokens, only when you ask. To change the video you don't need to run the command again: ask the
           agent to adjust the script until you get the result you want. Training
           certifies nothing: it only records and issues no verdict; only the
           verdict certifies.
