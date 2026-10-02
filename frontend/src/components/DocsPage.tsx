@@ -1009,7 +1009,7 @@ function GetStartedContent({ onNextClick }: { onNextClick: () => void }) {
             </p>
             <p className="text-[var(--text)]/70">
               │&nbsp;&nbsp;&nbsp;&nbsp;├── composition/
-              <span className="text-[var(--text)]/50">  {t("# é aqui que se altera o promo", "# edit this to change the promo")}</span>
+              <span className="text-[var(--text)]/50">  {t("# o roteiro e a composição que geram o promo", "# the script and composition that make the promo")}</span>
             </p>
             <p className="text-[var(--text-h)]">
               │&nbsp;&nbsp;&nbsp;&nbsp;├── share-copy.txt

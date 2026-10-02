@@ -24,7 +24,7 @@ def test_arvore_do_sentry_mostra_training_e_media():
     assert "├── training/" in arvore
     assert ".json" in arvore
     assert '{t("# o roteiro que gera o treinamento", "# the script that makes the training")}' in arvore
-    assert '{t("# é aqui que se altera o promo", "# edit this to change the promo")}' in arvore
+    assert '{t("# o roteiro e a composição que geram o promo", "# the script and composition that make the promo")}' in arvore
     assert "├── video/" in arvore
     assert "├── composition/" in arvore and "├── share-copy.txt" in arvore
     assert re.search(r"promo-\{t\(\"pt\", \"en\"\)\}\.mp4", arvore)
