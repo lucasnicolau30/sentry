@@ -17,5 +17,6 @@ build/
 frontend/test-results/
 frontend/reports/
 frontend/playwright-report/
-.sentry/video/
+# os videos de apresentacao do Sentry ficam no Git: o init respeita a negacao
+!.sentry/video/
 brag-output/
