@@ -577,7 +577,7 @@ def test_sentry_init_mostra_o_checklist_dos_passos_com_check_verde(tmp_path: Pat
 
     saida = capsys.readouterr().out
     for item in ("Verificando ambiente do projeto", "Criando .sentry/",
-                 "Gerando sentry.toml e .gitignore", "Instalando skill Claude",
+                 "Gerando sentry.toml e .gitignore", "Instalando skill",
                  "Gravando AGENT-SENTRY.md"):
         assert item in saida
         linha = next(l for l in saida.splitlines() if item in l)

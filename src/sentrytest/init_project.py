@@ -7,7 +7,9 @@ import sys
 from importlib.metadata import PackageNotFoundError, version as _package_version
 from pathlib import Path
 
-from .skills import install_agent_guide, install_skills
+from .adapters.toml_config import load_config
+from .skills import (ONDE_DECLARAR_PASTAS, install_agent_guide, install_skills,
+                     pastas_de_skills_declaradas, validar_pastas_de_skills)
 
 def default_config(project_name: str) -> str:
     """Configuracao inicial ja com o nome real do projeto. Um placeholder fixo
@@ -70,7 +72,32 @@ def migrate(connection: sqlite3.Connection) -> None:
         else:
             connection.execute('UPDATE schema_version SET version = ?', (target,))
 
-def initialize_project(root: Path) -> list[str]:
+def _pastas_de_skills(root: Path, pedidas: list[str] | None) -> tuple[list[str] | None, bool]:
+    """As pastas da skill e se a escolha pedida pela flag ainda precisa ir para o `sentry.toml`.
+
+    Resolvido antes de gravar qualquer coisa: pasta insegura ou conflito recusam o `init` inteiro."""
+    config=load_config(root)
+    declaradas=validar_pastas_de_skills(pastas_de_skills_declaradas(config))
+    pedidas=validar_pastas_de_skills(pedidas)
+    if pedidas is None:
+        return declaradas, False
+    if declaradas is not None:
+        if pedidas != declaradas:
+            raise ValueError(f"o sentry.toml já declara {ONDE_DECLARAR_PASTAS} = {declaradas}; "
+                             "edite essa linha em vez de usar --skills-dir")
+        return declaradas, False
+    if 'init' in config:
+        raise ValueError(f"o sentry.toml já tem uma seção [init]; acrescente skills_dirs = {pedidas} "
+                         "nela em vez de usar --skills-dir")
+    return pedidas, True
+
+def _declarar_pastas_de_skills(config: Path, pastas: list[str]) -> None:
+    texto=config.read_text(encoding='utf-8')
+    lista=', '.join('"'+pasta+'"' for pasta in pastas)
+    config.write_text(texto+('' if texto.endswith('\n') or not texto else '\n')+f'\n[init]\nskills_dirs = [{lista}]\n', encoding='utf-8')
+
+def initialize_project(root: Path, skills_dirs: list[str] | None = None) -> list[str]:
+    pastas, declarar = _pastas_de_skills(root, skills_dirs)
     created=[]
     sentry=root/'.sentry'
     for name in ('reports','runs','test-plans','specs'):
@@ -84,6 +111,9 @@ def initialize_project(root: Path) -> list[str]:
     if not db_existed: created.append(str(db.relative_to(root)))
     config=root/'sentry.toml'
     if not config.exists(): config.write_text(default_config(root.resolve().name), encoding='utf-8'); created.append('sentry.toml')
+    if declarar:
+        _declarar_pastas_de_skills(config, pastas)
+        if 'sentry.toml' not in created: created.append('sentry.toml')
     gitignore=root/'.gitignore'
     existing=gitignore.read_text(encoding='utf-8').splitlines() if gitignore.exists() else []
     filtered=[line for line in existing if line not in OBSOLETE_GITIGNORE_ENTRIES]
@@ -93,7 +123,7 @@ def initialize_project(root: Path) -> list[str]:
     missing=[entry for entry in GITIGNORE_ENTRIES if entry not in filtered and f'!{entry}' not in filtered]
     if missing or filtered!=existing:
         gitignore.write_text('\n'.join(filtered+missing)+'\n',encoding='utf-8'); created.append('.gitignore')
-    created += install_skills(root)
+    created += install_skills(root, pastas)
     created += install_agent_guide(root)
     return created
 

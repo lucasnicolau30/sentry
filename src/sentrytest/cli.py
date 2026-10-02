@@ -322,6 +322,8 @@ def build_parser():
 
     init = sub.add_parser("init", help="prepara o projeto atual")
     init.add_argument("--install", action="store_true", help="instala as dependências ausentes")
+    init.add_argument("--skills-dir", action="append", dest="skills_dirs", metavar="PASTA",
+                      help="pasta onde gravar a skill sentry-cases (repetível); fica registrada em [init] skills_dirs do sentry.toml")
 
     new = sub.add_parser("new", help="guarda o pedido e cria o CASES.md a preencher")
     new.add_argument("name", help="nome da funcionalidade; vira o slug da spec")
@@ -505,7 +507,7 @@ def _init_checklist(created: list[str], deps: dict) -> list[dict]:
     normalized = [name.replace("\\", "/") for name in created]
     sentry_extra = sorted(name.rsplit("/", 1)[-1] for name in normalized if name.startswith(".sentry/"))
     config = [name for name in ("sentry.toml", ".gitignore") if name in normalized]
-    skill = next((name for name in normalized if name.startswith(".claude/skills/")), None)
+    skills = [name for name in normalized if name.endswith("/SKILL.md")]
     dep_parts = [f"sentry-test {__version__}"]
     dep_parts += [f"{name} {info['version']}" if info["installed"] else f"{name} ausente" for name, info in deps.items()]
     detail = " • ".join([f"python {platform.python_version()}", *dep_parts, platform.machine()])
@@ -523,7 +525,7 @@ def _init_checklist(created: list[str], deps: dict) -> list[dict]:
             "text": "Gerando " + " e ".join(config) if config else "Config sentry.toml e .gitignore",
         },
         {
-            "text": f"Instalando skill Claude — {skill}" if skill else "Skill Claude",
+            "text": f"Instalando skill — {', '.join(skills)}" if skills else "Skill",
         },
         {
             "text": "Gravando AGENT-SENTRY.md",
@@ -726,7 +728,11 @@ def main(argv=None):
         return 0
     root = Path.cwd()
     if args.command == "init":
-        created = initialize_project(root)
+        try:
+            created = initialize_project(root, args.skills_dirs)
+        except ValueError as error:
+            _print_app_error(str(error), parser=parser._subcommands.choices["init"])
+            return EXIT_INFRA
         deps = check_dependencies(root)
         print(render_wordmark(__version__))
         print()
@@ -759,7 +765,7 @@ def main(argv=None):
         print()
         print(render_checklist_item(f"Spec criada em {directory.relative_to(root)}"))
         # Rotulo descritivo por arquivo -- igual ao checklist do init ("Instalando
-        # skill Claude — <path>"), em vez do caminho cru repetindo o que a linha
+        # skill — <path>"), em vez do caminho cru repetindo o que a linha
         # de cima ja mostrou (o proprio diretorio da spec).
         labels = {
             "PROMPT.md": "Guardando o pedido — PROMPT.md",

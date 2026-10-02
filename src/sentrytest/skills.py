@@ -1,10 +1,15 @@
-"""Skills instaladas pelo `sentry init` para agentes que leem .claude/skills.
+"""Skills instaladas pelo `sentry init`, na pasta que o usuário declara.
+
+Uma skill (`SKILL.md`) serve a qualquer agente, mas cada agente lê a sua pasta: o Sentry não
+decide por ele. A pasta vem de `[init] skills_dirs` no `sentry.toml` (ou da flag
+`--skills-dir`) e, sem declaração, é `.claude/skills`.
 
 O Sentry nunca chama um modelo para chegar ao veredito: a skill instrui o agente a preencher o artefato
 e devolve o controle para a CLI, que valida de forma determinística.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 SENTRY_CASES = """---
@@ -74,8 +79,8 @@ auditoria.
 
 SKILLS = {"sentry-cases": SENTRY_CASES}
 
-# A skill acima só é lida pelo Claude Code (.claude/skills/). Este guia fica na
-# raiz do projeto para qualquer agente de IA que consiga rodar comandos de
+# A skill acima só é lida pelo agente que procura skills na pasta onde foi gravada. Este
+# guia fica na raiz do projeto para qualquer agente de IA que consiga rodar comandos de
 # shell — sem depender do formato de skill de uma ferramenta específica.
 AGENT_GUIDE = """# Sentry — guia para agentes de IA
 
@@ -83,8 +88,7 @@ O Sentry mede se a implementação corresponde à intenção declarada. Ele não
 código nem testes: quem declara intenção e quem escreve código e testes é você
 (o agente) ou o usuário; o Sentry só mede.
 
-Funciona com qualquer agente de IA que consiga rodar comandos de shell — não é
-específico do Claude Code.
+Funciona com todos os agentes de IA que consigam rodar comandos de shell.
 
 ## Divisão de responsabilidade
 
@@ -254,8 +258,10 @@ genérico: roda, mas não mede.
 
 ## Outros comandos
 
-- `sentry init [--install]` — prepara o projeto (uma vez só; `sentry new` já
-  chama isso implicitamente). Idempotente.
+- `sentry init [--install] [--skills-dir PASTA]` — prepara o projeto (uma vez só; `sentry new`
+  já chama isso implicitamente). Idempotente. A skill `sentry-cases` vai para a(s) pasta(s)
+  de `[init] skills_dirs` no `sentry.toml` (padrão `.claude/skills`); `--skills-dir` escolhe
+  outra e a registra lá.
 - `sentry report` — reexibe o último relatório sem rodar nada de novo.
 - `sentry history` — lista execuções e compara as duas últimas: cobertura,
   testes, achados novos, resolvidos e persistentes.
@@ -332,21 +338,65 @@ genérico: roda, mas não mede.
 """
 
 
-def install_skills(root: Path) -> list[str]:
-    """Grava as skills em .claude/skills/<nome>/SKILL.md. Sobrescreve só o que gerou."""
+ONDE_DECLARAR_PASTAS = "[init] skills_dirs"
+EXEMPLO_DE_PASTAS = 'skills_dirs = [".claude/skills", ".agentes/skills"]'
+
+
+def pastas_de_skills_declaradas(config: dict) -> list | None:
+    """O `[init] skills_dirs` do `sentry.toml`, como foi escrito; None quando não há declaração."""
+    init = config.get("init")
+    return init.get("skills_dirs") if isinstance(init, dict) else None
+
+
+def validar_pastas_de_skills(valor) -> list[str] | None:
+    """As pastas declaradas, normalizadas, ou None (vale o padrão).
+
+    A pasta vira caminho de arquivo: absoluta, com `..` ou vazia gravaria fora do projeto
+    ou em lugar nenhum, então é recusada antes de o `init` gravar qualquer coisa. A lista
+    vazia é válida e quer dizer "não instalar skill".
+    """
+    if valor is None:
+        return None
+    formato = (f"{ONDE_DECLARAR_PASTAS} deve ser uma lista de pastas relativas ao projeto, sem `..`; "
+               f"exemplo: {EXEMPLO_DE_PASTAS}")
+    if not isinstance(valor, list) or not all(isinstance(pasta, str) for pasta in valor):
+        raise ValueError(formato)
+    pastas = []
+    for pasta in valor:
+        normal = pasta.replace("\\", "/").strip().rstrip("/")
+        partes = normal.split("/")
+        if (not normal or normal.startswith("/") or re.match(r"^[A-Za-z]:", normal)
+                or ".." in partes or "" in partes):
+            raise ValueError(f"pasta inválida em {ONDE_DECLARAR_PASTAS}: {pasta!r}; {formato}")
+        pastas.append(normal)
+    return list(dict.fromkeys(pastas))
+
+
+def install_skills(root: Path, pastas: list[str] | None = None) -> list[str]:
+    """Grava as skills em <pasta>/<nome>/SKILL.md, em cada pasta. Sobrescreve só o que gerou.
+
+    Sem `pastas`, vale o padrão (`.claude/skills`); lista vazia não grava nada."""
     created = []
-    for name, content in SKILLS.items():
-        directory = root / ".claude" / "skills" / name
-        directory.mkdir(parents=True, exist_ok=True)
-        path = directory / "SKILL.md"
-        if not path.exists() or path.read_text(encoding="utf-8") != content:
-            path.write_text(content, encoding="utf-8")
-            created.append(str(path.relative_to(root)))
+    for pasta in [SKILLS_DIR] if pastas is None else pastas:
+        for name, content in SKILLS.items():
+            directory = root / pasta / name
+            directory.mkdir(parents=True, exist_ok=True)
+            path = directory / "SKILL.md"
+            if not path.exists() or path.read_text(encoding="utf-8") != content:
+                path.write_text(content, encoding="utf-8")
+                created.append(str(path.relative_to(root)))
     return created
 
 
 AGENT_GUIDE_FILE = "AGENT-SENTRY.md"
 SKILLS_DIR = ".claude/skills"
+
+
+def is_sentry_skill_file(normalized: str) -> bool:
+    """O `SKILL.md` de uma skill do Sentry, em qualquer pasta: a skill do usuário, na mesma
+    pasta, tem outro nome e continua sendo mudança dele."""
+    nomes = "|".join(re.escape(nome) for nome in SKILLS)
+    return re.search(rf"(^|/)({nomes})/SKILL\.md$", normalized) is not None
 
 
 def generated_artifacts() -> tuple[str, ...]:

@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from ..domain.models import TestStatus
 from ..ports.inputs import GitChange, TestExecution, CoverageData
-from ..skills import generated_artifacts
+from ..skills import generated_artifacts, is_sentry_skill_file
 
 # `text=True` sozinho decodifica com o locale (cp1252 no Windows pt-BR), o que
 # corrompe acentos vindos do diff e da saida do pytest -- e um byte indefinido em
@@ -205,6 +205,8 @@ def is_generated_artifact(name: str) -> bool:
     # escreve no `init` -- este ultimo vem de skills.generated_artifacts().
     normalized = name.replace("\\", "/")
     if any(normalized == item or normalized.startswith(item) for item in generated_artifacts()):
+        return True
+    if is_sentry_skill_file(normalized):  # a pasta da skill é do usuário declarar
         return True
     return normalized.startswith(".sentry/") or "/__pycache__/" in normalized or normalized.endswith(".pyc") or normalized == ".coverage" or ".egg-info/" in normalized or normalized == ".pytest_cache" or normalized.startswith(".pytest_cache/") or normalized.endswith(".pyo")
 def _count(pattern: str, text: str) -> int:
