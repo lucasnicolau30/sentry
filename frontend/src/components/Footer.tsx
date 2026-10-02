@@ -82,7 +82,7 @@ export function Footer() {
           <p className="mt-3 text-justify text-xs leading-relaxed text-[var(--text)]/60">
             <span>© 2026 Sentry</span>
             <br />
-            {t("MIT License · Versão 2.1.0 · Local-first, sem telemetria", "MIT License · Version 2.1.0 · Local-first, no telemetry")}
+            {t("MIT License · Versão 2.2.0 · Local-first, sem telemetria", "MIT License · Version 2.2.0 · Local-first, no telemetry")}
           </p>
         </div>
 

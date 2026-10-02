@@ -139,7 +139,7 @@ const wordmarkFooter = {
   tone: "banner-mid" as const,
   segments: [
     { text: wordmarkLines[5], tone: "banner-dim" as const },
-    { text: "  v2.1.0", tone: "banner-mid" as const },
+    { text: "  v2.2.0", tone: "banner-mid" as const },
   ],
 };
 
