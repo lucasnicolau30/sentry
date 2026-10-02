@@ -234,3 +234,100 @@ def test_modulo_declarado_por_lista_de_specs_continua_como_antes():
     assert is_route_module(["cadastro-de-usuario", "login"]) is False
     assert is_route_module({"rotas": ["/usuarios"]}) is True
     assert is_route_module(None) is False
+
+
+def _capturar(tmp_path: Path, **sobrescritas):
+    return archive_module.capture_routes(
+        tmp_path, ["/"], login=None, destino=tmp_path / "saida",
+        base_url="http://localhost:5173", gravar_video=False, **sobrescritas)
+
+
+def _processo(monkeypatch, *, returncode=0, stdout="", stderr=""):
+    class Resultado:
+        pass
+
+    resultado = Resultado()
+    resultado.returncode, resultado.stdout, resultado.stderr = returncode, stdout, stderr
+    monkeypatch.setattr(archive_module.subprocess, "run", lambda *a, **k: resultado)
+
+
+# cenario: captura que nao consegue executar o node vira erro claro
+@pytest.mark.parametrize("erro", [
+    FileNotFoundError("node"),
+    archive_module.subprocess.TimeoutExpired("node", 1),
+])
+def test_captura_que_nao_consegue_executar_o_node_vira_erro_claro(tmp_path: Path, monkeypatch, erro):
+    def falha(*args, **kwargs):
+        raise erro
+
+    monkeypatch.setattr(archive_module.subprocess, "run", falha)
+    with pytest.raises(ValueError, match="não foi possível executar a captura de rotas"):
+        _capturar(tmp_path)
+    assert not (tmp_path / "saida" / "_captura.json").exists()
+
+
+# cenario: captura que sai com codigo diferente de zero vira erro claro
+def test_captura_que_sai_com_codigo_diferente_de_zero_vira_erro_claro(tmp_path: Path, monkeypatch):
+    _processo(monkeypatch, returncode=1, stderr="chromium não abriu")
+    with pytest.raises(ValueError, match="captura de rotas falhou: chromium não abriu"):
+        _capturar(tmp_path)
+
+
+# cenario: captura que devolve saida que nao e json vira erro claro
+def test_captura_que_devolve_saida_que_nao_e_json_vira_erro_claro(tmp_path: Path, monkeypatch):
+    _processo(monkeypatch, stdout="isto nao e json")
+    with pytest.raises(ValueError, match="não devolveu JSON válido: isto nao e json"):
+        _capturar(tmp_path)
+
+
+# cenario: captura que devolve manifesto com erro vira erro claro
+def test_captura_que_devolve_manifesto_com_erro_vira_erro_claro(tmp_path: Path, monkeypatch):
+    _processo(monkeypatch, stdout=json.dumps({"rotas": [], "erro": "servidor fora do ar"}))
+    with pytest.raises(ValueError, match="captura de rotas falhou: servidor fora do ar"):
+        _capturar(tmp_path)
+
+
+# cenario: modulo com rotas vazia e recusado
+def test_modulo_com_rotas_vazia_e_recusado(tmp_path: Path):
+    with pytest.raises(ValueError, match="declara 'rotas' vazia"):
+        write_archive_rotas(tmp_path, "usuarios", "1.0.0", {"rotas": []}, {})
+    assert not storage_path(tmp_path).exists()
+
+
+# cenario: archive por rotas sai com infra quando a analise das specs falha
+def test_archive_por_rotas_sai_com_infra_quando_a_analise_das_specs_falha(tmp_path: Path, monkeypatch, capsys):
+    from sentrytest import cli
+    monkeypatch.chdir(tmp_path)
+    initialize_project(tmp_path)
+    (tmp_path / "sentry.toml").write_text(
+        '[project]\nname = "demo"\n\n[modules.usuarios]\nrotas = ["/usuarios"]\n'
+        'specs = ["spec-que-nao-existe"]\n', encoding="utf-8")
+    chamadas = []
+    monkeypatch.setattr(archive_module, "capture_routes", lambda *a, **k: chamadas.append(1))
+
+    codigo = cli.main(["archive", "usuarios", "--version", "1.0.0"])
+
+    assert codigo == cli.EXIT_INFRA
+    assert "spec-que-nao-existe" in capsys.readouterr().out
+    assert chamadas == []
+
+
+# cenario: archive por rotas sai com infra quando a captura falha
+def test_archive_por_rotas_sai_com_infra_quando_a_captura_falha(tmp_path: Path, monkeypatch, capsys):
+    from sentrytest import cli
+    monkeypatch.chdir(tmp_path)
+    initialize_project(tmp_path)
+    (tmp_path / "sentry.toml").write_text(
+        '[project]\nname = "demo"\n\n[modules.usuarios]\nrotas = ["/usuarios"]\n', encoding="utf-8")
+
+    def captura_quebrada(*args, **kwargs):
+        raise ValueError("captura de rotas falhou: sem navegador")
+
+    monkeypatch.setattr(archive_module, "capture_routes", captura_quebrada)
+
+    codigo = cli.main(["archive", "usuarios", "--version", "1.0.0"])
+
+    assert codigo == cli.EXIT_INFRA
+    saida = capsys.readouterr().out
+    assert "sem navegador" in saida
+    assert "arquivado em" not in saida

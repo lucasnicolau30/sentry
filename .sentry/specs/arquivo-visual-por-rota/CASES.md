@@ -199,6 +199,90 @@ modal aberto por clique) fica para depois.
   aparece como "falhou" na tabela do README, e o comando sai com o código de
   ressalva (1), não de sucesso pleno
 
+## Caso: captura que nao consegue executar o node vira erro claro
+
+- **Requisito:** "uma rota que falhou não é sucesso: o comando recusa com erro claro em vez de
+  arquivar um módulo incompleto ou quebrar com traceback"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** resultado_da_captura/presente
+- **Dado:** um módulo com rotas e um Node que não executa (binário ausente ou tempo esgotado)
+- **Quando:** a captura de rotas roda
+- **Então:** o erro diz que não foi possível executar a captura de rotas e nada fica pela metade na pasta (o `_captura.json` temporário some)
+
+## Caso: captura que sai com codigo diferente de zero vira erro claro
+
+- **Requisito:** "uma rota que falhou não é sucesso: o comando recusa com erro claro em vez de
+  arquivar um módulo incompleto ou quebrar com traceback"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** resultado_da_captura/presente
+- **Dado:** um script de captura que termina com código diferente de zero e escreve no stderr
+- **Quando:** a captura de rotas roda
+- **Então:** o erro diz que a captura falhou e repete a mensagem do script
+
+## Caso: captura que devolve saida que nao e json vira erro claro
+
+- **Requisito:** "uma rota que falhou não é sucesso: o comando recusa com erro claro em vez de
+  arquivar um módulo incompleto ou quebrar com traceback"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** resultado_da_captura/presente
+- **Dado:** um script de captura que termina bem mas imprime texto que não é JSON
+- **Quando:** a captura de rotas roda
+- **Então:** o erro diz que a captura não devolveu JSON válido e mostra o começo da saída
+
+## Caso: captura que devolve manifesto com erro vira erro claro
+
+- **Requisito:** "uma rota que falhou não é sucesso: o comando recusa com erro claro em vez de
+  arquivar um módulo incompleto ou quebrar com traceback"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** resultado_da_captura/presente
+- **Dado:** um script de captura que devolve um manifesto com o campo `erro` preenchido
+- **Quando:** a captura de rotas roda
+- **Então:** o erro diz que a captura falhou com o motivo do manifesto
+
+## Caso: modulo com rotas vazia e recusado
+
+- **Requisito:** "uma rota que falhou não é sucesso: o comando recusa com erro claro em vez de
+  arquivar um módulo incompleto ou quebrar com traceback"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** resultado_da_captura/presente
+- **Dado:** um módulo declarado com `rotas = []`
+- **Quando:** o arquivo por rotas roda
+- **Então:** o erro pede ao menos uma rota em `[modules.<nome>]` e nenhuma pasta é criada
+
+## Caso: archive por rotas sai com infra quando a analise das specs falha
+
+- **Requisito:** "uma rota que falhou não é sucesso: o comando recusa com erro claro em vez de
+  arquivar um módulo incompleto ou quebrar com traceback"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** resultado_da_captura/presente
+- **Dado:** um módulo por rotas com `specs` apontando para uma spec inexistente
+- **Quando:** `sentry archive` roda para esse módulo
+- **Então:** o comando mostra o erro, sai com o código de infraestrutura e não fotografa nada
+
+## Caso: archive por rotas sai com infra quando a captura falha
+
+- **Requisito:** "uma rota que falhou não é sucesso: o comando recusa com erro claro em vez de
+  arquivar um módulo incompleto ou quebrar com traceback"
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** alta
+- **Classe:** resultado_da_captura/presente
+- **Dado:** um módulo por rotas cuja captura levanta erro
+- **Quando:** `sentry archive` roda para esse módulo
+- **Então:** o comando mostra o erro e sai com o código de infraestrutura, sem declarar sucesso
+
 ## Classes não aplicáveis
 
 - **rotas_do_modulo/caracteres-especiais**: rota é texto livre que vira nome
