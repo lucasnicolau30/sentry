@@ -56,6 +56,71 @@ async function waitForAnimationsToSettle(page, timeoutMs = 3000) {
   }, timeoutMs);
 }
 
+// Animação de entrada por rolagem (`whileInView`, lazy-load) só roda quando o elemento
+// entra na janela, e um print de página inteira nunca rola: tudo abaixo da primeira
+// tela sairia escondido, e há quem desfaça a entrada quando o elemento sai da janela,
+// então rolar até o fim também não resolve. Antes de a página carregar, o observador
+// de interseção passa a tratar todo elemento observado como visível: a página aparece
+// já revelada, como para quem rolou até o fim. É dito no README do módulo.
+const OBSERVADOR_SEMPRE_VISIVEL = () => {
+  class ObservadorSempreVisivel {
+    constructor(callback) {
+      this.callback = callback;
+    }
+    observe(alvo) {
+      const caixa = alvo.getBoundingClientRect();
+      setTimeout(() => this.callback([{
+        target: alvo, isIntersecting: true, intersectionRatio: 1, time: performance.now(),
+        boundingClientRect: caixa, intersectionRect: caixa, rootBounds: null,
+      }], this), 0);
+    }
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
+  }
+  window.IntersectionObserver = ObservadorSempreVisivel;
+};
+
+// Animações feitas em JavaScript (texto digitado letra a letra, contadores) não aparecem
+// em `document.getAnimations()`. Elas se denunciam mexendo no DOM: a página só está
+// pronta quando fica um tempo sem mudar. O limite evita esperar para sempre uma página
+// que nunca se aquieta (um relógio, por exemplo); animação de CSS que nunca termina
+// (um cursor piscando) não mexe no DOM e não atrapalha.
+const DOM_QUIETO_MS = 800;
+const LIMITE_DA_ESPERA_MS = 10000;
+
+async function aguardarDomQuieto(page) {
+  await page.evaluate(({ quieto, limite }) => new Promise((resolve) => {
+    let temporizador;
+    const observador = new MutationObserver(() => {
+      clearTimeout(temporizador);
+      temporizador = setTimeout(terminar, quieto);
+    });
+    function terminar() {
+      observador.disconnect();
+      clearTimeout(limiteGeral);
+      resolve();
+    }
+    const limiteGeral = setTimeout(terminar, limite);
+    observador.observe(document.documentElement, {
+      subtree: true, childList: true, attributes: true, characterData: true,
+    });
+    temporizador = setTimeout(terminar, quieto);
+  }), { quieto: DOM_QUIETO_MS, limite: LIMITE_DA_ESPERA_MS });
+}
+
+async function revelarPagina(page) {
+  await page.evaluate(() => {
+    for (const imagem of document.querySelectorAll('img[loading="lazy"]')) imagem.loading = "eager";
+  });
+  await page.waitForLoadState("networkidle");
+  await waitForAnimationsToSettle(page);
+  await aguardarDomQuieto(page);
+  await waitForAnimationsToSettle(page);
+}
+
 async function main() {
   const configPath = process.argv[2];
   const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
@@ -69,6 +134,7 @@ async function main() {
       viewport: VIEWPORTS.desktop,
       recordVideo: video ? { dir: videoDir } : undefined,
     });
+    await context.addInitScript(OBSERVADOR_SEMPRE_VISIVEL);
     const page = await context.newPage();
 
     if (login) {
@@ -91,13 +157,12 @@ async function main() {
       try {
         await page.setViewportSize(VIEWPORTS.desktop);
         await page.goto(new URL(rota, baseURL).toString());
-        await page.waitForLoadState("networkidle");
-        await waitForAnimationsToSettle(page);
+        await revelarPagina(page);
         await page.screenshot({ path: path.join(pasta, "desktop.png"), fullPage: true });
         item.arquivos.push("desktop.png");
 
         await page.setViewportSize(VIEWPORTS.mobile);
-        await waitForAnimationsToSettle(page);
+        await revelarPagina(page);
         await page.screenshot({ path: path.join(pasta, "mobile.png"), fullPage: true });
         item.arquivos.push("mobile.png");
       } catch (erroRota) {

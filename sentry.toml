@@ -39,6 +39,7 @@ rotas = [
   "/docs?tab=start",
   "/docs?tab=setup",
   "/docs?tab=workflow",
+  "/docs?tab=videos",
   "/docs?tab=commands",
   "/docs?tab=papers",
 ]

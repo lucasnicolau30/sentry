@@ -331,3 +331,13 @@ def test_archive_por_rotas_sai_com_infra_quando_a_captura_falha(tmp_path: Path, 
     saida = capsys.readouterr().out
     assert "sem navegador" in saida
     assert "arquivado em" not in saida
+
+
+# cenario: readme do modulo avisa que as animacoes de entrada foram disparadas
+@pytest.mark.parametrize("com_specs", [False, True])
+def test_readme_do_modulo_avisa_que_as_animacoes_de_entrada_foram_disparadas(com_specs: bool):
+    readme = render_readme_rotas("usuarios", "1.0.0", manifesto(["/usuarios"]),
+                                 certificado=com_specs, payload=payload_aprovado() if com_specs else None)
+    limitacoes = readme[readme.index("## Limitações"):]
+    assert "Animações de entrada por rolagem" in limitacoes
+    assert "já revelada" in limitacoes

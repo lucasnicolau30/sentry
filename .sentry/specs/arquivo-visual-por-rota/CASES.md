@@ -283,6 +283,30 @@ modal aberto por clique) fica para depois.
 - **Quando:** `sentry archive` roda para esse módulo
 - **Então:** o comando mostra o erro e sai com o código de infraestrutura, sem declarar sucesso
 
+## Caso: captura espera as animacoes e fotografa a pagina ja revelada
+
+- **Requisito:** "espere as animações e tire os prints" — o print mostra a página no estado final, não no meio da entrada nem com o conteúdo abaixo da primeira tela ainda escondido
+- **Camada:** frontend
+- **Tipo:** integração
+- **Prioridade:** alta
+- **Classe:** rotas_do_modulo/valido
+- **Dado:** uma rota longa cujo conteúdo abaixo da primeira tela só aparece quando entra na janela (animação de entrada por rolagem, que se desfaz quando sai dela)
+- **Quando:** a rota é fotografada em desktop e em mobile
+- **Então:** o print de página inteira mostra o conteúdo de baixo, depois que as animações terminam (inclusive texto digitado letra a letra, que o Sentry espera até a página parar de mudar), e não uma faixa em branco; o que o Sentry faz para isso (tratar todo elemento observado como visível) é dito no README do módulo
+- **Entrada:** `rotas_do_modulo = /docs?tab=setup`
+
+## Caso: readme do modulo avisa que as animacoes de entrada foram disparadas
+
+- **Requisito:** a evidência não deve fingir ser o que um visitante vê no primeiro instante da página
+- **Camada:** integração
+- **Tipo:** unitário
+- **Prioridade:** média
+- **Classe:** rotas_do_modulo/valido
+- **Dado:** um módulo declarado por rotas, com ou sem specs
+- **Quando:** o README do módulo arquivado é escrito
+- **Então:** a seção Limitações diz que as animações de entrada por rolagem são disparadas todas antes do print, então a página aparece já revelada
+- **Entrada:** `rotas_do_modulo = /usuarios`
+
 ## Classes não aplicáveis
 
 - **rotas_do_modulo/caracteres-especiais**: rota é texto livre que vira nome

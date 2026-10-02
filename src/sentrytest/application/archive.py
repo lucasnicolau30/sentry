@@ -204,6 +204,8 @@ def render_readme_rotas(module: str, version: str, manifesto: dict, *,
     if not certificado:
         linhas.append("- Módulo sem specs associadas: os prints e vídeos aqui são registro do "
                       "estado visual, não certificação de que o módulo funciona.")
+    linhas.append("- Animações de entrada por rolagem: o Sentry as dispara todas antes do print, então a "
+                  "página aparece já revelada, como para quem rolou até o fim.")
     linhas.append("- Estado que a URL não alcança sozinha (dado específico já salvo no banco, "
                   "modal aberto por interação) não é capturado nesta versão.")
     return "\n".join(linhas) + "\n"
