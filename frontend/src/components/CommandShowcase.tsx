@@ -86,7 +86,7 @@ export function CommandShowcase() {
           {t("Na prática", "In practice")}
         </h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-base text-[var(--text)]/60 sm:text-lg">
-          {t("Cada comando com o output que ele realmente produz.", "Every command with the output it actually produces.")}
+          {t("Cada comando com um exemplo da saída que ele produz.", "Every command with an example of the output it produces.")}
         </p>
       </Reveal>
 
