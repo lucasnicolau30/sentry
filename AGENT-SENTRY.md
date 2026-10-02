@@ -4,8 +4,7 @@ O Sentry mede se a implementação corresponde à intenção declarada. Ele não
 código nem testes: quem declara intenção e quem escreve código e testes é você
 (o agente) ou o usuário; o Sentry só mede.
 
-Funciona com qualquer agente de IA que consiga rodar comandos de shell — não é
-específico do Claude Code.
+Funciona com todos os agentes de IA que consigam rodar comandos de shell.
 
 ## Divisão de responsabilidade
 
@@ -175,8 +174,10 @@ genérico: roda, mas não mede.
 
 ## Outros comandos
 
-- `sentry init [--install]` — prepara o projeto (uma vez só; `sentry new` já
-  chama isso implicitamente). Idempotente.
+- `sentry init [--install] [--skills-dir PASTA]` — prepara o projeto (uma vez só; `sentry new`
+  já chama isso implicitamente). Idempotente. A skill `sentry-cases` vai para a(s) pasta(s)
+  de `[init] skills_dirs` no `sentry.toml` (padrão `.claude/skills`); `--skills-dir` escolhe
+  outra e a registra lá.
 - `sentry report` — reexibe o último relatório sem rodar nada de novo.
 - `sentry history` — lista execuções e compara as duas últimas: cobertura,
   testes, achados novos, resolvidos e persistentes.
