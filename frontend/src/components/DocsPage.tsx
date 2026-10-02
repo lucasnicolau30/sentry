@@ -222,6 +222,13 @@ const SlidersIcon = () => (
   </svg>
 );
 
+const FilmIcon = () => (
+  <svg {...iconProps} aria-hidden="true">
+    <rect x="3" y="5" width="18" height="14" rx="2.5" />
+    <path d="M10.2 9.4v5.2l4.4-2.6-4.4-2.6z" />
+  </svg>
+);
+
 const FlowIcon = () => (
   <svg {...iconProps} aria-hidden="true">
     <path d="M6 3v6a3 3 0 003 3h6a3 3 0 013 3v6" strokeLinecap="round" />
@@ -543,6 +550,7 @@ const tabs = [
   { id: "start", pt: "Comece aqui", en: "Getting started" },
   { id: "setup", pt: "Setup e configuração", en: "Setup & configuration" },
   { id: "workflow", pt: "O fluxo de trabalho", en: "The workflow" },
+  { id: "videos", pt: "Vídeos", en: "Videos" },
   { id: "commands", pt: "Comandos e Habilidades", en: "Commands & Skills" },
   { id: "papers", pt: "Papers", en: "Papers" },
 ];
@@ -688,6 +696,18 @@ const actionsByLang: Record<"pt" | "en", Card[]> = {
         </>
       ),
     },
+    {
+      icon: <FilmIcon />,
+      title: "Gere os vídeos",
+      description: (
+        <>
+          <Cmd>sentry promo</Cmd> gera o vídeo do projeto e{" "}
+          <Cmd>sentry training</Cmd> grava o treinamento de um módulo. Usam o
+          agente e gastam tokens, só quando você pede; o veredito não muda. Detalhes na
+          aba Vídeos.
+        </>
+      ),
+    },
   ],
   en: [
     {
@@ -771,6 +791,18 @@ const actionsByLang: Record<"pt" | "en", Card[]> = {
           <Cmd>sentry status</Cmd> measures everything against every declared
           spec, always via the full suite: the periodic snapshot, not the
           day-to-day loop.
+        </>
+      ),
+    },
+    {
+      icon: <FilmIcon />,
+      title: "Make the videos",
+      description: (
+        <>
+          <Cmd>sentry promo</Cmd> makes the project video and{" "}
+          <Cmd>sentry training</Cmd> records a module's training. Both use the
+          agent and spend tokens, only when you ask; the verdict doesn't change.
+          Details in the Videos tab.
         </>
       ),
     },
@@ -1042,12 +1074,8 @@ function GetStartedContent({ onNextClick }: { onNextClick: () => void }) {
           {t("O que você pode fazer", "What you can do")}
         </h2>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {actionsByLang[lang].map((card, index) => (
-            <DocCard
-              key={String(card.title)}
-              {...card}
-              className={index === actionsByLang[lang].length - 1 ? "lg:col-span-2" : ""}
-            />
+          {actionsByLang[lang].map((card) => (
+            <DocCard key={String(card.title)} {...card} />
           ))}
         </div>
       </Reveal>
@@ -1308,8 +1336,8 @@ function SetupContent({
             </h2>
             {lang === "pt" ? (
               <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
-                Se faltar <span className="text-[var(--text-h)]">pytest</span>{" "}
-                ou <span className="text-[var(--text-h)]">coverage</span>, o{" "}
+                Se faltar pytest{" "}
+                ou coverage, o{" "}
                 <span className="text-[var(--text-h)]">init</span> avisa em vez
                 de falhar. Para instalar junto, use a flag{" "}
                 <span className="text-[var(--text-h)]">
@@ -1319,8 +1347,8 @@ function SetupContent({
               </p>
             ) : (
               <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
-                If <span className="text-[var(--text-h)]">pytest</span> or{" "}
-                <span className="text-[var(--text-h)]">coverage</span> are
+                If pytest or{" "}
+                coverage are
                 missing, <span className="text-[var(--text-h)]">init</span>{" "}
                 warns instead of failing. To install them too, use the{" "}
                 <span className="text-[var(--text-h)]">
@@ -1446,6 +1474,22 @@ function SetupContent({
               <p className="pl-2">
                 paths ={" "}
                 <span className="text-[var(--accent)]">["frontend/e2e"]</span>
+              </p>
+              <p className="mt-2 text-[var(--text-h)]">
+                [video]{" "}
+                <span className="text-[var(--text)]/40">
+                  #{" "}
+                  {t(
+                    "opcional: o agente que roda o brag (padrão: Claude)",
+                    "optional: the agent that runs the brag (default: Claude)",
+                  )}
+                </span>
+              </p>
+              <p className="pl-2">
+                agente ={" "}
+                <span className="text-[var(--accent)]">
+                  {'["meu-agente", "--rodar", "{prompt}"]'}
+                </span>
               </p>
               <p className="mt-2 text-[var(--text-h)]">[analysis]</p>
               <p className="pl-2">
@@ -1646,19 +1690,9 @@ function SetupContent({
                   de spec, em vez de medir.
                   Os roteiros de vídeo em{" "}
                   <span className="text-[var(--text-h)]">.sentry/training/</span>{" "}
-                  também são versionados, como intenção declarada. Os vídeos
-                  que o <span className="text-[var(--text-h)]">promo</span> e o{" "}
-                  <span className="text-[var(--text-h)]">training</span> geram, com o resto da saída do brag (composição e texto
-                  de divulgação), ficam em{" "}
-                  <span className="text-[var(--text-h)]">.sentry/video/</span>, fora do
-                  Git: o <span className="text-[var(--text-h)]">init</span> a coloca no{" "}
-                  <span className="text-[var(--text-h)]">.gitignore</span>. Quem precisar versionar escreve{" "}
-                  <span className="text-[var(--text-h)]">!.sentry/video/</span> no{" "}
-                  <span className="text-[var(--text-h)]">.gitignore</span>, e o <span className="text-[var(--text-h)]">init</span> respeita essa escolha. O{" "}
-                  <span className="text-[var(--text-h)]">sentry clear</span> não toca nessa pasta. A pasta de
-                  trabalho do brag, <span className="text-[var(--text-h)]">brag-output/</span>, também fica fora do Git e
-                  fica vazia, porque o Sentry leva o conteúdo dela para{" "}
-                  <span className="text-[var(--text-h)]">.sentry/video/</span>.
+                  também são versionados, como intenção declarada. Os vídeos em{" "}
+                  <span className="text-[var(--text-h)]">.sentry/video/</span> ficam fora do Git por
+                  padrão; para versionar, veja a aba Vídeos.
                 </>
               ) : (
                 <>
@@ -1681,19 +1715,9 @@ function SetupContent({
                   inconclusive for lack of a spec instead of measuring.
                   Video scripts in{" "}
                   <span className="text-[var(--text-h)]">.sentry/training/</span>{" "}
-                  are versioned too, as declared intent. The videos that{" "}
-                  <span className="text-[var(--text-h)]">promo</span> and{" "}
-                  <span className="text-[var(--text-h)]">training</span> generate, with the rest of brag's output (composition and
-                  share copy), land in{" "}
-                  <span className="text-[var(--text-h)]">.sentry/video/</span>, outside
-                  Git: <span className="text-[var(--text-h)]">init</span> adds it to{" "}
-                  <span className="text-[var(--text-h)]">.gitignore</span>. Whoever needs to version it writes{" "}
-                  <span className="text-[var(--text-h)]">!.sentry/video/</span> in the{" "}
-                  <span className="text-[var(--text-h)]">.gitignore</span>, and <span className="text-[var(--text-h)]">init</span> respects that choice.{" "}
-                  <span className="text-[var(--text-h)]">sentry clear</span> doesn't touch that folder. Brag's
-                  working folder, <span className="text-[var(--text-h)]">brag-output/</span>, stays out of Git too and ends up
-                  empty, because Sentry moves its contents to{" "}
-                  <span className="text-[var(--text-h)]">.sentry/video/</span>.
+                  are versioned too, as declared intent. The videos in{" "}
+                  <span className="text-[var(--text-h)]">.sentry/video/</span> stay out of Git by
+                  default; to version them, see the Videos tab.
                 </>
               )}
             </p>
@@ -2140,7 +2164,7 @@ function WorkflowContent({
           <PageFooter
             prevLabel={t("Setup e configuração", "Setup & configuration")}
             onPrevClick={onPrevClick}
-            nextLabel={t("Comandos e Habilidades", "Commands & Skills")}
+            nextLabel={t("Vídeos", "Videos")}
             onNextClick={onNextClick}
             className="mt-14"
           />
@@ -2148,6 +2172,411 @@ function WorkflowContent({
 
         <DocsSidebar
           sections={workflowSectionsByLang[lang]}
+          label={t("Nesta página", "On this page")}
+        />
+      </div>
+    </div>
+  );
+}
+
+const videosSectionsByLang = {
+  pt: [
+    { id: "visao-geral", label: "O que são os vídeos" },
+    { id: "agente", label: "Qual agente roda o brag" },
+    { id: "promo", label: "sentry promo" },
+    { id: "training", label: "sentry training" },
+    { id: "onde-ficam", label: "Onde ficam os arquivos" },
+    { id: "alterar", label: "Como alterar um vídeo" },
+  ],
+  en: [
+    { id: "visao-geral", label: "What the videos are" },
+    { id: "agente", label: "Which agent runs the brag" },
+    { id: "promo", label: "sentry promo" },
+    { id: "training", label: "sentry training" },
+    { id: "onde-ficam", label: "Where the files live" },
+    { id: "alterar", label: "How to change a video" },
+  ],
+};
+
+function VideosContent({
+  onPrevClick,
+  onNextClick,
+}: {
+  onPrevClick: () => void;
+  onNextClick: () => void;
+}) {
+  const { lang, t } = useLanguage();
+  const paragraph =
+    "mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80";
+  const heading = "mt-14 text-xl font-semibold text-[var(--text-h)]";
+  // Exemplo do roteiro, no padrão dos outros terminais: nomes do Sentry em branco, valores em cinza.
+  const linha = "whitespace-pre text-[var(--text)]/70";
+  const chave = (nome: string) => <W>{`"${nome}"`}</W>;
+
+  return (
+    <div className="mx-auto max-w-5xl px-6 pb-14 pt-6">
+      <div className="flex gap-8 lg:gap-12">
+        <div className="min-w-0 flex-1">
+          <Reveal>
+            <h1 className="text-3xl font-semibold uppercase tracking-normal text-[var(--text-h)]">
+              {t("Vídeos", "Videos")}
+            </h1>
+            <p className="mt-6 text-justify text-lg leading-relaxed text-[var(--text)]/80">
+              {lang === "pt" ? (
+                <>
+                  O <W>Sentry</W> também faz vídeo. O <W>sentry promo</W> gera o
+                  vídeo do projeto e o <W>sentry training</W> grava o
+                  treinamento de um módulo. São extras: ficam fora do ciclo do
+                  veredito.
+                </>
+              ) : (
+                <>
+                  <W>Sentry</W> also makes videos. <W>sentry promo</W> builds
+                  the project video and <W>sentry training</W> records a
+                  module's training. They are extras: they sit outside the
+                  verdict cycle.
+                </>
+              )}
+            </p>
+          </Reveal>
+
+          <Reveal>
+            <h2 id="visao-geral" className={heading}>
+              {t("O que são os vídeos", "What the videos are")}
+            </h2>
+            <p className={paragraph}>
+              {lang === "pt" ? (
+                <>
+                  Os dois comandos rodam o agente, então gastam tokens, só
+                  quando você pede. O veredito continua sem nenhuma chamada de
+                  IA: a afirmação de zero IA vale só para ele. O{" "}
+                  <W>training</W> não certifica nada, só grava e não dá
+                  veredito; só o veredito certifica.
+                </>
+              ) : (
+                <>
+                  Both commands run the agent, so they spend tokens, only when
+                  you ask. The verdict still makes no AI call at all: the
+                  zero-AI claim holds for it alone. <W>training</W> certifies
+                  nothing, it only records and issues no verdict; only the
+                  verdict certifies.
+                </>
+              )}
+            </p>
+            <p className={paragraph}>
+              {lang === "pt" ? (
+                <>
+                  Os dois precisam de um agente de IA de linha de comando e do{" "}
+                  ffmpeg. O agente padrão é o Claude; para usar
+                  outro, declare-o em <W>[video] agente</W> no{" "}
+                  <W>sentry.toml</W>, como mostra a próxima seção. No <W>training</W>,
+                  o Playwright também é instalado sozinho, se ainda não estiver.
+                  Se algo não puder ser instalado, o comando para com uma
+                  mensagem clara e um código de saída diferente de zero, sem
+                  alternativa silenciosa.
+                </>
+              ) : (
+                <>
+                  Both need a command-line AI agent and ffmpeg. The
+                  default agent is Claude; to use another, declare it in{" "}
+                  <W>[video] agente</W> in <W>sentry.toml</W>, as the next
+                  section shows. For <W>training</W>, Playwright is installed
+                  on its own too, if it isn't there yet. If something can't be
+                  installed, the command stops with a clear message and a
+                  non-zero exit code, with no silent fallback.
+                </>
+              )}
+            </p>
+          </Reveal>
+
+          <Reveal>
+            <h2 id="agente" className={heading}>
+              {t("Qual agente roda o brag", "Which agent runs the brag")}
+            </h2>
+            <p className={paragraph}>
+              {lang === "pt" ? (
+                <>
+                  O brag é uma skill de agente, não de uma empresa: o Sentry
+                  aciona o agente que você declarar. O <W>agente</W> é uma lista
+                  com o comando, e o texto <W>{"{prompt}"}</W> marca onde entra
+                  o pedido do vídeo. Um comando sem <W>{"{prompt}"}</W> é
+                  recusado antes de rodar.
+                </>
+              ) : (
+                <>
+                  Brag is an agent skill, not a company's: Sentry runs the
+                  agent you declare. The <W>agente</W> is a list holding the
+                  command, and the text <W>{"{prompt}"}</W> marks where the
+                  video request goes. A command without <W>{"{prompt}"}</W> is
+                  refused before it runs.
+                </>
+              )}
+            </p>
+            <TerminalWindow title="sentry.toml">
+              <p className="whitespace-pre text-[var(--text-h)]">[video]</p>
+              <p className="whitespace-pre text-[var(--text)]/70">
+                {'agente = ["meu-agente", "--rodar", "{prompt}"]'}
+              </p>
+            </TerminalWindow>
+            <p className="mt-4 text-justify text-lg leading-relaxed text-[var(--text)]/80">
+              {lang === "pt" ? (
+                <>
+                  Com agente declarado, o Sentry não procura nem instala a skill
+                  brag, porque cada agente guarda as skills num lugar: ela
+                  precisa estar disponível para ele, e o pedido a chama pelo
+                  nome. Sem declaração, vale o Claude, com a skill brag
+                  procurada e instalada pelo Sentry, se faltar.
+                </>
+              ) : (
+                <>
+                  With a declared agent, Sentry neither looks for nor installs
+                  the brag skill, since each agent keeps skills somewhere
+                  different: it must be available to that agent, and the
+                  request calls it by name. Without a declaration, Claude{" "}
+                  applies, with the brag skill looked up and installed by
+                  Sentry if it's missing.
+                </>
+              )}
+            </p>
+          </Reveal>
+
+          <Reveal>
+            <h2 id="promo" className={heading}>
+              sentry promo
+            </h2>
+            <p className={paragraph}>
+              {lang === "pt" ? (
+                <>
+                  Gera o vídeo promocional do projeto com a skill brag, direto
+                  do repositório, em{" "}
+                  <W>.sentry/video/promo-&lt;idioma&gt;.mp4</W>. O padrão é
+                  português; com <W>--lang en</W> o brag roda de novo, em
+                  inglês.
+                </>
+              ) : (
+                <>
+                  Builds the project's promo video with the brag skill, straight
+                  from the repository, at{" "}
+                  <W>.sentry/video/promo-&lt;lang&gt;.mp4</W>. The default is
+                  Portuguese; with <W>--lang en</W> brag runs again, in
+                  English.
+                </>
+              )}
+            </p>
+            <div className="space-y-3">
+              <CodeBlock lines={["sentry promo"]} />
+              <CodeBlock lines={["sentry promo --lang en"]} />
+            </div>
+          </Reveal>
+
+          <Reveal>
+            <h2 id="training" className={heading}>
+              sentry training
+            </h2>
+            <p className={paragraph}>
+              {lang === "pt" ? (
+                <>
+                  Grava o vídeo de treinamento de um módulo a partir de um
+                  roteiro declarativo em{" "}
+                  <W>.sentry/training/&lt;módulo&gt;.json</W>. O roteiro é dado,
+                  nunca código: o Sentry o executa com o Playwright, cronometra
+                  cada passo e a skill brag monta o vídeo com legendas. O{" "}
+                  <W>sentry check</W> valida todos os roteiros antes de você
+                  gastar uma gravação.
+                </>
+              ) : (
+                <>
+                  Records a module's training video from a declarative script
+                  at <W>.sentry/training/&lt;module&gt;.json</W>. The script is
+                  data, never code: Sentry runs it with Playwright, times every
+                  step, and the brag skill assembles the video with captions.{" "}
+                  <W>sentry check</W> validates every script before you spend a
+                  recording.
+                </>
+              )}
+            </p>
+            <div className="mb-4">
+              <CodeBlock
+                lines={[
+                  t(
+                    "sentry training cadastro-de-cliente",
+                    "sentry training customer-registration",
+                  ),
+                ]}
+              />
+            </div>
+            <TerminalWindow
+              title={t(
+                "training/cadastro-de-cliente.json",
+                "training/customer-registration.json",
+              )}
+            >
+              <p className={linha}>{"{"}</p>
+              <p className={linha}>
+                {"  "}
+                {chave("base")}
+                {': "http://localhost:5173",'}
+              </p>
+              <p className={linha}>
+                {"  "}
+                {chave("titulo")}
+                {t(': "Cadastro de cliente",', ': "Customer registration",')}
+              </p>
+              <p className={linha}>
+                {"  "}
+                {chave("passos")}
+                {": ["}
+              </p>
+              <p className={linha}>{"    {"}</p>
+              <p className={linha}>
+                {"      "}
+                {chave("titulo")}
+                {t(': "Abra o cadastro",', ': "Open the form",')}
+              </p>
+              <p className={linha}>
+                {"      "}
+                {chave("fala")}
+                {t(
+                  ': "Vamos cadastrar um novo cliente.",',
+                  ': "Let us register a new customer.",',
+                )}
+              </p>
+              <p className={linha}>
+                {"      "}
+                {chave("acao")}
+                {": { "}
+                {chave("ir")}
+                {': "/clientes/novo" }'}
+              </p>
+              <p className={linha}>{"    },"}</p>
+              <p className={linha}>{"    {"}</p>
+              <p className={linha}>
+                {"      "}
+                {chave("titulo")}
+                {t(': "Preencha o nome",', ': "Fill in the name",')}
+              </p>
+              <p className={linha}>
+                {"      "}
+                {chave("fala")}
+                {t(
+                  ': "O nome é o único campo obrigatório.",',
+                  ': "The name is the only required field.",',
+                )}
+              </p>
+              <p className={linha}>
+                {"      "}
+                {chave("acao")}
+                {": { "}
+                {chave("digitar")}
+                {': "#nome", '}
+                {chave("valor")}
+                {': "Maria Souza" }'}
+              </p>
+              <p className={linha}>{"    }"}</p>
+              <p className={linha}>{"  ]"}</p>
+              <p className={linha}>{"}"}</p>
+            </TerminalWindow>
+            <p className="mt-4 text-justify text-lg leading-relaxed text-[var(--text)]/80">
+              {lang === "pt" ? (
+                <>
+                  Cada passo tem <W>titulo</W>, <W>fala</W> e uma <W>acao</W>.
+                  A ação é uma só entre <W>ir</W> (abre um caminho),{" "}
+                  <W>digitar</W> (escreve um <W>valor</W> num campo),{" "}
+                  <W>clicar</W> e <W>apontar</W> (os dois recebem um seletor).
+                </>
+              ) : (
+                <>
+                  Each step has <W>titulo</W>, <W>fala</W> and an <W>acao</W>.
+                  The action is exactly one of <W>ir</W> (opens a path),{" "}
+                  <W>digitar</W> (types a <W>valor</W> into a field),{" "}
+                  <W>clicar</W> and <W>apontar</W> (both take a selector).
+                </>
+              )}
+            </p>
+          </Reveal>
+
+          <Reveal>
+            <h2 id="onde-ficam" className={heading}>
+              {t("Onde ficam os arquivos", "Where the files live")}
+            </h2>
+            <p className={paragraph}>
+              {lang === "pt" ? (
+                <>
+                  Os vídeos ficam em <W>.sentry/video/</W>, junto com o resto da
+                  saída do brag (a pasta <W>composition/</W> e o texto de
+                  divulgação). A pasta de trabalho do brag,{" "}
+                  brag-output/, fica vazia, porque o Sentry leva o
+                  conteúdo dela para lá. O <W>init</W> põe as duas no{" "}
+                  <W>.gitignore</W>, então não vão para o Git por padrão.
+                </>
+              ) : (
+                <>
+                  The videos land in <W>.sentry/video/</W>, together with the
+                  rest of brag's output (the <W>composition/</W> folder and the
+                  share copy). Brag's working folder, brag-output/, ends
+                  up empty, because Sentry moves its contents there.{" "}
+                  <W>init</W> adds both to <W>.gitignore</W>, so they stay out
+                  of Git by default.
+                </>
+              )}
+            </p>
+            <p className={paragraph}>
+              {lang === "pt" ? (
+                <>
+                  Quem quiser versionar os vídeos escreve{" "}
+                  <W>!.sentry/video/</W> no <W>.gitignore</W>, e o <W>init</W>{" "}
+                  respeita essa escolha. O roteiro do <W>training</W> em{" "}
+                  <W>.sentry/training/</W> já é versionado. O{" "}
+                  <W>sentry clear</W> não toca na pasta de vídeos.
+                </>
+              ) : (
+                <>
+                  Whoever wants to version the videos writes{" "}
+                  <W>!.sentry/video/</W> in <W>.gitignore</W>, and <W>init</W>{" "}
+                  respects that choice. The <W>training</W> script in{" "}
+                  <W>.sentry/training/</W> is already versioned.{" "}
+                  <W>sentry clear</W> doesn't touch the videos folder.
+                </>
+              )}
+            </p>
+          </Reveal>
+
+          <Reveal>
+            <h2 id="alterar" className={heading}>
+              {t("Como alterar um vídeo", "How to change a video")}
+            </h2>
+            <p className={paragraph}>
+              {lang === "pt" ? (
+                <>
+                  Você não precisa rodar o comando de novo. Peça ao agente para
+                  mudar o script até chegar no resultado que você quer: no{" "}
+                  <W>promo</W>, o projeto do brag em <W>.sentry/video/</W>; no{" "}
+                  <W>training</W>, o roteiro em{" "}
+                  <W>.sentry/training/&lt;módulo&gt;.json</W>.
+                </>
+              ) : (
+                <>
+                  You don't need to run the command again. Ask the agent to
+                  change the script until you get the result you want: for{" "}
+                  <W>promo</W>, the brag project in <W>.sentry/video/</W>; for{" "}
+                  <W>training</W>, the script at{" "}
+                  <W>.sentry/training/&lt;module&gt;.json</W>.
+                </>
+              )}
+            </p>
+          </Reveal>
+
+          <PageFooter
+            prevLabel={t("O fluxo de trabalho", "The workflow")}
+            onPrevClick={onPrevClick}
+            nextLabel={t("Comandos e Habilidades", "Commands & Skills")}
+            onNextClick={onNextClick}
+            className="mt-14"
+          />
+        </div>
+
+        <DocsSidebar
+          sections={videosSectionsByLang[lang]}
           label={t("Nesta página", "On this page")}
         />
       </div>
@@ -2299,10 +2728,8 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       description: (
         <>
           Gera o vídeo promocional do projeto com a skill brag, em{" "}
-          <W>.sentry/video/promo-&lt;idioma&gt;.mp4</W>. Exige Claude Code e{" "}
-          <W>ffmpeg</W>; se faltar a skill, o Sentry a instala. Roda o agente, então gasta tokens, só quando você pede. Para alterar o vídeo você não precisa rodar o comando de novo: peça ao agente para
-          mudar o script (o projeto do brag em <W>.sentry/video/</W>) até chegar
-          no resultado que você quer.
+          <W>.sentry/video/promo-&lt;idioma&gt;.mp4</W>. Roda o agente, então
+          gasta tokens, só quando você pede. Detalhes na aba Vídeos.
         </>
       ),
     },
@@ -2312,12 +2739,10 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       description: (
         <>
           Grava o vídeo de treinamento de um módulo a partir do roteiro{" "}
-          <W>.sentry/training/&lt;modulo&gt;.json</W> (passos com título, fala e
-          uma ação que é dado, nunca código), em{" "}
-          <W>.sentry/video/training-&lt;modulo&gt;-&lt;idioma&gt;.mp4</W>. Roda o agente, então gasta tokens, só quando você pede. Para alterar o vídeo você não precisa rodar o comando de novo: peça ao
-          agente para ajustar o roteiro até chegar no resultado que você quer. O
-          training não certifica nada: só grava e não dá veredito; só o veredito
-          certifica.
+          <W>.sentry/training/&lt;modulo&gt;.json</W>, em{" "}
+          <W>.sentry/video/training-&lt;modulo&gt;-&lt;idioma&gt;.mp4</W>. Roda o
+          agente, então gasta tokens, só quando você pede. Não certifica nada:
+          só o veredito certifica. Detalhes na aba Vídeos.
         </>
       ),
     },
@@ -2450,10 +2875,8 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       description: (
         <>
           Generates the project's promo video with the brag skill, at{" "}
-          <W>.sentry/video/promo-&lt;lang&gt;.mp4</W>. Needs Claude Code and{" "}
-          <W>ffmpeg</W>; if the skill is missing, the Sentry installs it. It runs the agent, so it spends tokens, only when you ask. To change the video you don't need to run the command again: ask the
-          agent to change the script (the brag project in{" "}
-          <W>.sentry/video/</W>) until you get the result you want.
+          <W>.sentry/video/promo-&lt;lang&gt;.mp4</W>. It runs the agent, so it
+          spends tokens, only when you ask. Details in the Videos tab.
         </>
       ),
     },
@@ -2463,12 +2886,10 @@ const commandsRefByLang: Record<"pt" | "en", Command[]> = {
       description: (
         <>
           Records a module's training video from the script{" "}
-          <W>.sentry/training/&lt;module&gt;.json</W> (steps with a title, a
-          line and an action that is data, never code), at{" "}
-          <W>.sentry/video/training-&lt;module&gt;-&lt;lang&gt;.mp4</W>. It runs the agent, so it spends tokens, only when you ask. To change the video you don't need to run the command again: ask the
-          agent to adjust the script until you get the result you want. Training
-          certifies nothing: it only records and issues no verdict; only the
-          verdict certifies.
+          <W>.sentry/training/&lt;module&gt;.json</W>, at{" "}
+          <W>.sentry/video/training-&lt;module&gt;-&lt;lang&gt;.mp4</W>. It runs
+          the agent, so it spends tokens, only when you ask. It certifies
+          nothing: only the verdict certifies. Details in the Videos tab.
         </>
       ),
     },
@@ -2711,7 +3132,7 @@ function CommandsContent({
             <p className="mt-6 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               {lang === "pt" ? (
                 <>
-                  Doze comandos, um ciclo só: declarar intenção, validar
+                  Catorze comandos, um ciclo só: declarar intenção, validar
                   estrutura, rodar com cobertura, revisar antes de commitar,
                   reler o veredito, comparar histórico e arquivar evidência
                   versionada. Cada um tem página própria abaixo, com sintaxe
@@ -2719,7 +3140,7 @@ function CommandsContent({
                 </>
               ) : (
                 <>
-                  Twelve commands, one single cycle: declare intent, validate
+                  Fourteen commands, one single cycle: declare intent, validate
                   structure, run with coverage, review before committing, read
                   back the verdict, compare history and archive versioned
                   evidence. Each one gets its own entry below, with full syntax
@@ -2881,7 +3302,7 @@ function CommandsContent({
           </Reveal>
 
           <PageFooter
-            prevLabel={t("O fluxo de trabalho", "The workflow")}
+            prevLabel={t("Vídeos", "Videos")}
             onPrevClick={onPrevClick}
             nextLabel="Papers"
             onNextClick={onNextClick}
@@ -3981,8 +4402,8 @@ export function DocsPage() {
               </h1>
               <p className="mt-4 w-full text-base leading-relaxed text-[var(--text-muted)]">
                 {t(
-                  "Instale a CLI, escreva a spec com seu agente de IA e rode o ciclo intenção → veredito direto do terminal.",
-                  "Install the CLI, write the spec with your AI agent, and run the intent → verdict cycle straight from the terminal.",
+                  "Instale a CLI, escreva a spec com seu agente de IA e rode o ciclo intenção → veredito direto do terminal. Quando quiser, peça também o vídeo do projeto ou o treinamento de um módulo.",
+                  "Install the CLI, write the spec with your AI agent, and run the intent → verdict cycle straight from the terminal. When you want, also ask for the project video or a module's training video.",
                 )}
               </p>
 
@@ -4005,13 +4426,20 @@ export function DocsPage() {
       {activeTab === "workflow" && (
         <WorkflowContent
           onPrevClick={() => goToTab("setup")}
+          onNextClick={() => goToTab("videos")}
+        />
+      )}
+
+      {activeTab === "videos" && (
+        <VideosContent
+          onPrevClick={() => goToTab("workflow")}
           onNextClick={() => goToTab("commands")}
         />
       )}
 
       {activeTab === "commands" && (
         <CommandsContent
-          onPrevClick={() => goToTab("workflow")}
+          onPrevClick={() => goToTab("videos")}
           onNextClick={() => goToTab("papers")}
         />
       )}

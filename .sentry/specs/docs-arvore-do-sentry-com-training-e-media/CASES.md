@@ -40,7 +40,7 @@ vídeos vira só `.sentry/video/`.
 - **Classe:** documento/valido
 - **Dado:** a seção "O que fica versionado" da página de documentação
 - **Quando:** o texto da seção é lido, em português e em inglês
-- **Então:** a seção diz que os roteiros em `.sentry/training/` são versionados, que os vídeos de `promo` e `training` ficam em `.sentry/video/`, fora do Git, que `brag-output/` também fica fora do Git (o `init` o ignora), que quem precisar versionar um vídeo força a cópia de `.sentry/video/` com `git add -f` e que o `sentry clear` não toca nessa pasta
+- **Então:** a seção diz que os roteiros em `.sentry/training/` são versionados e que os vídeos de `.sentry/video/` ficam fora do Git por padrão, e remete à aba "Vídeos", onde estão o detalhe de como versionar, o `brag-output/` e o `sentry clear` (spec `docs-sem-repeticao-dos-videos`)
 - **Entrada:** `documento = DocsPage.tsx`
 
 ## Classes não aplicáveis

@@ -2,7 +2,6 @@
 pede ao agente que mude o script, em vez de rodar o comando de novo."""
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 import pytest
@@ -34,14 +33,6 @@ def _documentos() -> dict[str, tuple[str, str]]:
     return docs
 
 
-def _entradas_do_docs_page(comando: str) -> list[str]:
-    """Os blocos `command: "sentry <comando> ..."` da página, um por idioma, até o próximo
-    `command:`; o texto do aviso fica na descrição, que quebra linha no JSX."""
-    texto = DOCS_PAGE.read_text(encoding="utf-8").replace("\r\n", "\n")
-    blocos = re.findall(rf'command: "sentry {comando} .*?(?=\n\s+command:|\n\s+icon:|\n\];)', texto, flags=re.S)
-    return [" ".join(bloco.split()) for bloco in blocos]
-
-
 @pytest.mark.parametrize("nome", _documentos())
 # cenario: documentos dizem para pedir ao agente em vez de rodar promo de novo
 def test_documentos_dizem_para_pedir_ao_agente_em_vez_de_rodar_promo_de_novo(nome: str):
@@ -56,15 +47,18 @@ def test_documentos_dizem_para_pedir_ao_agente_em_vez_de_rodar_training_de_novo(
     assert frase in _linha_do_comando(texto, "training"), f"{nome} não traz o aviso no training"
 
 
-@pytest.mark.parametrize("comando", ["promo", "training"])
 # cenario: documentos dizem para pedir ao agente em vez de rodar promo de novo
 # cenario: documentos dizem para pedir ao agente em vez de rodar training de novo
-def test_docs_page_tem_o_aviso_do_comando_em_pt_e_em_en(comando: str):
-    entradas = _entradas_do_docs_page(comando)
-    assert len(entradas) == 2, f"DocsPage.tsx deveria ter uma entrada de {comando} por idioma"
-    pt, en = entradas
-    assert "peça ao agente" in pt
-    assert "ask the agent" in en
+def test_aba_de_videos_tem_o_aviso_em_pt_e_em_en():
+    """A aba Vídeos é a fonte do aviso; as entradas dos comandos remetem a ela."""
+    texto = " ".join(DOCS_PAGE.read_text(encoding="utf-8").split())
+    secao = texto[texto.index('id="alterar"'):]
+    secao = secao[:secao.index("<PageFooter")]
+    assert "Peça ao agente para mudar o script" in secao
+    assert "Ask the agent to change the script" in secao
+    # o que se altera em cada comando: o projeto do brag (promo) e o roteiro (training)
+    assert "o projeto do brag em" in secao and "the brag project in" in secao
+    assert ".sentry/training/&lt;módulo&gt;.json" in secao and ".sentry/training/&lt;module&gt;.json" in secao
 
 
 def test_guia_do_skills_py_e_o_agent_sentry_md_nao_divergem():

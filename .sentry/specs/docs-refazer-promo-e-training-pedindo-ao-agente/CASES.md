@@ -9,6 +9,8 @@ na documentação. Depois, pediu que o `DocsPage.tsx` também ganhe o aviso: com
 os nomes dos comandos, `promo` e `training` passam a ter entrada própria na referência de
 comandos (PT e EN), com o aviso, e entram na faixa de comandos.
 
+Em 2026-10-02 o aviso completo no `DocsPage.tsx` passou para a aba "Vídeos" (seção "Como alterar um vídeo"); as entradas de `promo` e `training` em "Comandos e Habilidades" ficaram curtas e remetem a ela (spec `docs-sem-repeticao-dos-videos`).
+
 ## Campos
 
 - **documento**: booleano — se o texto de cada documento que descreve `promo` e `training`

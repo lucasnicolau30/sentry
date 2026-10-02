@@ -5,7 +5,7 @@
 Os documentos e o vídeo dizem "Zero chamada de IA" e que o Sentry nunca chama um modelo, mas `promo` e `training` rodam o agente e gastam tokens. Escrever a ressalva: o veredito não chama IA; os vídeos opcionais usam o agente (não "Claude Code"). E o `training` não certifica nada: só grava, não dá veredito; só o veredito certifica. Vale para README, guia do agente, DocsPage, FeatureGrid e a cena zero do vídeo.
 
 Decisões do Lucas: a ressalva diz "o agente", nunca "Claude Code" (o pré-requisito técnico de
-Claude Code nas descrições de `promo` e `training` continua, porque é requisito de instalação). O
+Claude Code nas descrições de `promo` e `training` saiu em 2026-10-02: o agente é configurável, ver `docs-agente-configuravel-do-video`). O
 bloco `## Custo` do relatório continua afirmando zero tokens: ele descreve a análise do veredito,
 que de fato não chama modelo.
 

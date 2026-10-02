@@ -46,11 +46,7 @@ def test_secao_de_versionamento_diz_o_que_vai_para_o_git():
     texto = re.sub(r"<[^>]+>|\{\" \"\}", " ", trecho)
     texto = " ".join(texto.split())
     assert "Os roteiros de vídeo em .sentry/training/ também são versionados" in texto
-    assert ".sentry/video/ , fora do Git" in texto or ".sentry/video/, fora do Git" in texto
-    assert re.search(r"A pasta de trabalho do brag, brag-output/ ?, também fica fora do Git e fica vazia", texto)
-    assert "!.sentry/video/ no .gitignore" in texto and "o init respeita essa escolha" in texto
-    assert "sentry clear não toca nessa pasta" in texto
-    assert re.search(r"Brag's working folder, brag-output/ ?, stays out of Git too and ends up empty", texto)
-    assert "writes !.sentry/video/ in the .gitignore" in texto and "init respects that choice" in texto
-    assert "sentry clear doesn't touch that folder" in texto
+    # os vídeos: uma frase aqui; o detalhe (como versionar, brag-output/, clear) mora na aba Vídeos
+    assert re.search(r"Os vídeos em .sentry/video/ ?ficam fora do Git por padrão; para versionar, veja a aba Vídeos", texto)
+    assert re.search(r"The videos in .sentry/video/ ?stay out of Git by default; to version them, see the Videos tab", texto)
     assert ".sentry/media/" not in texto

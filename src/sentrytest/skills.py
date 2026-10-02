@@ -286,13 +286,14 @@ genérico: roda, mas não mede.
     gravação de vídeo do Playwright para aquela execução (os dois modos
     aceitam essas flags).
 - `sentry promo [--lang pt|en]` — gera o vídeo promocional do projeto com a skill
-  brag, acionada por baixo dos panos como `claude -p "/brag ..."`. Exige o Claude
-  Code e o `ffmpeg`; faltando algum, ou se o `claude` falhar ou não
-  deixar um `.mp4` novo em `brag-output/`, para com erro claro e código 3, sem
+  brag, acionada pelo agente declarado em `[video] agente` no `sentry.toml` (o padrão é o
+  Claude, acionado como `claude -p "/brag ..."`). Exige esse agente e o `ffmpeg`; faltando algum,
+  ou se o agente falhar ou não deixar um `.mp4` novo em `brag-output/`, para com erro claro e código 3, sem
   fallback silencioso. Grava `.sentry/video/promo-<idioma>.mp4` (movido de
   `brag-output/`, a pasta de trabalho do brag, junto com o resto da saída dele: composição e
-  texto de divulgação; o `init` põe `brag-output/` no `.gitignore`). Se falta só a skill brag, o Sentry a instala (`claude plugin
-  marketplace add latent-spaces/brag` e `claude plugin install brag@brag`) e segue.
+  texto de divulgação; o `init` põe `brag-output/` no `.gitignore`). Com o agente padrão, se falta só a skill brag, o Sentry a instala (`claude plugin
+  marketplace add latent-spaces/brag` e `claude plugin install brag@brag`) e segue; com agente
+  declarado a skill é assunto dele: o Sentry a pede pelo nome e não instala nada.
   `--lang en` roda o brag de novo em inglês; o padrão é português. Roda o agente e gasta tokens, só quando o usuário pede. Para alterar o
   vídeo o usuário não precisa rodar o comando de novo: ele pede ao agente que mude o
   script (o projeto do brag em `.sentry/video/`) até chegar no resultado desejado.
@@ -300,11 +301,11 @@ genérico: roda, mas não mede.
   módulo. Lê o roteiro declarativo `.sentry/training/<modulo>.json` (versionado):
   `base`, `titulo` e `passos`, cada passo com `titulo`, `fala` e uma `acao` que é
   dado, nunca código (`ir`, `digitar` com `valor`, `clicar` ou `apontar`). Grava
-  com o Playwright do Python (já no Sentry), marcando o tempo de cada passo, e a skill brag (via
-  `claude -p "/brag ..."`) monta o vídeo com as legendas em
+  com o Playwright do Python (já no Sentry), marcando o tempo de cada passo, e a skill brag (pelo
+  agente configurado, como no `promo`) monta o vídeo com as legendas em
   `.sentry/video/training-<modulo>-<idioma>.mp4`. Para com erro claro e código 3
   se o nome do módulo for inseguro, o roteiro faltar ou for inválido, o app de
-  `base` não responder, ou faltar Claude Code ou `ffmpeg`. O que faltar do brag
+  `base` não responder, ou faltar o agente ou o `ffmpeg`. O que faltar do brag
   e do Playwright o Sentry instala sozinho: o Playwright com o mesmo Python que o
   executa (`python -m pip install playwright` e `python -m playwright install
   chromium`, cerca de 150 MB); se a instalação falhar, para e mostra os comandos
