@@ -93,6 +93,13 @@ test("o play do centro é verde com ícone branco e alterna com o pause", async 
   const centroPlay = await centro(disco.locator("svg").first());
   expect(Math.abs(centroPlay.x - centroDisco.x)).toBeLessThanOrEqual(1);
   expect(Math.abs(centroPlay.y - centroDisco.y)).toBeLessThanOrEqual(1);
+  // e o triângulo, dentro do svg: a caixa dele fica 1 unidade (de 24) à direita do meio, que deixa
+  // o centro de massa 1 unidade à esquerda: um meio-termo que parece centralizado
+  const meioDoTriangulo = await disco.locator("svg path").first().evaluate((caminho) => {
+    const caixa = (caminho as SVGGraphicsElement).getBBox();
+    return caixa.x + caixa.width / 2;
+  });
+  expect(Math.abs(meioDoTriangulo - 13)).toBeLessThanOrEqual(0.3);
 
   await botao.click();
   await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(false);

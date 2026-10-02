@@ -120,8 +120,8 @@ export function VideoShowcase() {
         </h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-base text-[var(--text)]/60 sm:text-lg">
           {t(
-            "O Sentry em pouco mais de um minuto: o agente escreve, o Sentry confere.",
-            "Sentry in just over a minute: your agent writes, Sentry checks."
+            "O Sentry em cerca de um minuto: o agente escreve, o Sentry confere.",
+            "Sentry in about a minute: your agent writes, Sentry checks."
           )}
         </p>
       </Reveal>
@@ -184,9 +184,10 @@ export function VideoShowcase() {
                   }`}
                 >
                   <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6 sm:h-8 sm:w-8">
-                    {/* Triângulo com a caixa um pouco à direita do centro: o peso visual
-                        do triângulo fica à esquerda, e assim ele parece centralizado. */}
-                    <path d="M8.2 5.4a.9.9 0 011.35-.78l9.6 6.6a.9.9 0 010 1.56l-9.6 6.6A.9.9 0 018.2 18.6V5.4z" />
+                    {/* Meio-termo entre a caixa e o centro de massa: a caixa do triângulo
+                        (de 7.3 a 18.7) fica 1 unidade à direita do centro, e o centro de massa
+                        1 unidade à esquerda. Centrar só a caixa o faz parecer à esquerda. */}
+                    <path d="M7.3 5.4a.9.9 0 011.35-.78l9.6 6.6a.9.9 0 010 1.56l-9.6 6.6A.9.9 0 017.3 18.6V5.4z" />
                   </svg>
                 </span>
                 <span
