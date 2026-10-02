@@ -73,7 +73,8 @@ def test_promo_gera_o_video_em_portugues_por_padrao(ambiente, capsys):
     assert "português" in comando[2]
     video = ambiente["projeto"] / ".sentry" / "video" / "promo-pt.mp4"
     assert video.read_bytes().startswith(b"video-")
-    assert (ambiente["projeto"] / "brag-output" / "brag.mp4").exists()
+    # o brag não deixa nada para trás: o vídeo foi movido e a pasta dele sumiu
+    assert not (ambiente["projeto"] / "brag-output").exists()
     assert ".sentry/video/promo-pt.mp4" in capsys.readouterr().out
 
 
@@ -92,6 +93,47 @@ def test_promo_acha_o_video_na_pasta_com_data_que_o_brag_cria(ambiente, monkeypa
     monkeypatch.setattr(promo.subprocess, "run", run)
     assert cli.main(["promo"]) == cli.EXIT_OK
     assert (ambiente["projeto"] / ".sentry" / "video" / "promo-pt.mp4").read_bytes() == b"NOVO"
+
+
+def _brag_que_deixa_a_composicao(ambiente, monkeypatch, *, texto="primeira"):
+    """Um `claude` que, além do .mp4, deixa a composição e o texto de divulgação do brag."""
+    def run(comando, **kwargs):
+        if comando[1] == "plugin":
+            return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
+        saida = ambiente["projeto"] / "brag-output"
+        (saida / "composition").mkdir(parents=True, exist_ok=True)
+        (saida / "composition" / "index.html").write_text(f"<html>{texto}</html>", encoding="utf-8")
+        (saida / "share-copy.txt").write_text(texto, encoding="utf-8")
+        (saida / "brag.mp4").write_bytes(b"video-" + texto.encode())
+        hora = time.time_ns() + int(texto == "segunda") * 5_000_000_000
+        os.utime(saida / "brag.mp4", ns=(hora, hora))
+        return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
+    monkeypatch.setattr(promo.subprocess, "run", run)
+
+
+# cenario: promo leva a pasta inteira do brag para o sentry
+def test_promo_leva_a_pasta_inteira_do_brag_para_o_sentry(ambiente, monkeypatch):
+    _brag_que_deixa_a_composicao(ambiente, monkeypatch)
+    assert cli.main(["promo"]) == cli.EXIT_OK
+    video = ambiente["projeto"] / ".sentry" / "video"
+    assert (video / "promo-pt.mp4").read_bytes() == b"video-primeira"
+    assert (video / "composition" / "index.html").read_text(encoding="utf-8") == "<html>primeira</html>"
+    assert (video / "share-copy.txt").read_text(encoding="utf-8") == "primeira"
+    assert not (ambiente["projeto"] / "brag-output").exists()
+
+
+# cenario: uma rodada nova do promo refaz a composicao da anterior
+def test_uma_rodada_nova_do_promo_refaz_a_composicao_da_anterior(ambiente, monkeypatch):
+    _brag_que_deixa_a_composicao(ambiente, monkeypatch, texto="primeira")
+    assert cli.main(["promo"]) == cli.EXIT_OK
+    velho = ambiente["projeto"] / ".sentry" / "video" / "composition" / "so-da-primeira.txt"
+    velho.write_text("sobra", encoding="utf-8")
+    _brag_que_deixa_a_composicao(ambiente, monkeypatch, texto="segunda")
+    assert cli.main(["promo"]) == cli.EXIT_OK
+    video = ambiente["projeto"] / ".sentry" / "video"
+    assert (video / "promo-pt.mp4").read_bytes() == b"video-segunda"
+    assert (video / "composition" / "index.html").read_text(encoding="utf-8") == "<html>segunda</html>"
+    assert not velho.exists()
 
 
 def test_promo_libera_a_powershell_e_a_pasta_de_plugins_para_o_brag(ambiente):

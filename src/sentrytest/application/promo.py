@@ -129,16 +129,33 @@ def _videos_novos(root: Path, antes: dict[Path, int]) -> list[Path]:
                   key=lambda v: agora[v], reverse=True)
 
 
+def _levar_o_resto_do_brag(pasta: Path, alvo: Path) -> None:
+    """Move tudo que o brag deixou em `pasta` para `alvo` e remove a pasta, já vazia.
+
+    O que tiver o mesmo nome em `alvo` é substituído: uma rodada nova refaz a composição
+    e os textos de divulgação da anterior, em vez de empilhar versões.
+    """
+    for item in sorted(pasta.iterdir()):
+        novo = alvo / item.name
+        if novo.is_dir() and not novo.is_symlink():
+            shutil.rmtree(novo)
+        elif novo.exists() or novo.is_symlink():
+            novo.unlink()
+        shutil.move(str(item), str(novo))
+    pasta.rmdir()
+
+
 def acionar_brag(root: Path, prompt: str, destino: Path, *, claude: str, run=None,
                  saida: Path | None = None) -> Path:
-    """Roda `claude -p` com o prompt do brag e copia o vídeo novo para `destino`.
+    """Roda `claude -p` com o prompt do brag e leva a saída dele para a pasta de `destino`.
 
     Com `saida`, o prompt pediu esse caminho exato: um arquivo velho nele é apagado antes
     (é saída nossa, de uma rodada anterior), senão o claude o encontraria pronto e não
     geraria nada novo -- e o Sentry não distinguiria isso de uma falha.
 
-    Copia em vez de mover: `brag-output/` já tem vídeos versionados, e mover o
-    arquivo apagaria um que o git conhece.
+    O vídeo novo é movido para `destino` e o resto da pasta de saída do brag
+    (composição, planos, textos de divulgação) vai junto para a mesma pasta; a pasta
+    do brag, já vazia, é removida. `brag-output/` não acumula nada no projeto do dev.
     """
     run = run or subprocess.run
     if saida is not None:
@@ -169,14 +186,17 @@ def acionar_brag(root: Path, prompt: str, destino: Path, *, claude: str, run=Non
         raise ValueError(f"o claude terminou, mas não deixou nenhum .mp4 novo em {SAIDA_DO_BRAG}*/; "
                          "o vídeo não foi gerado"
                          + (f". O claude respondeu: {resposta}" if resposta else ""))
+    origem = videos[0]
     destino.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(videos[0], destino)
+    destino.unlink(missing_ok=True)
+    shutil.move(str(origem), str(destino))
+    _levar_o_resto_do_brag(origem.parent, destino.parent)
     return destino
 
 
 def gerar_promo(root: Path, idioma: str = IDIOMA_PADRAO, *, which=None,
                 run=None, home: Path | None = None) -> Path:
-    """Roda o brag e guarda o vídeo em `.sentry/video/promo-<idioma>.mp4`."""
+    """Roda o brag e guarda o vídeo em `.sentry/video/promo-<idioma>.mp4`, com o resto da saída dele."""
     validar_idioma(idioma)
     claude = checar_dependencias(root, which=which, home=home, run=run)
     destino = root / PASTA_DE_MIDIA / f"promo-{idioma}.mp4"

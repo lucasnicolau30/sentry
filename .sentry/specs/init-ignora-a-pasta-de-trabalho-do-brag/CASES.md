@@ -63,6 +63,18 @@ nos dois lados (neste repositório também) e que o pool `.sentry/media/` deixa 
 - **Então:** a linha `.sentry/media/` some, `.sentry/video/` é acrescentada e as linhas do usuário continuam intactas
 - **Entrada:** `gitignore = arquivo com .sentry/media/`
 
+## Caso: init respeita quem versiona a pasta de videos de proposito
+
+- **Requisito:** "pode ser versionado se o dev tiver essa necessidade" — o dev que quer `.sentry/video/` no Git (como este repositório) escreve `!.sentry/video/` e o `init` não o ignora de novo
+- **Camada:** backend
+- **Tipo:** unitário
+- **Prioridade:** média
+- **Classe:** gitignore/valido
+- **Dado:** um `.gitignore` com a linha `!.sentry/video/`, escrita pelo dev
+- **Quando:** o usuário roda `sentry init` duas vezes
+- **Então:** o `init` não acrescenta `.sentry/video/`, mantém `!.sentry/video/` uma única vez e continua acrescentando as outras linhas dele, como `brag-output/`
+- **Entrada:** `gitignore = arquivo com !.sentry/video/`
+
 ## Classes não aplicáveis
 
 - **gitignore/vazio**: um `.gitignore` vazio é o mesmo caminho de um projeto sem `.gitignore`, que o primeiro caso cobre.

@@ -33,8 +33,9 @@ def default_config(project_name: str) -> str:
 # evidencia versionada do modulo, e' o motivo de ela existir.
 # `brag-output/` e' a pasta de trabalho do brag (composicao, planos, legendas e
 # videos soltos): sem esta linha ela aparecia como "nao rastreada" no projeto do
-# dev. O video final de `promo` e `training` e' copiado para `.sentry/video/`;
-# quem precisar versionar um video forca a copia com `git add -f`.
+# dev. O Sentry leva o conteudo dela para `.sentry/video/` depois de cada `promo` e
+# `training`; quem precisar versionar os videos escreve `!.sentry/video/` no
+# .gitignore e o init respeita.
 GITIGNORE_ENTRIES = ('.sentry/sentry.db', '.sentry/reports/*',
                      '!.sentry/reports/latest-*.md', '.sentry/runs/', '.sentry/test-plans/',
                      '.sentry/video/', 'brag-output/')
@@ -86,7 +87,10 @@ def initialize_project(root: Path) -> list[str]:
     gitignore=root/'.gitignore'
     existing=gitignore.read_text(encoding='utf-8').splitlines() if gitignore.exists() else []
     filtered=[line for line in existing if line not in OBSOLETE_GITIGNORE_ENTRIES]
-    missing=[entry for entry in GITIGNORE_ENTRIES if entry not in filtered]
+    # Quem versiona a pasta de proposito (ex.: os videos de apresentacao do proprio Sentry)
+    # escreve a negacao (`!.sentry/video/`): o init respeita a escolha em vez de
+    # ignorar de novo uma pasta que o dev quer no Git.
+    missing=[entry for entry in GITIGNORE_ENTRIES if entry not in filtered and f'!{entry}' not in filtered]
     if missing or filtered!=existing:
         gitignore.write_text('\n'.join(filtered+missing)+'\n',encoding='utf-8'); created.append('.gitignore')
     created += install_skills(root)

@@ -48,3 +48,16 @@ def test_init_remove_a_linha_obsoleta_do_pool_media(tmp_path: Path) -> None:
     assert ".sentry/media/" not in linhas
     assert ".sentry/video/" in linhas
     assert "*.log" in linhas
+
+
+# cenario: init respeita quem versiona a pasta de videos de proposito
+def test_init_respeita_quem_versiona_a_pasta_de_videos_de_proposito(tmp_path: Path) -> None:
+    (tmp_path / ".gitignore").write_text("*.log\n!.sentry/video/\n", encoding="utf-8")
+    initialize_project(tmp_path)
+    initialize_project(tmp_path)
+    linhas = _linhas(tmp_path)
+    assert ".sentry/video/" not in linhas
+    assert linhas.count("!.sentry/video/") == 1
+    assert "*.log" in linhas
+    # as outras linhas do init continuam sendo acrescentadas
+    assert "brag-output/" in linhas

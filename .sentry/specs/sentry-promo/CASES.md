@@ -151,6 +151,30 @@ Sentry copia o `.mp4` novo para `.sentry/video/`, sem apagar o original.
 - **Então:** o comando informa que o vídeo não foi gerado e sai com código diferente de zero
 - **Entrada:** `saida_do_claude = sem-mp4`
 
+## Caso: promo leva a pasta inteira do brag para o sentry
+
+- **Requisito:** "pegaria as coisas do brag e botaria no sentry" — a pasta de saída do brag não fica no projeto do dev
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** alta
+- **Classe:** saida_do_claude/valido
+- **Dado:** um `claude` simulado que deixa em `brag-output/` o `.mp4`, a pasta `composition/` e o `share-copy.txt`
+- **Quando:** o usuário roda `sentry promo`
+- **Então:** o vídeo vai para `.sentry/video/promo-pt.mp4`, a composição e o texto de divulgação vão junto para `.sentry/video/` e a pasta `brag-output/` deixa de existir
+- **Entrada:** `idioma = pt`
+
+## Caso: uma rodada nova do promo refaz a composicao da anterior
+
+- **Requisito:** a mesma pasta serve a todas as rodadas — uma nova substitui a composição e o vídeo da anterior, em vez de empilhar versões
+- **Camada:** integração
+- **Tipo:** integração
+- **Prioridade:** média
+- **Classe:** saida_do_claude/valido
+- **Dado:** `.sentry/video/` já com a composição de uma rodada anterior, incluindo um arquivo que só existia nela
+- **Quando:** o usuário roda `sentry promo` de novo
+- **Então:** o vídeo e a composição são os da rodada nova e o arquivo que só existia na anterior sumiu
+- **Entrada:** `idioma = pt`
+
 ## Classes não aplicáveis
 
 - **idioma/vazio**: `--lang` sem valor é recusado pelo argparse antes do Sentry agir; o
