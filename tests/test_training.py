@@ -88,6 +88,9 @@ def ambiente(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(promo.subprocess, "run", run)
     monkeypatch.setattr(training, "app_responde", lambda base, timeout=5: None)
     monkeypatch.setattr(training, "navegador_instalado", lambda **kwargs: True)
+    # O pacote do Playwright pode não estar instalado (o CI só instala pytest e coverage): aqui ele é
+    # só "presente", porque a gravação real é trocada logo abaixo.
+    monkeypatch.setattr(training, "sync_playwright", object())
     monkeypatch.setattr(training, "gravar", gravar)
     monkeypatch.chdir(projeto)
     return {"projeto": projeto, "home": home, "chamadas": chamadas, "gravacoes": gravacoes,
@@ -201,8 +204,17 @@ class PaginaDeTeste(BaseHTTPRequestHandler):
         pass
 
 
+def exigir_navegador() -> None:
+    """Os testes que gravam de verdade precisam do pacote do Playwright e do Chromium."""
+    if training.sync_playwright is None:
+        pytest.skip("o pacote playwright não está instalado")
+    if not GARANTIR_NAVEGADOR():
+        pytest.skip("o Chromium do Playwright não está instalado")
+
+
 # cenario: training grava os passos no navegador e marca o tempo de cada um
 def test_training_grava_os_passos_no_navegador_e_marca_o_tempo_de_cada_um(tmp_path):
+    exigir_navegador()
     servidor = HTTPServer(("127.0.0.1", 0), PaginaDeTeste)
     threading.Thread(target=servidor.serve_forever, daemon=True).start()
     try:
@@ -278,6 +290,7 @@ def test_training_propaga_a_falha_do_claude_sem_deixar_video_parcial(ambiente, m
 
 
 def test_gravacao_que_nao_acha_o_seletor_diz_qual_passo_falhou(tmp_path):
+    exigir_navegador()
     servidor = HTTPServer(("127.0.0.1", 0), PaginaDeTeste)
     threading.Thread(target=servidor.serve_forever, daemon=True).start()
     try:
@@ -314,6 +327,7 @@ def test_sem_o_pacote_playwright_o_modulo_ainda_carrega(monkeypatch):
 
 
 def test_gravacao_com_app_fora_do_ar_diz_que_nao_conectou(tmp_path):
+    exigir_navegador()
     roteiro = {**ROTEIRO, "base": "http://127.0.0.1:9"}
     with pytest.raises(ValueError, match="não foi possível conectar"):
         GRAVAR_REAL(tmp_path, roteiro, tmp_path / "saida")
