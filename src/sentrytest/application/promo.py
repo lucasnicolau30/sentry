@@ -1,14 +1,17 @@
 """`sentry promo`: o vídeo promocional do projeto, gerado pela skill brag.
 
-O brag é uma skill do Claude Code, não um binário; o Sentry a aciona por
-subprocess com `claude -p`. Faltou `claude`, a skill ou o `ffmpeg`, ou o
-`claude` falhou: erro claro, sem fallback silencioso -- um vídeo "gerado" por
-um caminho que o usuário não pediu esconderia que o brag não rodou.
+O brag é uma skill de agente, não um binário; o Sentry aciona por subprocess o agente
+que o usuário declarou em `[video] agente` no `sentry.toml`. Sem declaração o agente é
+o `claude` (`claude -p`), e só nesse caso o Sentry sabe onde procurar e como instalar o
+brag. Faltou o agente, a skill ou o `ffmpeg`, ou o agente falhou: erro claro, sem
+fallback silencioso -- um vídeo "gerado" por um caminho que o usuário não pediu
+esconderia que o brag não rodou.
 """
 import json
 import shutil
 import subprocess
 from pathlib import Path
+from typing import NamedTuple
 
 IDIOMAS = ("pt", "en")
 IDIOMA_PADRAO = "pt"
@@ -17,13 +20,16 @@ PASTA_DE_MIDIA = Path(".sentry") / "video"
 TEMPO_MAXIMO = 1800
 TEMPO_DA_INSTALACAO = 300
 
-# `claude -p` não tem quem aprove permissão: sem esta lista o brag pararia no
-# primeiro `npx hyperframes`. Lista de ferramentas, não bypass geral. No Windows o
-# Claude Code roda comandos pela ferramenta PowerShell, não pela Bash: liberar só
-# a Bash deixava o brag sem poder rodar node, npx e ffmpeg.
+# O agente padrão, `claude -p`, não tem quem aprove permissão: sem esta lista o brag
+# pararia no primeiro `npx hyperframes`. Lista de ferramentas, não bypass geral. No
+# Windows o `claude` roda comandos pela ferramenta PowerShell, não pela Bash: liberar só
+# a Bash deixava o brag sem poder rodar node, npx e ffmpeg. Vale só para o padrão.
 FERRAMENTAS = "Bash,PowerShell,Read,Write,Edit,Glob,Grep,Skill"
 
-INSTALAR_CLAUDE = "https://claude.com/claude-code"
+AGENTE_PADRAO = "claude"
+MARCADOR_DO_PEDIDO = "{prompt}"
+ONDE_DECLARAR = "[video] agente"
+EXEMPLO_DE_AGENTE = 'agente = ["meu-agente", "--rodar", "{prompt}"]'
 INSTALAR_BRAG = "/plugin marketplace add latent-spaces/brag  e depois  /plugin install brag@brag"
 INSTALAR_FFMPEG = "https://ffmpeg.org/download.html"
 
@@ -35,6 +41,33 @@ PROMPTS = {
 }
 
 
+class Agente(NamedTuple):
+    """O comando que aciona o brag. `comando` ainda traz `{prompt}` no lugar do pedido."""
+    comando: list[str]
+    nome: str
+    padrao: bool
+
+
+def agente_declarado(config: dict) -> list | None:
+    """O `[video] agente` do `sentry.toml`, como foi escrito; None quando não há declaração."""
+    video = config.get("video")
+    return video.get("agente") if isinstance(video, dict) else None
+
+
+def validar_agente(agente) -> list[str] | None:
+    """O comando declarado, ou None (usa o padrão). Um comando sem `{prompt}` rodaria sem
+    receber o pedido do brag, então é recusado em vez de gastar uma rodada à toa."""
+    if agente is None:
+        return None
+    valido = (isinstance(agente, list) and agente
+              and all(isinstance(parte, str) and parte.strip() for parte in agente)
+              and any(MARCADOR_DO_PEDIDO in parte for parte in agente))
+    if not valido:
+        raise ValueError(f"{ONDE_DECLARAR} deve ser uma lista de textos com o comando do agente, e um deles "
+                         f"deve conter {MARCADOR_DO_PEDIDO} no lugar do pedido; exemplo: {EXEMPLO_DE_AGENTE}")
+    return list(agente)
+
+
 def validar_idioma(idioma: str) -> str:
     if idioma not in IDIOMAS:
         raise ValueError(f"idioma desconhecido: {idioma!r}; use um de: {', '.join(IDIOMAS)}")
@@ -42,7 +75,7 @@ def validar_idioma(idioma: str) -> str:
 
 
 def _plugin_brag_instalado(home: Path) -> bool:
-    """O Claude Code registra os plugins em `installed_plugins.json`; a pasta de cache
+    """O `claude` registra os plugins em `installed_plugins.json`; a pasta de cache
     sobrevive à desinstalação, então olhar o disco acharia um brag que já saiu."""
     registro = home / ".claude" / "plugins" / "installed_plugins.json"
     try:
@@ -53,7 +86,7 @@ def _plugin_brag_instalado(home: Path) -> bool:
 
 
 def brag_instalado(root: Path, home: Path) -> bool:
-    """A skill pode viver no projeto, na conta ou num plugin instalado."""
+    """Só para o agente padrão: a skill pode viver no projeto, na conta ou num plugin instalado."""
     if (root / ".claude" / "skills" / "brag" / "SKILL.md").is_file():
         return True
     if (home / ".claude" / "skills" / "brag" / "SKILL.md").is_file():
@@ -66,13 +99,13 @@ def _detalhe(resultado) -> str:
 
 
 def instalar_brag(claude: str, *, run=None, avisar=print) -> None:
-    """Instala o brag pelo gerenciador de plugins do próprio Claude Code.
+    """Instala o brag pelo gerenciador de plugins do `claude`, o agente padrão.
 
     O marketplace já existir não é erro: quem instalou o brag antes e o removeu
     só precisa do segundo passo.
     """
     run = run or subprocess.run
-    avisar("A skill brag não está instalada; instalando pelo Claude Code...")
+    avisar("A skill brag não está instalada; instalando com `claude plugin`...")
     for argumentos in (("marketplace", "add", "latent-spaces/brag"), ("install", "brag@brag")):
         comando = [claude, "plugin", *argumentos]
         try:
@@ -87,27 +120,47 @@ def instalar_brag(claude: str, *, run=None, avisar=print) -> None:
                              f"instale à mão com: {INSTALAR_BRAG}")
 
 
-def checar_dependencias(root: Path, *, which=None, home: Path | None = None, run=None,
-                        avisar=print) -> str:
-    """Devolve o caminho do `claude`; levanta ValueError dizendo o que falta.
+def checar_dependencias(root: Path, *, agente=None, which=None, home: Path | None = None, run=None,
+                        avisar=print) -> Agente:
+    """Devolve o agente a acionar; levanta ValueError dizendo o que falta.
 
-    Só a skill brag é instalada pelo Sentry. `claude` e `ffmpeg` são checados
-    antes, para não instalar plugin numa máquina que não conseguiria renderizar.
+    `agente` é o `[video] agente` do `sentry.toml`. Com ele declarado, o Sentry só exige o
+    executável e o `ffmpeg`: não sabe onde aquele agente guarda skills, então não procura
+    nem instala o brag. Sem ele, vale o `claude`, e aí a skill brag é procurada e, se faltar,
+    instalada pelo Sentry. O agente e o `ffmpeg` são checados antes, para não instalar plugin
+    numa máquina que não conseguiria renderizar.
     """
+    declarado = validar_agente(agente)
     # Resolvidos na chamada, não na definição: quem simula `which`/`run` troca o módulo.
     which = which or shutil.which
     home = home if home is not None else Path.home()
-    claude = which("claude")
-    if not claude:
-        raise ValueError(f"falta o Claude Code (`claude` não está no PATH); instale em {INSTALAR_CLAUDE}")
+    nome = declarado[0] if declarado else AGENTE_PADRAO
+    executavel = which(nome)
+    if not executavel:
+        raise ValueError(f"falta o agente (`{nome}` não está no PATH); instale-o ou declare outro em "
+                         f"{ONDE_DECLARAR} no sentry.toml")
     if not which("ffmpeg"):
         raise ValueError(f"falta o `ffmpeg` (o brag renderiza com ele); instale em {INSTALAR_FFMPEG}")
+    if declarado:
+        return Agente([executavel, *declarado[1:]], nome, padrao=False)
     if not brag_instalado(root, home):
-        instalar_brag(claude, run=run, avisar=avisar)
+        instalar_brag(executavel, run=run, avisar=avisar)
         if not brag_instalado(root, home):
-            raise ValueError("o brag foi instalado, mas a skill não apareceu no Claude Code; "
+            raise ValueError("o brag foi instalado, mas a skill não apareceu para o agente; "
                              f"instale à mão com: {INSTALAR_BRAG}")
-    return claude
+    comando = [executavel, "-p", MARCADOR_DO_PEDIDO, "--allowedTools", FERRAMENTAS]
+    # A música e os efeitos do brag vivem na pasta de plugins, fora do projeto.
+    plugins = home / ".claude" / "plugins"
+    if plugins.is_dir():
+        comando += ["--add-dir", str(plugins)]
+    return Agente(comando, nome, padrao=True)
+
+
+def _pedido_ao_agente(agente: Agente, prompt: str) -> str:
+    """A barra `/brag` é do `claude`; os outros agentes recebem a skill pelo nome."""
+    if not agente.padrao and prompt.startswith("/brag "):
+        return "Use a skill brag. " + prompt[len("/brag "):]
+    return prompt
 
 
 def _estado_dos_videos(root: Path) -> dict[Path, int]:
@@ -145,12 +198,12 @@ def _levar_o_resto_do_brag(pasta: Path, alvo: Path) -> None:
     pasta.rmdir()
 
 
-def acionar_brag(root: Path, prompt: str, destino: Path, *, claude: str, run=None,
+def acionar_brag(root: Path, prompt: str, destino: Path, *, agente: Agente, run=None,
                  saida: Path | None = None) -> Path:
-    """Roda `claude -p` com o prompt do brag e leva a saída dele para a pasta de `destino`.
+    """Roda o agente com o prompt do brag e leva a saída dele para a pasta de `destino`.
 
     Com `saida`, o prompt pediu esse caminho exato: um arquivo velho nele é apagado antes
-    (é saída nossa, de uma rodada anterior), senão o claude o encontraria pronto e não
+    (é saída nossa, de uma rodada anterior), senão o agente o encontraria pronto e não
     geraria nada novo -- e o Sentry não distinguiria isso de uma falha.
 
     O vídeo novo é movido para `destino` e o resto da pasta de saída do brag
@@ -161,11 +214,8 @@ def acionar_brag(root: Path, prompt: str, destino: Path, *, claude: str, run=Non
     if saida is not None:
         saida.unlink(missing_ok=True)
     antes = _estado_dos_videos(root)
-    comando = [claude, "-p", prompt, "--allowedTools", FERRAMENTAS]
-    # A música e os efeitos do brag vivem na pasta de plugins, fora do projeto.
-    plugins = Path.home() / ".claude" / "plugins"
-    if plugins.is_dir():
-        comando += ["--add-dir", str(plugins)]
+    pedido = _pedido_ao_agente(agente, prompt)
+    comando = [parte.replace(MARCADOR_DO_PEDIDO, pedido) for parte in agente.comando]
     try:
         resultado = run(comando,
                         cwd=root, capture_output=True, timeout=TEMPO_MAXIMO,
@@ -173,19 +223,19 @@ def acionar_brag(root: Path, prompt: str, destino: Path, *, claude: str, run=Non
     except subprocess.TimeoutExpired:
         raise ValueError(f"o brag passou de {TEMPO_MAXIMO // 60} min sem terminar; nada foi gravado") from None
     except OSError as error:
-        raise ValueError(f"não foi possível executar o claude: {error}") from None
+        raise ValueError(f"não foi possível executar o agente (`{agente.nome}`): {error}") from None
     if resultado.returncode != 0:
         detalhe = (resultado.stderr or resultado.stdout or "").strip()[-600:]
-        raise ValueError(f"o claude -p terminou com código {resultado.returncode}"
+        raise ValueError(f"o agente (`{agente.nome}`) terminou com código {resultado.returncode}"
                          + (f": {detalhe}" if detalhe else ""))
     videos = [saida] if saida is not None and saida.is_file() else _videos_novos(root, antes)
     if not videos:
-        # O que o claude disse é a única pista de por que o brag parou (pediu algo, negou uma
+        # O que o agente disse é a única pista de por que o brag parou (pediu algo, negou uma
         # permissão, desistiu): sem isto o erro seria um beco sem saída.
         resposta = (resultado.stdout or "").strip()[-800:]
-        raise ValueError(f"o claude terminou, mas não deixou nenhum .mp4 novo em {SAIDA_DO_BRAG}*/; "
-                         "o vídeo não foi gerado"
-                         + (f". O claude respondeu: {resposta}" if resposta else ""))
+        raise ValueError(f"o agente (`{agente.nome}`) terminou, mas não deixou nenhum .mp4 novo em "
+                         f"{SAIDA_DO_BRAG}*/; o vídeo não foi gerado"
+                         + (f". O agente respondeu: {resposta}" if resposta else ""))
     origem = videos[0]
     destino.parent.mkdir(parents=True, exist_ok=True)
     destino.unlink(missing_ok=True)
@@ -194,10 +244,10 @@ def acionar_brag(root: Path, prompt: str, destino: Path, *, claude: str, run=Non
     return destino
 
 
-def gerar_promo(root: Path, idioma: str = IDIOMA_PADRAO, *, which=None,
+def gerar_promo(root: Path, idioma: str = IDIOMA_PADRAO, *, agente=None, which=None,
                 run=None, home: Path | None = None) -> Path:
     """Roda o brag e guarda o vídeo em `.sentry/video/promo-<idioma>.mp4`, com o resto da saída dele."""
     validar_idioma(idioma)
-    claude = checar_dependencias(root, which=which, home=home, run=run)
+    agente = checar_dependencias(root, agente=agente, which=which, home=home, run=run)
     destino = root / PASTA_DE_MIDIA / f"promo-{idioma}.mp4"
-    return acionar_brag(root, PROMPTS[idioma], destino, claude=claude, run=run)
+    return acionar_brag(root, PROMPTS[idioma], destino, agente=agente, run=run)

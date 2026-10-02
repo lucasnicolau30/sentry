@@ -28,7 +28,7 @@ from .application.archive import (
     PRIMEIRA_VERSAO, is_route_module, module_route_specs, record_module, resolve_specs,
     write_archive, write_archive_rotas)
 from .application.formatting import format_instant
-from .application.promo import IDIOMA_PADRAO, IDIOMAS, gerar_promo
+from .application.promo import IDIOMA_PADRAO, IDIOMAS, agente_declarado, gerar_promo
 from .application.training import gerar_training, validar_roteiros_declarados
 from .application.reporting import clear_history, load_runs, staleness, write_reports, compare
 
@@ -617,10 +617,11 @@ def _archive(root: Path, args, *, parser: argparse.ArgumentParser | None = None)
     return codigo
 
 def _promo(root: Path, args, *, parser: argparse.ArgumentParser | None = None) -> int:
-    """Aciona o brag por baixo dos panos e guarda o vídeo em `.sentry/video/`."""
+    """Aciona o brag pelo agente configurado e guarda o vídeo em `.sentry/video/`."""
     try:
+        agente = agente_declarado(load_config(root))
         with Spinner("Gerando o vídeo promocional (pode levar vários minutos)"):
-            destino = gerar_promo(root, args.lang)
+            destino = gerar_promo(root, args.lang, agente=agente)
     except ValueError as error:
         _print_app_error(str(error), parser=parser)
         return EXIT_INFRA
@@ -631,8 +632,9 @@ def _promo(root: Path, args, *, parser: argparse.ArgumentParser | None = None) -
 def _training(root: Path, args, *, parser: argparse.ArgumentParser | None = None) -> int:
     """Grava o roteiro do módulo e monta o vídeo de treinamento com o brag."""
     try:
+        agente = agente_declarado(load_config(root))
         with Spinner("Gravando e montando o vídeo de treinamento (pode levar vários minutos)"):
-            destino = gerar_training(root, args.module, args.lang)
+            destino = gerar_training(root, args.module, args.lang, agente=agente)
     except ValueError as error:
         _print_app_error(str(error), parser=parser)
         return EXIT_INFRA

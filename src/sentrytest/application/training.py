@@ -4,8 +4,8 @@ O roteiro é declarativo (`.sentry/training/<modulo>.json`): ações são dados,
 nunca código, para que o Sentry valide e revise o roteiro no diff sem executar
 nada de ninguém. O Playwright do Python grava os passos com o tempo de cada
 um -- dentro do pacote, para funcionar em qualquer projeto, sem depender de
-Node nem de um `frontend/` -- e o brag (via `claude -p`, como no `promo`)
-monta o vídeo com as legendas.
+Node nem de um `frontend/` -- e o brag, acionado pelo agente configurado como no
+`promo`, monta o vídeo com as legendas.
 """
 import importlib
 import json
@@ -194,12 +194,12 @@ def garantir_playwright(*, python: str | None = None, run=None, avisar=print) ->
                              f"instale à mão com: {INSTALAR_PLAYWRIGHT}")
 
 
-def checar_dependencias_training(root: Path, *, which=None, home: Path | None = None, run=None,
-                                 avisar=print) -> str:
-    """As do `promo` mais o Playwright, instalado se faltar. Devolve o caminho do `claude`."""
-    claude = checar_dependencias(root, which=which, home=home, run=run, avisar=avisar)
+def checar_dependencias_training(root: Path, *, agente=None, which=None, home: Path | None = None,
+                                 run=None, avisar=print):
+    """As do `promo` mais o Playwright, instalado se faltar. Devolve o agente a acionar."""
+    acionado = checar_dependencias(root, agente=agente, which=which, home=home, run=run, avisar=avisar)
     garantir_playwright(run=run, avisar=avisar)
-    return claude
+    return acionado
 
 
 def app_responde(base: str, timeout: float = 5) -> None:
@@ -344,20 +344,20 @@ def montar_prompt(roteiro: dict, gravacao: dict, idioma: str, root: Path, saida:
             + json.dumps(passos, ensure_ascii=False, indent=2))
 
 
-def gerar_training(root: Path, modulo: str, idioma: str = "pt", *, which=None, run=None,
+def gerar_training(root: Path, modulo: str, idioma: str = "pt", *, agente=None, which=None, run=None,
                    home: Path | None = None, gravar_fn=None) -> Path:
     """Valida, grava e monta o vídeo em `.sentry/video/training-<modulo>-<idioma>.mp4`.
 
     Tudo que dá para recusar sem gravar é recusado antes de abrir o navegador,
-    e o app é testado antes do `claude`: um brag sem gravação gastaria tokens à toa.
+    e o app é testado antes do agente: um brag sem gravação gastaria tokens à toa.
     """
     validar_idioma(idioma)
     roteiro = carregar_roteiro(root, modulo)
-    claude = checar_dependencias_training(root, which=which, home=home, run=run)
+    acionado = checar_dependencias_training(root, agente=agente, which=which, home=home, run=run)
     app_responde(roteiro["base"])
     pasta = root / PASTA_DE_MIDIA / f"training-{modulo}"
     gravacao = (gravar_fn or gravar)(root, roteiro, pasta)
     destino = root / PASTA_DE_MIDIA / f"training-{modulo}-{idioma}.mp4"
     saida = Path(SAIDA_DO_BRAG) / f"training-{modulo}-{idioma}.mp4"
     return acionar_brag(root, montar_prompt(roteiro, gravacao, idioma, root, saida), destino,
-                        claude=claude, run=run, saida=root / saida)
+                        agente=acionado, run=run, saida=root / saida)

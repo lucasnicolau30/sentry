@@ -6,7 +6,7 @@ Novo comando `sentry promo` que usa a skill brag por baixo dos panos (`claude -p
 para gerar o vídeo promocional do projeto em `.sentry/video/`, PT por padrão e `--lang en`
 opcional.
 
-Decisões do Lucas: o brag é uma skill do Claude Code (não um binário), então o Sentry a
+Decisões do Lucas: o brag é uma skill de agente (não um binário), então o Sentry a
 aciona por subprocess com `claude -p`. Se falta `claude` ou o `ffmpeg`, ou se o `claude -p`
 falha, o comando para com erro claro e código de saída diferente de zero, sem
 fallback silencioso. Se falta só a skill brag, o Sentry a instala (`claude plugin marketplace add
@@ -15,12 +15,14 @@ erro claro. `--lang en` roda o brag outra vez com o prompt em inglês, em vez de
 traduzir legendas. O brag escreve em `brag-output/` (onde já há vídeos versionados); o
 Sentry copia o `.mp4` novo para `.sentry/video/`, sem apagar o original.
 
+Em 2026-10-02 o agente que roda o brag passou a ser configurável em `[video] agente` no `sentry.toml` (spec `video-com-agente-configuravel`): o `claude` descrito aqui é o padrão, e o brag deixou de ser tratado como skill do Claude Code.
+
 ## Campos
 
 - **idioma**: idioma — o valor de `--lang`; `pt` por padrão, `en` opcional, qualquer outro
   é recusado.
 - **claude_no_path**: booleano — se o executável `claude` é encontrado no PATH.
-- **brag_instalado**: booleano — se a skill brag está instalada para o Claude Code; se não,
+- **brag_instalado**: booleano — se a skill brag está instalada para o `claude`, o agente padrão; se não,
   o Sentry a instala antes de gerar o vídeo.
 - **ffmpeg_no_path**: booleano — se o `ffmpeg` é encontrado no PATH.
 - **saida_do_claude**: booleano — se o `claude -p` terminou com código zero e deixou um
@@ -76,7 +78,7 @@ Sentry copia o `.mp4` novo para `.sentry/video/`, sem apagar o original.
 - **Classe:** claude_no_path/ausente
 - **Dado:** um PATH sem o executável `claude`
 - **Quando:** o usuário roda `sentry promo`
-- **Então:** o comando diz que falta o Claude Code e como instalar, sai com código diferente
+- **Então:** o comando diz que falta o agente e qual executável procurou, sai com código diferente
   de zero e não cria nada em `.sentry/video/`
 - **Entrada:** `claude_no_path = falso`
 

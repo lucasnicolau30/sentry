@@ -1,6 +1,6 @@
-"""`sentry promo`: o brag acionado por `claude -p`, sem gastar token nem exigir login.
+"""`sentry promo`: o brag acionado pelo agente (o `claude -p` por padrão), sem gastar token nem exigir login.
 
-O `claude` é simulado: o que importa aqui é o que o Sentry decide antes e depois
+O agente é simulado: o que importa aqui é o que o Sentry decide antes e depois
 dele (pré-requisitos, idioma, onde o vídeo cai, quando recusa afirmar sucesso).
 """
 import os
@@ -63,6 +63,7 @@ def sem(ambiente, monkeypatch, ausente):
 
 
 # cenario: promo gera o video em portugues por padrao
+# cenario: sem agente declarado o padrao continua sendo o claude
 def test_promo_gera_o_video_em_portugues_por_padrao(ambiente, capsys):
     codigo = cli.main(["promo"])
     assert codigo == cli.EXIT_OK
@@ -169,7 +170,8 @@ def test_promo_para_quando_o_claude_nao_esta_no_path(ambiente, monkeypatch, caps
     sem(ambiente, monkeypatch, "claude")
     codigo = cli.main(["promo"])
     assert codigo == cli.EXIT_INFRA
-    assert "Claude Code" in capsys.readouterr().out
+    saida = capsys.readouterr().out
+    assert "falta o agente" in saida and "`claude`" in saida and "Claude Code" not in saida
     assert not (ambiente["projeto"] / ".sentry" / "video").exists()
     assert ambiente["chamadas"] == []
 
@@ -315,3 +317,88 @@ def test_promo_explica_quando_o_claude_nao_executa(ambiente, monkeypatch, capsys
     monkeypatch.setattr(promo.subprocess, "run", quebra)
     assert cli.main(["promo"]) == cli.EXIT_INFRA
     assert "acesso negado" in capsys.readouterr().out
+
+
+def _declarar_agente(ambiente, agente: str) -> None:
+    (ambiente["projeto"] / "sentry.toml").write_text(f"[video]\nagente = {agente}\n", encoding="utf-8")
+
+
+# cenario: promo roda o agente declarado no sentry toml
+def test_promo_roda_o_agente_declarado_no_sentry_toml(ambiente):
+    _declarar_agente(ambiente, '["meu-agente", "--rodar", "{prompt}"]')
+    assert cli.main(["promo"]) == cli.EXIT_OK
+    assert len(ambiente["chamadas"]) == 1
+    comando = ambiente["chamadas"][0]
+    assert comando[:2] == ["/bin/meu-agente", "--rodar"] and len(comando) == 3
+    assert "{prompt}" not in comando[2]
+    # a barra `/brag` é do claude: o agente declarado recebe o pedido pelo nome da skill
+    assert not comando[2].startswith("/brag") and "skill brag" in comando[2] and "português" in comando[2]
+    assert (ambiente["projeto"] / ".sentry" / "video" / "promo-pt.mp4").read_bytes().startswith(b"video-")
+
+
+# cenario: agente declarado dispensa procurar e instalar o brag do claude
+def test_agente_declarado_dispensa_procurar_e_instalar_o_brag_do_claude(ambiente):
+    (ambiente["home"] / ".claude" / "skills" / "brag" / "SKILL.md").unlink()
+    _declarar_agente(ambiente, '["meu-agente", "--rodar", "{prompt}"]')
+    assert cli.main(["promo"]) == cli.EXIT_OK
+    assert ambiente["instalacoes"] == []
+    assert len(ambiente["chamadas"]) == 1 and ambiente["chamadas"][0][0] == "/bin/meu-agente"
+
+
+# cenario: promo para quando o agente declarado nao esta no PATH
+def test_promo_para_quando_o_agente_declarado_nao_esta_no_path(ambiente, monkeypatch, capsys):
+    _declarar_agente(ambiente, '["meu-agente", "{prompt}"]')
+    sem(ambiente, monkeypatch, "meu-agente")
+    assert cli.main(["promo"]) == cli.EXIT_INFRA
+    saida = capsys.readouterr().out
+    assert "agente" in saida and "`meu-agente`" in saida
+    assert ambiente["chamadas"] == []  # não cai no claude por conta própria
+    assert not (ambiente["projeto"] / ".sentry" / "video").exists()
+
+
+@pytest.mark.parametrize("agente", ['"claude"', "[]", '["meu-agente", ""]', '["meu-agente", "--rodar"]',
+                                    '[1, "{prompt}"]'])
+# cenario: promo recusa agente declarado sem o marcador do pedido
+def test_promo_recusa_agente_declarado_sem_o_marcador_do_pedido(ambiente, capsys, agente):
+    _declarar_agente(ambiente, agente)
+    assert cli.main(["promo"]) == cli.EXIT_INFRA
+    saida = capsys.readouterr().out
+    assert "[video] agente" in saida and "{prompt}" in saida
+    assert ambiente["chamadas"] == [] and ambiente["instalacoes"] == []
+
+
+# cenario: as falhas do agente falam em agente e nao em Claude Code
+def test_as_falhas_do_agente_falam_em_agente_e_nao_em_claude_code(ambiente, monkeypatch, capsys):
+    def falha(comando, **kwargs):
+        return subprocess.CompletedProcess(comando, 7, stdout="", stderr="sessão expirada")
+
+    def sem_video(comando, **kwargs):
+        return subprocess.CompletedProcess(comando, 0, stdout="pronto!", stderr="")
+
+    def quebra(comando, **kwargs):
+        raise OSError("acesso negado")
+
+    def demora(comando, **kwargs):
+        raise subprocess.TimeoutExpired(comando, kwargs["timeout"])
+
+    for simulado in (falha, sem_video, quebra):
+        monkeypatch.setattr(promo.subprocess, "run", simulado)
+        assert cli.main(["promo"]) == cli.EXIT_INFRA
+        saida = capsys.readouterr().out
+        assert "agente (`claude`)" in saida or "o agente" in saida
+        assert "Claude Code" not in saida
+    monkeypatch.setattr(promo.subprocess, "run", demora)
+    assert cli.main(["promo"]) == cli.EXIT_INFRA
+    assert "Claude Code" not in capsys.readouterr().out
+    sem(ambiente, monkeypatch, "claude")
+    assert cli.main(["promo"]) == cli.EXIT_INFRA
+    saida = capsys.readouterr().out
+    assert "falta o agente" in saida and "`claude`" in saida and "[video] agente" in saida
+    assert "Claude Code" not in saida
+
+
+# cenario: sem agente declarado o padrao continua sendo o claude
+def test_video_que_nao_e_tabela_nao_declara_agente():
+    assert promo.agente_declarado({}) is None
+    assert promo.agente_declarado({"video": "texto"}) is None
+    assert promo.agente_declarado({"video": {"agente": ["a", "{prompt}"]}}) == ["a", "{prompt}"]

@@ -21,6 +21,8 @@ antes que o Chromium pesa cerca de 150 MB; se a instalação falha, para com err
 comandos manuais. `--lang en` roda o brag outra vez em inglês. O vídeo vai para `.sentry/video/`; o `check`
 também valida o roteiro.
 
+Em 2026-10-02 o agente que roda o brag passou a ser configurável em `[video] agente` no `sentry.toml` (spec `video-com-agente-configuravel`): o `claude` descrito aqui é o padrão, e o brag deixou de ser tratado como skill do Claude Code.
+
 ## Campos
 
 - **modulo**: texto — o nome do módulo; localiza `.sentry/training/<modulo>.json`.
@@ -196,7 +198,7 @@ também valida o roteiro.
 - **Classe:** dependencias/brag-ausente
 - **Dado:** `claude`, `ffmpeg` e Playwright disponíveis e nenhuma skill brag instalada
 - **Quando:** o usuário roda `sentry training cadastro`
-- **Então:** o Sentry instala o brag pelo Claude Code antes de chamar o `claude -p` e gera o
+- **Então:** o Sentry instala o brag com `claude plugin` antes de chamar o `claude -p` e gera o
   vídeo
 - **Entrada:** `dependencias = brag-ausente`
 

@@ -506,3 +506,17 @@ def test_check_valida_os_roteiros_declarados(ambiente, capsys):
     codigo = cli.main(["check", "x"])
     assert codigo == 1
     assert "passo 1: campo 'fala'" in capsys.readouterr().out
+
+
+# cenario: training roda o agente declarado no sentry toml
+def test_training_roda_o_agente_declarado_no_sentry_toml(ambiente):
+    (ambiente["projeto"] / "sentry.toml").write_text(
+        '[video]\nagente = ["meu-agente", "--rodar", "{prompt}"]\n', encoding="utf-8")
+    (ambiente["home"] / ".claude" / "skills" / "brag" / "SKILL.md").unlink()
+    assert cli.main(["training", "cadastro"]) == cli.EXIT_OK
+    assert ambiente["instalacoes"] == []
+    comando = ambiente["chamadas"][0]
+    assert comando[:2] == ["/bin/meu-agente", "--rodar"] and len(comando) == 3
+    assert "{prompt}" not in comando[2] and not comando[2].startswith("/brag")
+    assert comando[2].startswith("Use a skill brag") and "TREINAMENTO" in comando[2]
+    assert (ambiente["projeto"] / ".sentry" / "video" / "training-cadastro-pt.mp4").exists()
