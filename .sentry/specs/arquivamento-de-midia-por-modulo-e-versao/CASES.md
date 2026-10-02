@@ -2,19 +2,21 @@
 
 ## Prompt
 
-Novo comando `sentry archive <modulo> --version <x.y.z> [--specs a,b,c]`. Dois diretórios
-com naturezas opostas: `.sentry/media/` guarda os artefatos crus que o Playwright grava
-(local, no gitignore, podado pelo `sentry clear`) e `.sentry/storage/<modulo>-<versao>/`
-guarda a seleção curada que vira evidência do módulo (versionado no git, nunca tocado pelo
-`clear`, deleção manual). O `sentry.toml` ganha a chave `output_dir` em `[e2e]` apontando
-onde o Playwright escreve; depois de executar a suíte e2e o Sentry recolhe os artefatos
-para `.sentry/media/`. O `archive` executa a suíte e2e do módulo na hora (não empacota o
+Novo comando `sentry archive <modulo> --version <x.y.z> [--specs a,b,c]`. `.sentry/storage/<modulo>-<versao>/` guarda a seleção curada que vira evidência do
+módulo (versionado no git, nunca tocado pelo `clear`, deleção manual). O `sentry.toml`
+ganha a chave `output_dir` em `[e2e]` apontando onde o Playwright escreve, e é de lá
+que o `archive` lê a evidência. O `archive` executa a suíte e2e do módulo na hora (não empacota o
 que sobrou), recusa quando o veredito é reprovado, e sobrescreve quando a versão já
 existe. A composição do módulo é declarada uma única vez, na versão 1.0.0, com `--specs`,
 e gravada em `[modules]` no `sentry.toml`; da 1.0.1 em diante o comando lê essa lista e
 recusa `--specs`. A primeira versão de um módulo é sempre 1.0.0. A pasta arquivada recebe
 um `README.md` autossuficiente (módulo, versão, data, commit, veredito, specs, cobertura,
 limitações e tabela caso para arquivo de mídia) e a pasta `media/`, sem cópia do relatório.
+
+Decisão do Lucas (2026-10-02): o pool `.sentry/media/` deixou de existir. O Sentry não copia
+mais a saída do Playwright para uma pasta intermediária: o `archive` executa a suíte na hora
+e busca cada print e vídeo direto na pasta de saída (`output_dir`), porque evidência de
+rodadas antigas nunca serviu para nada.
 
 ## Campos
 
@@ -23,8 +25,8 @@ limitações e tabela caso para arquivo de mídia) e a pasta `media/`, sem cópi
 - **composicao_do_modulo**: texto — a lista de specs que compõem o módulo,
   declarada em `--specs` e gravada em `[modules]` do `sentry.toml`.
 - **veredito_da_execucao**: booleano — se a suíte e2e do módulo aprovou.
-- **pool_de_midia**: booleano — os artefatos recolhidos para `.sentry/media/`
-  depois da execução e2e.
+- **saida_do_playwright**: booleano — os artefatos que o Playwright gravou na pasta `output_dir`
+  declarada em `[e2e]`.
 - **filtro_de_midia**: texto — o tipo de mídia pedido em `--image`/`--video`;
   sem nenhuma das duas, tudo que existir é arquivado.
 
@@ -127,7 +129,7 @@ limitações e tabela caso para arquivo de mídia) e a pasta `media/`, sem cópi
 - **Camada:** integração
 - **Tipo:** integração
 - **Prioridade:** alta
-- **Classe:** pool_de_midia/vazio
+- **Classe:** saida_do_playwright/vazio
 - **Dado:** uma execução aprovada sem nenhuma evidência de Playwright anexada
   a nenhum caso
 - **Quando:** o arquivo do módulo é escrito
@@ -179,7 +181,7 @@ limitações e tabela caso para arquivo de mídia) e a pasta `media/`, sem cópi
 - **Então:** a pasta `media/` e a tabela trazem prints e vídeos, sem nenhuma
   nota de exclusão em "Limitações"
 
-## Caso: midia com caminho relativo ao junit e encontrada no pool local
+## Caso: midia com caminho relativo ao junit e encontrada na pasta de saida do playwright
 
 - **Requisito:** o anexo que o Playwright grava no JUnit é relativo à pasta do
   próprio `junit.xml` (ex.: `..\test-results\<pasta-do-teste>\arquivo.png`),
@@ -188,10 +190,11 @@ limitações e tabela caso para arquivo de mídia) e a pasta `media/`, sem cópi
 - **Camada:** integração
 - **Tipo:** integração
 - **Prioridade:** crítica
-- **Classe:** pool_de_midia/valido
+- **Classe:** saida_do_playwright/valido
 - **Dado:** uma evidência cujo caminho começa com `..\` e não existe relativo à
-  raiz, mas cujo arquivo foi recolhido para `.sentry/media/<pasta-do-teste>/`
-- **Quando:** o arquivo do módulo é escrito
+  raiz, mas cujo arquivo está na pasta de saída do Playwright (`output_dir`), em
+  `<pasta-do-teste>/`
+- **Quando:** o arquivo do módulo é escrito com `output_dir` declarado
 - **Então:** o arquivo é encontrado pela dupla pasta-do-teste/nome-do-arquivo e
   entra na mídia arquivada
 
@@ -207,56 +210,29 @@ limitações e tabela caso para arquivo de mídia) e a pasta `media/`, sem cópi
 - **Quando:** o arquivo da mesma versão é escrito de novo
 - **Então:** a pasta contém apenas o conteúdo da execução nova
 
-## Caso: midia da execucao e2e e recolhida para o pool
+## Caso: clear poda execucoes e relatorios e preserva o arquivado e os videos
 
-- **Requisito:** "Depois de executar a suíte e2e o Sentry recolhe os artefatos
-  para `.sentry/media/`" — o Playwright limpa o próprio diretório de saída a
-  cada execução, e sem copiar a evidência desta rodada sumiria na seguinte
-- **Camada:** integração
-- **Tipo:** integração
-- **Prioridade:** alta
-- **Classe:** pool_de_midia/presente
-- **Dado:** um diretório de saída do Playwright com artefatos gravados
-- **Quando:** a coleta roda com `output_dir` declarado
-- **Então:** os arquivos aparecem em `.sentry/media/`, preservando a estrutura
-
-## Caso: projeto sem output_dir declarado nao recolhe nada
-
-- **Requisito:** sem `output_dir` não há de onde recolher, e isso não é erro: o
-  projeto simplesmente não pediu arquivamento de mídia
-- **Camada:** backend
-- **Tipo:** unitário
-- **Prioridade:** média
-- **Classe:** pool_de_midia/ausente
-- **Dado:** um projeto cujo `[e2e]` não declara `output_dir`
-- **Quando:** a coleta roda sem `output_dir` declarado
-- **Então:** nada é recolhido e nenhuma exceção é levantada
-
-## Caso: clear poda o pool de midia e preserva o arquivado
-
-- **Requisito:** "`.sentry/media/` é podado pelo `sentry clear`;
-  `.sentry/storage/` nunca é tocado" — um se refaz sozinho, o outro só existe
-  porque alguém o criou de propósito
+- **Requisito:** "`.sentry/storage/` nunca é tocado" — a evidência arquivada só existe porque alguém a criou de
+  propósito; o mesmo vale para os vídeos de `.sentry/video/`, que são entregas pedidas pelo dev
 - **Camada:** integração
 - **Tipo:** integração
 - **Prioridade:** crítica
-- **Classe:** pool_de_midia/valido
-- **Dado:** um pool de mídia com arquivos e um módulo arquivado em storage
+- **Classe:** saida_do_playwright/valido
+- **Dado:** um relatório atual, um vídeo em `.sentry/video/` e um módulo arquivado em storage
 - **Quando:** `sentry clear --yes` roda
-- **Então:** os arquivos do pool são removidos e a pasta arquivada continua
-  intacta
+- **Então:** o relatório é removido, e o vídeo e a pasta arquivada continuam intactos
 
-## Caso: init mantem o storage versionado e a midia fora do git
+## Caso: init mantem o storage versionado e ignora so a pasta de videos
 
-- **Requisito:** mídia arquivada é a evidência versionada do módulo — é o motivo
-  de ela existir; o pool bruto é local
+- **Requisito:** mídia arquivada é a evidência versionada do módulo — é o motivo de ela existir; os vídeos de
+  `promo` e `training` ficam fora do Git por padrão
 - **Camada:** integração
 - **Tipo:** integração
 - **Prioridade:** alta
-- **Classe:** pool_de_midia/nao-numerico
+- **Classe:** saida_do_playwright/nao-numerico
 - **Dado:** um projeto recém-inicializado
 - **Quando:** o `.gitignore` escrito pelo `init` é lido
-- **Então:** `.sentry/media/` está excluído e `.sentry/storage/` não aparece
+- **Então:** `.sentry/video/` está excluído, `.sentry/media/` não aparece e `.sentry/storage/` não aparece
 
 ## Caso: modulo aponta para spec inexistente e recusado
 

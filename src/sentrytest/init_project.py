@@ -29,16 +29,21 @@ def default_config(project_name: str) -> str:
 # a mesma frase que o README ja usava enquanto o init a ignorava. Nao versionada,
 # ela so existia na maquina de quem a escreveu: um checkout limpo nao encontrava
 # matriz de casos, e a analise saia inconclusiva por falta de spec em vez de medir.
-# `.sentry/media/` e' pool bruto que se refaz a cada execucao e2e: fica local.
 # `.sentry/storage/` nao aparece aqui de proposito -- midia arquivada e' a
 # evidencia versionada do modulo, e' o motivo de ela existir.
+# `brag-output/` e' a pasta de trabalho do brag (composicao, planos, legendas e
+# videos soltos): sem esta linha ela aparecia como "nao rastreada" no projeto do
+# dev. O video final de `promo` e `training` e' copiado para `.sentry/video/`;
+# quem precisar versionar um video forca a copia com `git add -f`.
 GITIGNORE_ENTRIES = ('.sentry/sentry.db', '.sentry/reports/*',
                      '!.sentry/reports/latest-*.md', '.sentry/runs/', '.sentry/test-plans/',
-                     '.sentry/media/')
+                     '.sentry/video/', 'brag-output/')
 # Removidas do .gitignore na proxima inicializacao. A comparacao e' por linha
 # inteira: `.sentry/specs/rascunhos/`, escrita pelo usuario, nao casa com
-# `.sentry/specs/` e permanece onde esta.
-OBSOLETE_GITIGNORE_ENTRIES = frozenset({'.sentry/reports/', '.sentry/specs/'})
+# `.sentry/specs/` e permanece onde esta. `.sentry/media/` era o pool intermediario
+# de evidencia e2e, que deixou de existir: o `archive` le a pasta de saida do
+# Playwright direto.
+OBSOLETE_GITIGNORE_ENTRIES = frozenset({'.sentry/reports/', '.sentry/specs/', '.sentry/media/'})
 
 # Cada versao lista os comandos DDL que faltam para chegar nela, a partir da
 # anterior. Todos IF NOT EXISTS: aplicar de novo num banco ja migrado nao falha,

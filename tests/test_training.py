@@ -239,7 +239,7 @@ def test_training_para_quando_falta_uma_dependencia(ambiente, monkeypatch, capsy
     assert ausente.lower() in capsys.readouterr().out.lower()
     assert ambiente["gravacoes"] == []
     assert ambiente["chamadas"] == []
-    assert not (ambiente["projeto"] / ".sentry" / "media").exists()
+    assert not (ambiente["projeto"] / ".sentry" / "video").exists()
 
 
 # cenario: training monta o video em portugues por padrao
@@ -251,9 +251,9 @@ def test_training_monta_o_video_em_portugues_por_padrao(ambiente, capsys):
     assert prompt.startswith("/brag")
     assert "português" in prompt
     assert "Esta é a tela de cadastro." in prompt and "inicio_s" in prompt
-    video = ambiente["projeto"] / ".sentry" / "media" / "training-cadastro-pt.mp4"
+    video = ambiente["projeto"] / ".sentry" / "video" / "training-cadastro-pt.mp4"
     assert video.read_bytes().startswith(b"video-")
-    assert ".sentry/media/training-cadastro-pt.mp4" in capsys.readouterr().out
+    assert ".sentry/video/training-cadastro-pt.mp4" in capsys.readouterr().out
 
 
 # cenario: training com lang en roda o brag de novo em ingles
@@ -262,8 +262,8 @@ def test_training_com_lang_en_roda_o_brag_de_novo_em_ingles(ambiente):
     assert cli.main(["training", "cadastro", "--lang", "en"]) == cli.EXIT_OK
     assert len(ambiente["chamadas"]) == 2
     assert "English" in ambiente["chamadas"][1][2]
-    media = ambiente["projeto"] / ".sentry" / "media"
-    assert (media / "training-cadastro-pt.mp4").read_bytes() != (media / "training-cadastro-en.mp4").read_bytes()
+    pasta = ambiente["projeto"] / ".sentry" / "video"
+    assert (pasta / "training-cadastro-pt.mp4").read_bytes() != (pasta / "training-cadastro-en.mp4").read_bytes()
 
 
 # cenario: training propaga a falha do claude sem deixar video parcial
@@ -274,7 +274,7 @@ def test_training_propaga_a_falha_do_claude_sem_deixar_video_parcial(ambiente, m
     codigo = cli.main(["training", "cadastro"])
     assert codigo == cli.EXIT_INFRA
     assert "sessão expirada" in capsys.readouterr().out
-    assert not list((ambiente["projeto"] / ".sentry" / "media").glob("*.mp4"))
+    assert not list((ambiente["projeto"] / ".sentry" / "video").glob("*.mp4"))
 
 
 def test_gravacao_que_nao_acha_o_seletor_diz_qual_passo_falhou(tmp_path):
@@ -368,7 +368,7 @@ def test_training_usa_o_video_do_caminho_pedido_quando_o_claude_o_grava(ambiente
         return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
     monkeypatch.setattr(promo.subprocess, "run", run)
     assert cli.main(["training", "cadastro"]) == cli.EXIT_OK
-    video = ambiente["projeto"] / ".sentry" / "media" / "training-cadastro-pt.mp4"
+    video = ambiente["projeto"] / ".sentry" / "video" / "training-cadastro-pt.mp4"
     assert video.read_bytes() == b"NO-CAMINHO-PEDIDO"
 
 

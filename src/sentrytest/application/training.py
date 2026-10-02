@@ -346,7 +346,7 @@ def montar_prompt(roteiro: dict, gravacao: dict, idioma: str, root: Path, saida:
 
 def gerar_training(root: Path, modulo: str, idioma: str = "pt", *, which=None, run=None,
                    home: Path | None = None, gravar_fn=None) -> Path:
-    """Valida, grava e monta o vídeo em `.sentry/media/training-<modulo>-<idioma>.mp4`.
+    """Valida, grava e monta o vídeo em `.sentry/video/training-<modulo>-<idioma>.mp4`.
 
     Tudo que dá para recusar sem gravar é recusado antes de abrir o navegador,
     e o app é testado antes do `claude`: um brag sem gravação gastaria tokens à toa.

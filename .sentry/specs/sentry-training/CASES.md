@@ -4,7 +4,7 @@
 
 Novo comando `sentry training` que lê um roteiro declarado por módulo, grava os fluxos com
 Playwright e monta o vídeo de treinamento com legendas usando a skill brag por baixo dos
-panos (`claude -p '/brag ...'`), salvando em `.sentry/media/` (PT por padrão, `--lang en`
+panos (`claude -p '/brag ...'`), salvando em `.sentry/video/` (PT por padrão, `--lang en`
 opcional).
 
 Decisões do Lucas: o roteiro é declarativo em `.sentry/training/<modulo>.json` (versionado),
@@ -18,7 +18,7 @@ silencioso. Se falta só a skill brag, o Sentry a instala como o `promo` faz. Se
 (o pacote Python ou o navegador Chromium), o Sentry também instala, com o mesmo Python que o
 executa (`python -m pip install playwright` e `python -m playwright install chromium`), avisando
 antes que o Chromium pesa cerca de 150 MB; se a instalação falha, para com erro claro e mostra os
-comandos manuais. `--lang en` roda o brag outra vez em inglês. O vídeo vai para `.sentry/media/`; o `check`
+comandos manuais. `--lang en` roda o brag outra vez em inglês. O vídeo vai para `.sentry/video/`; o `check`
 também valida o roteiro.
 
 ## Campos
@@ -247,7 +247,7 @@ também valida o roteiro.
 ## Caso: training monta o video em portugues por padrao
 
 - **Requisito:** "monta o vídeo de treinamento com legendas usando a skill brag [...] em
-  `.sentry/media/`, PT por padrão"
+  `.sentry/video/`, PT por padrão"
 - **Camada:** integração
 - **Tipo:** integração
 - **Prioridade:** crítica
@@ -255,7 +255,7 @@ também valida o roteiro.
 - **Dado:** gravação e tempos prontos e um `claude` simulado que deixa o `.mp4`
 - **Quando:** o usuário roda `sentry training cadastro` sem `--lang`
 - **Então:** o `claude -p` recebe as falas e os tempos dos passos em português e o `.mp4`
-  fica em `.sentry/media/`, com o módulo no nome
+  fica em `.sentry/video/`, com o módulo no nome
 - **Entrada:** `idioma = pt`
 
 ## Caso: training com lang en roda o brag de novo em ingles
@@ -282,7 +282,7 @@ também valida o roteiro.
 - **Dado:** gravação pronta e um `claude` simulado que sai com código diferente de zero
 - **Quando:** o usuário roda `sentry training cadastro`
 - **Então:** o comando mostra o erro do `claude`, sai com código diferente de zero e não
-  deixa `.mp4` em `.sentry/media/`
+  deixa `.mp4` em `.sentry/video/`
 - **Entrada:** `dependencias = claude-falhou`
 
 ## Caso: check valida os roteiros declarados

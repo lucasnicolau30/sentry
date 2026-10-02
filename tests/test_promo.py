@@ -3,7 +3,9 @@
 O `claude` é simulado: o que importa aqui é o que o Sentry decide antes e depois
 dele (pré-requisitos, idioma, onde o vídeo cai, quando recusa afirmar sucesso).
 """
+import os
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -37,7 +39,14 @@ def ambiente(tmp_path: Path, monkeypatch):
         chamadas.append(comando)
         saida = projeto / "brag-output"
         saida.mkdir(exist_ok=True)
-        (saida / "brag.mp4").write_bytes(b"video-" + comando[2].encode())
+        arquivo = saida / "brag.mp4"
+        arquivo.write_bytes(b"video-" + comando[2].encode())
+        # Duas chamadas seguidas regravam o mesmo arquivo e podem cair no mesmo tick do
+        # relógio do sistema; o promo reconhece vídeo novo pela mudança da hora de
+        # modificação. Cada gravação ganha uma hora distinta, para o teste não depender
+        # da granularidade do relógio.
+        hora = time.time_ns() + len(chamadas) * 1_000_000_000
+        os.utime(arquivo, ns=(hora, hora))
         return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
 
     monkeypatch.setattr(promo.Path, "home", classmethod(lambda cls: home))
@@ -62,10 +71,10 @@ def test_promo_gera_o_video_em_portugues_por_padrao(ambiente, capsys):
     assert comando[1] == "-p"
     assert comando[2].startswith("/brag")
     assert "português" in comando[2]
-    video = ambiente["projeto"] / ".sentry" / "media" / "promo-pt.mp4"
+    video = ambiente["projeto"] / ".sentry" / "video" / "promo-pt.mp4"
     assert video.read_bytes().startswith(b"video-")
     assert (ambiente["projeto"] / "brag-output" / "brag.mp4").exists()
-    assert ".sentry/media/promo-pt.mp4" in capsys.readouterr().out
+    assert ".sentry/video/promo-pt.mp4" in capsys.readouterr().out
 
 
 def test_promo_acha_o_video_na_pasta_com_data_que_o_brag_cria(ambiente, monkeypatch):
@@ -82,7 +91,7 @@ def test_promo_acha_o_video_na_pasta_com_data_que_o_brag_cria(ambiente, monkeypa
         return subprocess.CompletedProcess(comando, 0, stdout="", stderr="")
     monkeypatch.setattr(promo.subprocess, "run", run)
     assert cli.main(["promo"]) == cli.EXIT_OK
-    assert (ambiente["projeto"] / ".sentry" / "media" / "promo-pt.mp4").read_bytes() == b"NOVO"
+    assert (ambiente["projeto"] / ".sentry" / "video" / "promo-pt.mp4").read_bytes() == b"NOVO"
 
 
 def test_promo_libera_a_powershell_e_a_pasta_de_plugins_para_o_brag(ambiente):
@@ -99,8 +108,8 @@ def test_promo_com_lang_en_roda_o_brag_de_novo_em_ingles(ambiente):
     assert cli.main(["promo", "--lang", "en"]) == cli.EXIT_OK
     assert len(ambiente["chamadas"]) == 2
     assert "English" in ambiente["chamadas"][1][2]
-    media = ambiente["projeto"] / ".sentry" / "media"
-    pt, en = (media / "promo-pt.mp4").read_bytes(), (media / "promo-en.mp4").read_bytes()
+    pasta = ambiente["projeto"] / ".sentry" / "video"
+    pt, en = (pasta / "promo-pt.mp4").read_bytes(), (pasta / "promo-en.mp4").read_bytes()
     assert pt != en
 
 
@@ -119,7 +128,7 @@ def test_promo_para_quando_o_claude_nao_esta_no_path(ambiente, monkeypatch, caps
     codigo = cli.main(["promo"])
     assert codigo == cli.EXIT_INFRA
     assert "Claude Code" in capsys.readouterr().out
-    assert not (ambiente["projeto"] / ".sentry" / "media").exists()
+    assert not (ambiente["projeto"] / ".sentry" / "video").exists()
     assert ambiente["chamadas"] == []
 
 
@@ -132,7 +141,7 @@ def test_promo_instala_o_brag_quando_ele_esta_ausente(ambiente, capsys):
                                        ["install", "brag@brag"]]
     assert len(ambiente["chamadas"]) == 1  # só depois de instalar o claude -p roda
     assert "instalando" in capsys.readouterr().out
-    assert (ambiente["projeto"] / ".sentry" / "media" / "promo-pt.mp4").exists()
+    assert (ambiente["projeto"] / ".sentry" / "video" / "promo-pt.mp4").exists()
 
 
 # cenario: promo para quando a instalacao do brag falha
@@ -230,8 +239,8 @@ def test_promo_propaga_a_falha_do_claude_sem_deixar_video_parcial(ambiente, monk
     assert codigo == cli.EXIT_INFRA
     saida = capsys.readouterr().out
     assert "sessão expirada" in saida
-    assert not list((ambiente["projeto"] / ".sentry" / "media").glob("*.mp4")) \
-        if (ambiente["projeto"] / ".sentry" / "media").exists() else True
+    assert not list((ambiente["projeto"] / ".sentry" / "video").glob("*.mp4")) \
+        if (ambiente["projeto"] / ".sentry" / "video").exists() else True
 
 
 # cenario: promo nao afirma sucesso quando o claude nao gerou o video
@@ -244,7 +253,7 @@ def test_promo_nao_afirma_sucesso_quando_o_claude_nao_gerou_o_video(ambiente, mo
     saida = capsys.readouterr().out
     assert "não foi gerado" in saida
     assert "pronto!" in saida  # o que o claude disse, para o usuário entender por que parou
-    assert not (ambiente["projeto"] / ".sentry" / "media" / "promo-pt.mp4").exists()
+    assert not (ambiente["projeto"] / ".sentry" / "video" / "promo-pt.mp4").exists()
 
 
 # cenario: promo propaga a falha do claude sem deixar video parcial
@@ -254,7 +263,7 @@ def test_promo_explica_quando_o_claude_estoura_o_tempo(ambiente, monkeypatch, ca
     monkeypatch.setattr(promo.subprocess, "run", demora)
     assert cli.main(["promo"]) == cli.EXIT_INFRA
     assert "sem terminar" in capsys.readouterr().out
-    assert not (ambiente["projeto"] / ".sentry" / "media" / "promo-pt.mp4").exists()
+    assert not (ambiente["projeto"] / ".sentry" / "video" / "promo-pt.mp4").exists()
 
 
 # cenario: promo propaga a falha do claude sem deixar video parcial

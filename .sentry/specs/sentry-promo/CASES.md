@@ -3,7 +3,7 @@
 ## Prompt
 
 Novo comando `sentry promo` que usa a skill brag por baixo dos panos (`claude -p '/brag ...'`)
-para gerar o vídeo promocional do projeto em `.sentry/media/`, PT por padrão e `--lang en`
+para gerar o vídeo promocional do projeto em `.sentry/video/`, PT por padrão e `--lang en`
 opcional.
 
 Decisões do Lucas: o brag é uma skill do Claude Code (não um binário), então o Sentry a
@@ -13,7 +13,7 @@ fallback silencioso. Se falta só a skill brag, o Sentry a instala (`claude plug
 latent-spaces/brag` e `claude plugin install brag@brag`) e segue; se a instalação falha, para com
 erro claro. `--lang en` roda o brag outra vez com o prompt em inglês, em vez de
 traduzir legendas. O brag escreve em `brag-output/` (onde já há vídeos versionados); o
-Sentry copia o `.mp4` novo para `.sentry/media/`, sem apagar o original.
+Sentry copia o `.mp4` novo para `.sentry/video/`, sem apagar o original.
 
 ## Campos
 
@@ -28,7 +28,7 @@ Sentry copia o `.mp4` novo para `.sentry/media/`, sem apagar o original.
 
 ## Caso: promo gera o video em portugues por padrao
 
-- **Requisito:** "gerar o vídeo promocional do projeto em `.sentry/media/`, PT por padrão"
+- **Requisito:** "gerar o vídeo promocional do projeto em `.sentry/video/`, PT por padrão"
 - **Camada:** integração
 - **Tipo:** integração
 - **Prioridade:** crítica
@@ -37,7 +37,7 @@ Sentry copia o `.mp4` novo para `.sentry/media/`, sem apagar o original.
   `.mp4` em `brag-output/`
 - **Quando:** o usuário roda `sentry promo` sem `--lang`
 - **Então:** o `claude -p` é chamado com `/brag` e um prompt em português, o `.mp4` é copiado
-  para `.sentry/media/` e o comando sai com código zero informando o caminho
+  para `.sentry/video/` e o comando sai com código zero informando o caminho
 - **Entrada:** `idioma = pt`
 
 ## Caso: promo com lang en roda o brag de novo em ingles
@@ -47,7 +47,7 @@ Sentry copia o `.mp4` novo para `.sentry/media/`, sem apagar o original.
 - **Tipo:** integração
 - **Prioridade:** alta
 - **Classe:** idioma/en
-- **Dado:** o vídeo em português já gerado em `.sentry/media/`
+- **Dado:** o vídeo em português já gerado em `.sentry/video/`
 - **Quando:** o usuário roda `sentry promo --lang en`
 - **Então:** o `claude -p` é chamado outra vez com prompt em inglês e o vídeo em inglês é
   gravado em arquivo distinto, sem sobrescrever o português
@@ -77,7 +77,7 @@ Sentry copia o `.mp4` novo para `.sentry/media/`, sem apagar o original.
 - **Dado:** um PATH sem o executável `claude`
 - **Quando:** o usuário roda `sentry promo`
 - **Então:** o comando diz que falta o Claude Code e como instalar, sai com código diferente
-  de zero e não cria nada em `.sentry/media/`
+  de zero e não cria nada em `.sentry/video/`
 - **Entrada:** `claude_no_path = falso`
 
 ## Caso: promo instala o brag quando ele esta ausente
@@ -135,7 +135,7 @@ Sentry copia o `.mp4` novo para `.sentry/media/`, sem apagar o original.
 - **Dado:** tudo disponível e um `claude` simulado que sai com código diferente de zero
 - **Quando:** o usuário roda `sentry promo`
 - **Então:** o comando mostra o erro do `claude`, sai com código diferente de zero e não
-  deixa `.mp4` em `.sentry/media/`
+  deixa `.mp4` em `.sentry/video/`
 - **Entrada:** `saida_do_claude = falhou`
 
 ## Caso: promo nao afirma sucesso quando o claude nao gerou o video

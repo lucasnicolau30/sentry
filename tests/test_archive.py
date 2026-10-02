@@ -1,7 +1,9 @@
 """Arquivamento de mídia por módulo e versão.
 
-`media` enche sozinho e é descartável; `storage` só existe porque alguém rodou o
-comando de propósito, e por isso é versionado e nenhuma poda o alcança.
+`storage` só existe porque alguém rodou o comando de propósito: o `archive` executa a suíte
+e2e na hora e leva para lá a evidência que o Playwright gravou. Por isso é versionado e
+nenhuma poda o alcança. Não há pool intermediário: a evidência é lida da pasta de saída
+do Playwright.
 """
 import json
 from pathlib import Path
@@ -9,8 +11,7 @@ from pathlib import Path
 import pytest
 
 from sentrytest.application.archive import (
-    PRIMEIRA_VERSAO, collect_media, media_path, record_module, resolve_specs,
-    storage_path, write_archive)
+    PRIMEIRA_VERSAO, record_module, resolve_specs, storage_path, write_archive)
 from sentrytest.application.reporting import clear_history
 from sentrytest.init_project import initialize_project
 
@@ -172,18 +173,27 @@ def test_sem_flag_de_midia_arquiva_tudo(tmp_path: Path):
     assert 'ficaram de fora' not in readme
 
 
-# cenario: midia com caminho relativo ao junit e encontrada no pool local
-def test_midia_com_caminho_relativo_ao_junit_e_encontrada_no_pool_local(tmp_path: Path):
-    pasta_do_teste = media_path(tmp_path) / 'hero-blur-reveal-hero-exib-26b64'
+# cenario: midia com caminho relativo ao junit e encontrada na pasta de saida do playwright
+def test_midia_com_caminho_relativo_ao_junit_e_encontrada_na_pasta_de_saida_do_playwright(tmp_path: Path):
+    pasta_do_teste = tmp_path / 'frontend' / 'test-results' / 'hero-blur-reveal-hero-exib-26b64'
     pasta_do_teste.mkdir(parents=True)
     (pasta_do_teste / 'test-finished-1.png').write_bytes(b'print')
     dados = payload(casos=[caso('Cadastro com dados validos cria o usuario',
                                 midias=[r'..\test-results\hero-blur-reveal-hero-exib-26b64\test-finished-1.png'])])
-    destino = write_archive(tmp_path, 'modulo-usuarios', '1.0.0', dados, ['cadastro-de-usuario'])
+    destino = write_archive(tmp_path, 'modulo-usuarios', '1.0.0', dados, ['cadastro-de-usuario'],
+                            output_dir='frontend/test-results')
 
     assert (destino / 'media' / 'hero-blur-reveal-hero-exib-26b64-test-finished-1.png').exists()
     readme = (destino / 'README.md').read_text(encoding='utf-8')
     assert '[print](media/hero-blur-reveal-hero-exib-26b64-test-finished-1.png)' in readme
+
+
+def test_midia_que_nao_resolve_e_sem_output_dir_fica_de_fora_sem_quebrar(tmp_path: Path):
+    """Caminho defensivo, sem cenário declarado: sem `output_dir` não há onde buscar um
+    caminho relativo ao JUnit; a mídia fica de fora e o arquivamento segue, em vez de quebrar."""
+    dados = payload(casos=[caso('Cadastro', midias=[r'..\test-results\algum-teste\test-finished-1.png'])])
+    destino = write_archive(tmp_path, 'modulo-usuarios', '1.0.0', dados, ['cadastro-de-usuario'])
+    assert sorted((destino / 'media').iterdir()) == []
 
 
 # cenario: rearquivar a mesma versao sobrescreve a pasta
@@ -196,40 +206,28 @@ def test_rearquivar_a_mesma_versao_sobrescreve_a_pasta(tmp_path: Path):
     assert sorted(path.name for path in destino.iterdir()) == ['README.md', 'media']
 
 
-# cenario: midia da execucao e2e e recolhida para o pool
-def test_midia_da_execucao_e2e_e_recolhida_para_o_pool(tmp_path: Path):
-    origem = tmp_path / 'frontend' / 'test-results' / 'login-chromium'
-    origem.mkdir(parents=True, exist_ok=True)
-    (origem / 'video.webm').write_bytes(b'video')
-    recolhidos = collect_media(tmp_path, 'frontend/test-results')
-    assert len(recolhidos) == 1
-    assert (media_path(tmp_path) / 'login-chromium' / 'video.webm').exists()
-
-
-# cenario: projeto sem output_dir declarado nao recolhe nada
-def test_projeto_sem_output_dir_declarado_nao_recolhe_nada(tmp_path: Path):
-    assert collect_media(tmp_path, None) == ()
-    assert collect_media(tmp_path, 'diretorio/que/nao/existe') == ()
-    assert not media_path(tmp_path).exists()
-
-
-# cenario: clear poda o pool de midia e preserva o arquivado
-def test_clear_poda_o_pool_de_midia_e_preserva_o_arquivado(tmp_path: Path):
-    bruto = media_path(tmp_path) / 'login-chromium' / 'video.webm'
-    bruto.parent.mkdir(parents=True, exist_ok=True)
-    bruto.write_bytes(b'bruto')
+# cenario: clear poda execucoes e relatorios e preserva o arquivado e os videos
+def test_clear_poda_execucoes_e_relatorios_e_preserva_o_arquivado_e_os_videos(tmp_path: Path):
+    relatorio = tmp_path / '.sentry' / 'reports' / 'latest-20260101-100000.md'
+    relatorio.parent.mkdir(parents=True, exist_ok=True)
+    relatorio.write_text('# relatorio', encoding='utf-8')
+    video = tmp_path / '.sentry' / 'video' / 'promo-pt.mp4'
+    video.parent.mkdir(parents=True, exist_ok=True)
+    video.write_bytes(b'video')
     arquivado = write_archive(tmp_path, 'modulo-usuarios', '1.0.0', payload(), ['login'])
 
     clear_history(tmp_path, keep_last=0, apply=True)
-    assert not bruto.exists()
+    assert not relatorio.exists()
+    assert video.exists()
     assert (arquivado / 'README.md').exists()
 
 
-# cenario: init mantem o storage versionado e a midia fora do git
-def test_init_mantem_o_storage_versionado_e_a_midia_fora_do_git(tmp_path: Path):
+# cenario: init mantem o storage versionado e ignora so a pasta de videos
+def test_init_mantem_o_storage_versionado_e_ignora_so_a_pasta_de_videos(tmp_path: Path):
     initialize_project(tmp_path)
     gitignore = (tmp_path / '.gitignore').read_text(encoding='utf-8')
-    assert '.sentry/media/' in gitignore
+    assert '.sentry/video/' in gitignore
+    assert '.sentry/media/' not in gitignore
     assert '.sentry/storage' not in gitignore
 
 

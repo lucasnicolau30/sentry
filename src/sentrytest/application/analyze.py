@@ -14,7 +14,6 @@ from .cases import build_test_cases, summarize
 from .reporting import load_runs
 from .reuse import COMPLETE, INSTANT, cached_execution, cached_run, input_fingerprint, provenance, reused_coverage
 from .traceability import DEFAULT_TEST_PATHS, TEST_DEFINITIONS, build_traceability, collect_test_files
-from .archive import collect_media
 from .frontend_evidence import evidence_by_case
 from .coverage_context import calculate_changed_coverage
 from .impact import SOURCE_EXTENSIONS, select_impacted_tests
@@ -271,9 +270,6 @@ def analyze(root:Path,slug:str|None=None,run_tests:bool|None=None,base:str|None=
         if e2e_junit:
             e2e_paths=collect_test_files(root,tuple(e2e_config.get('paths') or ()))
             e2e_evidence=evidence_by_case(root/e2e_junit,e2e_paths)
-        # O Playwright limpa o proprio diretorio de saida a cada execucao: sem
-        # recolher agora, a evidencia desta rodada some na proxima.
-        collect_media(root,e2e_config.get('output_dir'))
     e2e_failed=bool(e2e_test and e2e_test.failed)
     test_cases=build_test_cases(document,traceability,run_tests,suite_failed,e2e_failed,e2e_evidence) if document else ()
     # Sem --run-tests nao ha cobertura, entao a regra nao pode afirmar ausencia de

@@ -567,9 +567,9 @@ def _run_and_report(root: Path, slug: str | None, run_tests: bool | None,
 def _archive(root: Path, args, *, parser: argparse.ArgumentParser | None = None) -> int:
     """Executa a suíte e2e do módulo e, se aprovada, arquiva a evidência.
 
-    Executa na hora em vez de empacotar o que sobrou em `media`: fechar uma
-    versão é certificação, e evidência de outro commit certificaria o que não
-    foi medido.
+    Executa na hora em vez de empacotar o que sobrou de uma execução anterior:
+    fechar uma versão é certificação, e evidência de outro commit certificaria o
+    que não foi medido.
     """
     config = load_config(root)
     modulo_config = (config.get("modules") or {}).get(args.module)
@@ -608,7 +608,8 @@ def _archive(root: Path, args, *, parser: argparse.ArgumentParser | None = None)
         print(f"{paint(symbol, VERDICT_COLOR.get(status, 'gray'))} {status.capitalize()}: nada foi arquivado.")
         return codigo
     destino = write_archive(root, args.module, args.version, payload, specs,
-                            incluir_imagem=incluir_imagem, incluir_video=incluir_video)
+                            incluir_imagem=incluir_imagem, incluir_video=incluir_video,
+                            output_dir=(config.get("e2e") or {}).get("output_dir"))
     if pedidas:
         record_module(root, args.module, specs)
     print(f"{paint(VERDICT_SYMBOL['aprovado'], 'green')} {args.module} v{args.version} arquivado em "
@@ -616,7 +617,7 @@ def _archive(root: Path, args, *, parser: argparse.ArgumentParser | None = None)
     return codigo
 
 def _promo(root: Path, args, *, parser: argparse.ArgumentParser | None = None) -> int:
-    """Aciona o brag por baixo dos panos e guarda o vídeo em `.sentry/media/`."""
+    """Aciona o brag por baixo dos panos e guarda o vídeo em `.sentry/video/`."""
     try:
         with Spinner("Gerando o vídeo promocional (pode levar vários minutos)"):
             destino = gerar_promo(root, args.lang)

@@ -13,7 +13,7 @@ from pathlib import Path
 IDIOMAS = ("pt", "en")
 IDIOMA_PADRAO = "pt"
 SAIDA_DO_BRAG = "brag-output"
-PASTA_DE_MIDIA = Path(".sentry") / "media"
+PASTA_DE_MIDIA = Path(".sentry") / "video"
 TEMPO_MAXIMO = 1800
 TEMPO_DA_INSTALACAO = 300
 
@@ -176,7 +176,7 @@ def acionar_brag(root: Path, prompt: str, destino: Path, *, claude: str, run=Non
 
 def gerar_promo(root: Path, idioma: str = IDIOMA_PADRAO, *, which=None,
                 run=None, home: Path | None = None) -> Path:
-    """Roda o brag e guarda o vídeo em `.sentry/media/promo-<idioma>.mp4`."""
+    """Roda o brag e guarda o vídeo em `.sentry/video/promo-<idioma>.mp4`."""
     validar_idioma(idioma)
     claude = checar_dependencias(root, which=which, home=home, run=run)
     destino = root / PASTA_DE_MIDIA / f"promo-{idioma}.mp4"

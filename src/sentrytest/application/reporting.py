@@ -4,7 +4,6 @@ import re
 import sqlite3
 from pathlib import Path
 
-from .archive import media_path
 from .formatting import format_instant, report_slug
 
 def load_runs(root: Path):
@@ -16,13 +15,13 @@ def load_runs(root: Path):
     return [json.loads(row[0]) for row in rows]
 
 def clear_history(root: Path, keep_last: int = 0, apply: bool = False) -> dict:
-    """Poda execuções, relatórios e o pool de mídia, preservando as `keep_last`
-    execuções mais recentes.
+    """Poda execuções e relatórios, preservando as `keep_last` execuções mais recentes.
 
-    Nunca toca em `.sentry/specs/` nem em `.sentry/storage/`: spec é intenção
-    declarada e mídia arquivada é evidência curada — as duas só existem porque
-    alguém as colocou ali de propósito. O que a poda alcança é o que se acumula
-    sozinho: execuções, relatórios e `.sentry/media/`. Com `apply=False` apenas
+    Nunca toca em `.sentry/specs/`, em `.sentry/storage/` nem em `.sentry/video/`:
+    spec é intenção declarada, mídia arquivada é evidência curada e os vídeos são
+    entregas que o dev pediu — todos só existem porque alguém os colocou ali de
+    propósito. O que a poda alcança é o que se acumula sozinho: execuções e
+    relatórios. Com `apply=False` apenas
     relata o escopo — apagar é irreversível, então o padrão é mostrar antes de
     destruir.
     """
@@ -38,9 +37,6 @@ def clear_history(root: Path, keep_last: int = 0, apply: bool = False) -> dict:
     # O relatorio atual aponta para a execução mais recente: só sai quando nada é mantido.
     if not keep:
         files.extend(latest_reports(reports))
-        # O pool de midia acompanha: ele se refaz sozinho na proxima execucao
-        # e2e, e o que precisava sobreviver ja foi promovido pelo `archive`.
-        files.extend(path for path in media_path(root).rglob("*") if path.is_file())
 
     if apply:
         for path in files:

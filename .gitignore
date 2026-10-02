@@ -17,4 +17,5 @@ build/
 frontend/test-results/
 frontend/reports/
 frontend/playwright-report/
-.sentry/media/
+.sentry/video/
+brag-output/

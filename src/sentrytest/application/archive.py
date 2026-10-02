@@ -1,10 +1,9 @@
 """Arquivamento de mídia por módulo e versão.
 
-Dois diretórios com naturezas opostas. `.sentry/media/` é o pool bruto: enche
-sozinho a cada execução e2e, fica fora do Git e o `sentry clear` poda. Já
-`.sentry/storage/<modulo>-<versao>/` é a seleção curada: só existe porque alguém
-rodou `sentry archive` de propósito, é versionada, e nem o `clear` a toca --
-deletar é decisão manual de quem arquivou.
+`.sentry/storage/<modulo>-<versao>/` só existe porque alguém rodou `sentry archive`
+de propósito: o comando executa a suíte e2e na hora e leva para lá a evidência que o
+Playwright acabou de gravar. É versionada, e nem o `clear` a toca -- deletar é
+decisão manual de quem arquivou. Não há pool intermediário dentro de `.sentry/`.
 
 O arquivo precisa se sustentar sozinho: o relatório da execução é substituído na
 próxima e a cópia por run é podada, então apontar para eles daria link quebrado
@@ -23,7 +22,6 @@ from pathlib import Path, PureWindowsPath
 from .formatting import format_instant
 
 PRIMEIRA_VERSAO = "1.0.0"
-MEDIA_DIR = ("media",)
 STORAGE_DIR = ("storage",)
 
 LOGIN_ENV_USUARIO = "SENTRY_LOGIN_USUARIO"
@@ -32,38 +30,8 @@ DEFAULT_BASE_URL = "http://localhost:5173"
 CAPTURE_SCRIPT = ("frontend", "scripts", "sentry-capture.mjs")
 
 
-def media_path(root: Path) -> Path:
-    return root.joinpath(".sentry", *MEDIA_DIR)
-
-
 def storage_path(root: Path) -> Path:
     return root.joinpath(".sentry", *STORAGE_DIR)
-
-
-def collect_media(root: Path, output_dir: str | None) -> tuple[Path, ...]:
-    """Recolhe para `.sentry/media/` o que a suíte e2e acabou de gravar.
-
-    O Playwright limpa o próprio diretório de saída a cada execução; sem copiar,
-    a evidência de uma execução some na seguinte e não haveria o que promover.
-    Sem `output_dir` declarado não há de onde recolher, e isso não é erro: o
-    projeto simplesmente não pediu arquivamento de mídia.
-    """
-    if not output_dir:
-        return ()
-    origem = root / output_dir
-    if not origem.is_dir():
-        return ()
-    destino = media_path(root)
-    destino.mkdir(parents=True, exist_ok=True)
-    recolhidos = []
-    for arquivo in sorted(origem.rglob("*")):
-        if not arquivo.is_file():
-            continue
-        alvo = destino / arquivo.relative_to(origem)
-        alvo.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(arquivo, alvo)
-        recolhidos.append(alvo)
-    return tuple(recolhidos)
 
 
 def declared_modules(config: dict) -> dict[str, list[str]]:
@@ -394,13 +362,16 @@ def render_readme(module: str, version: str, payload: dict, specs: list[str],
 
 
 def write_archive(root: Path, module: str, version: str, payload: dict, specs: list[str], *,
-                  incluir_imagem: bool = True, incluir_video: bool = True) -> Path:
+                  incluir_imagem: bool = True, incluir_video: bool = True,
+                  output_dir: str | None = None) -> Path:
     """Escreve `.sentry/storage/<modulo>-<versao>/` com a mídia e o README.
 
     Sobrescreve a pasta quando a versão já existe: rearquivar é dizer que a
     evidência de agora é a que vale para aquela versão. `incluir_imagem` e
     `incluir_video` vêm de `--image`/`--video` de `sentry archive`: sem nenhuma
-    das duas, tudo que existir é promovido.
+    das duas, tudo que existir é promovido. `output_dir` é a pasta de saída do
+    Playwright declarada em `[e2e]`: é onde a evidência é buscada quando o caminho
+    do JUnit não resolve a partir da raiz do projeto.
     """
     destino = storage_path(root) / f"{module}-{version}"
     if destino.exists():
@@ -415,11 +386,14 @@ def write_archive(root: Path, module: str, version: str, payload: dict, specs: l
                 # O anexo do JUnit vem relativo a pasta do proprio junit.xml (ex.:
                 # `..\test-results\<pasta-do-teste>\arquivo.png`), nao a raiz do
                 # projeto -- so' o nome do arquivo colide entre testes diferentes
-                # (varios "test-finished-1.png"), entao o pool local precisa ser
-                # buscado pela dupla <pasta-do-teste>/<arquivo>, nao so' o nome.
+                # (varios "test-finished-1.png"), entao a pasta de saida do Playwright
+                # precisa ser buscada pela dupla <pasta-do-teste>/<arquivo>, nao so'
+                # o nome.
+                if not output_dir:
+                    continue
                 partes = _partes_junit(caminho)
-                origem = media_path(root).joinpath(*partes[-2:]) if len(partes) >= 2 \
-                    else media_path(root) / partes[-1]
+                saida = root / output_dir
+                origem = saida.joinpath(*partes[-2:]) if len(partes) >= 2 else saida / partes[-1]
             if not origem.is_file():
                 continue
             nome_unico = _media_nome(caminho)
