@@ -20,3 +20,4 @@ frontend/playwright-report/
 # os videos de apresentacao do Sentry ficam no Git: o init respeita a negacao
 !.sentry/video/
 brag-output/
+demo/demo.db

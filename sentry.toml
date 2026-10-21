@@ -23,11 +23,12 @@ output_dir = "frontend/test-results"
 [analysis]
 run_tests_by_default = false
 timeout_seconds = 300
+# demo/ e' o app de exemplo do `sentry manual`: alvo de teste, nao codigo do Sentry.
 # frontend/ segue fora do escopo de cobertura de linha: nenhum coverage.py, lcov
 # ou Cobertura mede TSX, e tirar daqui faria todo diff de frontend acusar
 # `coverage-missing` falso -- a mesma armadilha do G11, um nivel acima. A camada
 # frontend entra pela suite [e2e] e pela dimensao de interface, nunca por linha.
-exclude = ["frontend/"]
+exclude = ["frontend/", "demo/"]
 
 [policy.thresholds]
 changed_coverage = 90
