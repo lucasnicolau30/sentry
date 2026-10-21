@@ -33,7 +33,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e .
-          python -m pip install pytest coverage playwright
+          python -m pip install pytest coverage playwright pypdf
 
       - name: Chromium do Playwright
         # Os testes do `sentry training` gravam de verdade, num navegador: sem o pacote e o
@@ -84,7 +84,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e .
-          python -m pip install pytest coverage playwright
+          python -m pip install pytest coverage playwright pypdf
           python -m playwright install --with-deps chromium
 
       - uses: actions/setup-node@v4

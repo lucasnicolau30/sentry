@@ -855,7 +855,8 @@ const firstStepsByLang: Record<"pt" | "en", Card[]> = {
           <span className="text-[var(--text-h)]">history</span>,{" "}
           <span className="text-[var(--text-h)]">archive</span>,{" "}
           <span className="text-[var(--text-h)]">promo</span>,{" "}
-          <span className="text-[var(--text-h)]">training</span> e{" "}
+          <span className="text-[var(--text-h)]">training</span>,{" "}
+          <span className="text-[var(--text-h)]">manual</span> e{" "}
           <span className="text-[var(--text-h)]">clear</span>.
         </>
       ),
@@ -905,7 +906,8 @@ const firstStepsByLang: Record<"pt" | "en", Card[]> = {
           <span className="text-[var(--text-h)]">history</span>,{" "}
           <span className="text-[var(--text-h)]">archive</span>,{" "}
           <span className="text-[var(--text-h)]">promo</span>,{" "}
-          <span className="text-[var(--text-h)]">training</span> and{" "}
+          <span className="text-[var(--text-h)]">training</span>,{" "}
+          <span className="text-[var(--text-h)]">manual</span> and{" "}
           <span className="text-[var(--text-h)]">clear</span>.
         </>
       ),
@@ -2413,6 +2415,30 @@ function VideosContent({
                 </>
               )}
             </p>
+            <p className={paragraph}>
+              {lang === "pt" ? (
+                <>
+                  Quer o fluxo só por escrito, sem vídeo? O mesmo roteiro gera
+                  um manual em PDF com <W>sentry manual</W>: sem imagem, sem
+                  agente e sem gastar token. O PDF abre com o título MANUAL DO
+                  USUÁRIO e traz cada passo num cartão numerado, com cabeçalho
+                  e rodapé em toda página. O nome, a cor e a logo do app são
+                  lidos da página, então o app precisa estar no ar. Sai em{" "}
+                  <W>.sentry/manual/&lt;módulo&gt;-&lt;idioma&gt;.pdf</W>.
+                </>
+              ) : (
+                <>
+                  Want the flow in writing only, with no video? The same script
+                  produces a PDF manual with <W>sentry manual</W>: no images,
+                  no agent and no tokens spent. The PDF opens with the title
+                  USER MANUAL and shows each step on a numbered card, with a
+                  header and a footer on every page. The app's name, color and
+                  logo are read from the page, so the app must be running.
+                  Saved to{" "}
+                  <W>.sentry/manual/&lt;module&gt;-&lt;lang&gt;.pdf</W>.
+                </>
+              )}
+            </p>
             <div className="mb-4">
               <CodeBlock
                 lines={[
@@ -3107,6 +3133,7 @@ const ALL_COMMANDS = [
   "archive",
   "promo",
   "training",
+  "manual",
   "clear",
 ];
 
@@ -3152,7 +3179,7 @@ function CommandsContent({
             <p className="mt-6 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               {lang === "pt" ? (
                 <>
-                  Catorze comandos, um ciclo só: declarar intenção, validar
+                  Quinze comandos, um ciclo só: declarar intenção, validar
                   estrutura, rodar com cobertura, revisar antes de commitar,
                   reler o veredito, comparar histórico e arquivar evidência
                   versionada. Cada um tem página própria abaixo, com sintaxe
@@ -3160,7 +3187,7 @@ function CommandsContent({
                 </>
               ) : (
                 <>
-                  Fourteen commands, one single cycle: declare intent, validate
+                  Fifteen commands, one single cycle: declare intent, validate
                   structure, run with coverage, review before committing, read
                   back the verdict, compare history and archive versioned
                   evidence. Each one gets its own entry below, with full syntax

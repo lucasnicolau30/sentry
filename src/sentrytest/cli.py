@@ -29,10 +29,11 @@ from .application.archive import (
     write_archive, write_archive_rotas)
 from .application.formatting import format_instant
 from .application.promo import IDIOMA_PADRAO, IDIOMAS, agente_declarado, gerar_promo
+from .application.manual import gerar_manual
 from .application.training import gerar_training, validar_roteiros_declarados
 from .application.reporting import clear_history, load_runs, staleness, write_reports, compare
 
-_COMMAND_NAMES = ("init", "new", "check", "run", "review", "watch", "status", "context", "report", "history", "clear", "archive", "promo", "training")
+_COMMAND_NAMES = ("init", "new", "check", "run", "review", "watch", "status", "context", "report", "history", "clear", "archive", "promo", "training", "manual")
 _CHOICES_LINE = re.compile(r'^\{[\w,]+\}$')
 # Generico -- qualquer `-x`/`--algo`, nao so' `-h`/`--help`/`--version` como antes:
 # cada subcomando tem seu proprio conjunto de flags (`--prompt`, `--spec`, `--base`...)
@@ -380,6 +381,11 @@ def build_parser():
     training.add_argument("module", help="nome do módulo; o roteiro é .sentry/training/<modulo>.json")
     training.add_argument("--lang", default=IDIOMA_PADRAO, metavar="IDIOMA",
                           help=f"idioma do vídeo: {', '.join(IDIOMAS)} (padrão: {IDIOMA_PADRAO}); en roda o brag de novo em inglês")
+
+    manual = sub.add_parser("manual", help="gera o manual em PDF de um módulo a partir do roteiro, só texto, sem vídeo e sem agente")
+    manual.add_argument("module", help="nome do módulo; o roteiro é .sentry/training/<modulo>.json")
+    manual.add_argument("--lang", default=IDIOMA_PADRAO, metavar="IDIOMA",
+                        help=f"idioma dos títulos do manual: {', '.join(IDIOMAS)} (padrão: {IDIOMA_PADRAO}); as falas saem como no roteiro")
     return parser
 
 def instructions_payload():
@@ -644,6 +650,18 @@ def _training(root: Path, args, *, parser: argparse.ArgumentParser | None = None
           f"{destino.relative_to(root).as_posix()}")
     return EXIT_OK
 
+def _manual(root: Path, args, *, parser: argparse.ArgumentParser | None = None) -> int:
+    """Grava o manual em PDF do módulo: só texto, sem agente."""
+    try:
+        with Spinner("Gerando o manual"):
+            destino = gerar_manual(root, args.module, args.lang)
+    except ValueError as error:
+        _print_app_error(str(error), parser=parser)
+        return EXIT_INFRA
+    print(f"{paint(VERDICT_SYMBOL['aprovado'], 'green')} manual de {args.module} ({args.lang}) em "
+          f"{destino.relative_to(root).as_posix()}")
+    return EXIT_OK
+
 def _archive_rotas(root: Path, args, config: dict, modulo_config: dict, *,
                    parser: argparse.ArgumentParser | None = None) -> int:
     """Modo por rota de `archive`: fotografa cada rota declarada em
@@ -882,6 +900,8 @@ def main(argv=None):
         return _promo(root, args, parser=parser._subcommands.choices["promo"])
     elif args.command == "training":
         return _training(root, args, parser=parser._subcommands.choices["training"])
+    elif args.command == "manual":
+        return _manual(root, args, parser=parser._subcommands.choices["manual"])
     elif args.command == "status":
         # Sempre `--spec all`, sempre a suite completa, nunca o cache: e' a medicao
         # autoritativa do projeto inteiro, nao o loop rapido que `run`/`watch` sao.

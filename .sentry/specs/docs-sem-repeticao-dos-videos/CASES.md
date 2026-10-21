@@ -34,7 +34,7 @@ Decisões do Lucas: a aba "Vídeos" é a fonte; os READMEs, o `AGENT-SENTRY.md` 
 - **Então:** cada entrada diz o que o comando faz e onde grava o vídeo, mantém que gasta tokens, só quando o usuário pede, e (no training) que não certifica, e remete à aba "Vídeos" em vez de repetir requisitos e como alterar o vídeo
 - **Entrada:** `texto_da_aba = entradas de promo e training, pt e en`
 
-## Caso: a aba de comandos conta os catorze comandos da cli
+## Caso: a aba de comandos conta os quinze comandos da cli
 
 - **Requisito:** "esse errinho de 12 para 14" — o texto de abertura dizia doze comandos
 - **Camada:** frontend
@@ -43,7 +43,7 @@ Decisões do Lucas: a aba "Vídeos" é a fonte; os READMEs, o `AGENT-SENTRY.md` 
 - **Classe:** texto_da_aba/valido
 - **Dado:** o texto de abertura da aba "Comandos e Habilidades" e a lista de comandos da página
 - **Quando:** o texto é lido em português e em inglês
-- **Então:** diz "Catorze comandos" (EN: "Fourteen commands"), o mesmo número de comandos da lista da página e da CLI
+- **Então:** diz "Quinze comandos" (EN: "Fifteen commands"), o mesmo número de comandos da lista da página e da CLI
 - **Entrada:** `texto_da_aba = abertura da aba de comandos, pt e en`
 
 ## Caso: o card dos videos em comece aqui remete a aba de videos

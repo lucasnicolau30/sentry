@@ -236,6 +236,17 @@ genérico: roda, mas não mede.
   novo: ele pede ao agente que ajuste o roteiro (`.sentry/training/<modulo>.json`)
   até chegar no resultado desejado. O training não certifica nada: só grava e não dá
   veredito; só o veredito certifica.
+- `sentry manual <modulo> [--lang pt|en]` — gera o manual em PDF de um módulo, só texto: sem
+  vídeo, sem imagem de tela e sem agente (não gasta token, não precisa de `ffmpeg`). Usa o mesmo
+  roteiro do `training` e grava `.sentry/manual/<modulo>-<idioma>.pdf` com `fpdf2`. Abre com o título
+  grande "MANUAL DO USUÁRIO" centralizado numa faixa na cor do app (com a logo como marca d'água) e segue com o "Passo a passo": cada passo é um
+  cartão numa linha do tempo (selo numerado, título e fala). Toda página tem cabeçalho (logo e nome
+  do app) e rodapé (página e nome do app). Nome, cor e logo vêm da página de `base`, lida no
+  Playwright: nome (`application-name`, `og:site_name` ou `<title>`), cor (`theme-color` ou o fundo do
+  primeiro botão colorido) e logo (o ícone, só PNG ou JPEG); por isso o app de `base` precisa estar
+  no ar. O fluxo do roteiro não é executado. Para com erro claro e código 3 se o nome do módulo for
+  inseguro, o roteiro faltar ou for inválido, o idioma for desconhecido ou o app não responder.
+  `--lang en` traduz só os textos fixos. Para alterar o manual, peça ao agente que ajuste o roteiro.
 
 ## Limites
 

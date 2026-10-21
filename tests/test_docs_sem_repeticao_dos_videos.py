@@ -57,15 +57,15 @@ def test_as_entradas_de_promo_e_training_em_comandos_sao_curtas_e_remetem_a_aba_
     assert "só o veredito certifica" in pt_training and "only the verdict certifies" in en_training
 
 
-# cenario: a aba de comandos conta os catorze comandos da cli
-def test_a_aba_de_comandos_conta_os_catorze_comandos_da_cli():
+# cenario: a aba de comandos conta os quinze comandos da cli
+def test_a_aba_de_comandos_conta_os_quinze_comandos_da_cli():
     pagina = _pagina()
     lista = pagina[pagina.index("const ALL_COMMANDS = ["):]
     lista = re.findall(r'"(\w+)",', lista[:lista.index("];")])
-    assert len(lista) == 14
-    assert "Catorze comandos, um ciclo só:" in pagina
-    assert "Fourteen commands, one single cycle:" in pagina
-    assert "Doze comandos" not in pagina and "Twelve commands" not in pagina
+    assert len(lista) == 15
+    assert "Quinze comandos, um ciclo só:" in pagina
+    assert "Fifteen commands, one single cycle:" in pagina
+    assert "Catorze comandos" not in pagina and "Fourteen commands" not in pagina
     # o mesmo conjunto de comandos da própria CLI
     assert set(lista) == set(cli.build_parser()._subparsers._group_actions[0].choices)
 
