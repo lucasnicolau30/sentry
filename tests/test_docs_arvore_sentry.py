@@ -45,7 +45,7 @@ def test_secao_de_versionamento_diz_o_que_vai_para_o_git():
     # sem as marcas JSX, o texto corrido de cada idioma
     texto = re.sub(r"<[^>]+>|\{\" \"\}", " ", trecho)
     texto = " ".join(texto.split())
-    assert "Os roteiros de vídeo em .sentry/training/ também são versionados" in texto
+    assert "Os roteiros de vídeo em .sentry/training/ e as seções do manual em .sentry/manual/secoes/ também ficam fora do Git por padrão" in texto
     # os vídeos: uma frase aqui; o detalhe (como versionar, brag-output/, clear) mora na aba Vídeos
     assert re.search(r"Os vídeos em .sentry/video/ ?ficam fora do Git por padrão; para versionar, veja a aba Vídeos", texto)
     assert re.search(r"The videos in .sentry/video/ ?stay out of Git by default; to version them, see the Videos tab", texto)

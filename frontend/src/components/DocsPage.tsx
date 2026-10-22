@@ -1255,13 +1255,17 @@ function SetupContent({
             <CodeBlock lines={["python --version", "Python 3.11.0"]} />
             <p className="mb-3 mt-4 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               {t(
-                "Se a versão for menor que 3.11 ou o comando não existir, instale uma versão atual antes de continuar. Um ambiente virtual isolado por projeto evita conflito entre dependências de projetos diferentes; não é obrigatório, mas é uma boa prática:",
-                "If the version is below 3.11 or the command doesn't exist, install a current version before continuing. A per-project virtual environment avoids dependency conflicts between different projects; not required, but a good practice:",
+                "Se a versão for menor que 3.11 ou o comando não existir, instale uma versão atual antes de continuar. Recomendamos usar uma venv (ambiente virtual) em cada projeto: ela isola as dependências do Sentry das do resto da máquina e evita conflito entre projetos. Crie e ative a sua:",
+                "If the version is below 3.11 or the command doesn't exist, install a current version before continuing. We recommend using a venv (virtual environment) for each project: it keeps Sentry's dependencies apart from the rest of your machine and avoids conflicts between projects. Create and activate yours:",
               )}
             </p>
-            <CodeBlock
-              lines={["python -m venv .venv", "source .venv/bin/activate"]}
-            />
+            <CodeBlock lines={["python -m venv .venv"]} />
+            <div className="mt-3">
+              <CodeBlock lines={["source .venv/bin/activate", "macOS / Linux"]} />
+            </div>
+            <div className="mt-3">
+              <CodeBlock lines={[".venv\\Scripts\\activate", "Windows"]} />
+            </div>
           </Reveal>
 
           <Reveal>
@@ -1273,8 +1277,8 @@ function SetupContent({
             </h2>
             <p className="mb-3 text-justify text-lg leading-relaxed text-[var(--text)]/80">
               {t(
-                "Com o ambiente pronto, instale via pip e confirme a versão do pacote:",
-                "With the environment ready, install via pip and confirm the package version:",
+                "Com a venv ativa, instale via pip e confirme a versão do pacote:",
+                "With the venv active, install via pip and confirm the package version:",
               )}
             </p>
             <CodeBlock lines={["pip install sentry-test"]} />
@@ -1710,7 +1714,13 @@ function SetupContent({
                   de spec, em vez de medir.
                   Os roteiros de vídeo em{" "}
                   <span className="text-[var(--text-h)]">.sentry/training/</span>{" "}
-                  também são versionados, como intenção declarada. Os vídeos em{" "}
+                  e as seções do manual em{" "}
+                  <span className="text-[var(--text-h)]">.sentry/manual/secoes/</span>{" "}
+                  também ficam fora do Git por padrão, porque são escritos à mão e servem a quem os escreveu;
+                  quem quiser versioná-los escreve{" "}
+                  <span className="text-[var(--text-h)]">!.sentry/training/</span> ou{" "}
+                  <span className="text-[var(--text-h)]">!.sentry/manual/secoes/</span>{" "}
+                  no .gitignore. Os vídeos em{" "}
                   <span className="text-[var(--text-h)]">.sentry/video/</span> ficam fora do Git por
                   padrão; para versionar, veja a aba Vídeos.
                 </>
@@ -1735,7 +1745,13 @@ function SetupContent({
                   inconclusive for lack of a spec instead of measuring.
                   Video scripts in{" "}
                   <span className="text-[var(--text-h)]">.sentry/training/</span>{" "}
-                  are versioned too, as declared intent. The videos in{" "}
+                  and manual sections in{" "}
+                  <span className="text-[var(--text-h)]">.sentry/manual/secoes/</span>{" "}
+                  also stay out of Git by default, because they are written by hand and serve whoever wrote them;
+                  to version them, write{" "}
+                  <span className="text-[var(--text-h)]">!.sentry/training/</span> or{" "}
+                  <span className="text-[var(--text-h)]">!.sentry/manual/secoes/</span>{" "}
+                  in .gitignore. The videos in{" "}
                   <span className="text-[var(--text-h)]">.sentry/video/</span> stay out of Git by
                   default; to version them, see the Videos tab.
                 </>
@@ -2418,24 +2434,30 @@ function VideosContent({
             <p className={paragraph}>
               {lang === "pt" ? (
                 <>
-                  Quer o fluxo só por escrito, sem vídeo? O mesmo roteiro gera
-                  um manual em PDF com <W>sentry manual</W>: sem imagem, sem
-                  agente e sem gastar token. O PDF abre com o título MANUAL DO
-                  USUÁRIO e traz cada passo num cartão numerado, com cabeçalho
-                  e rodapé em toda página. O nome, a cor e a logo do app são
-                  lidos da página, então o app precisa estar no ar. Sai em{" "}
-                  <W>.sentry/manual/&lt;módulo&gt;-&lt;idioma&gt;.pdf</W>.
+                  Quer o fluxo só por escrito, sem vídeo? O mesmo roteiro vira
+                  uma seção do manual do usuário com <W>sentry manual</W>:
+                  sem imagem, sem agente e sem gastar token. O manual é um PDF
+                  só, com uma seção por módulo, e a seção é um Markdown em{" "}
+                  <W>.sentry/manual/secoes/&lt;módulo&gt;.md</W> que o dev vai
+                  atualizando: o Sentry só reescreve os passos, e a introdução,
+                  os avisos e os cartões ficam como foram escritos. O nome, a
+                  cor e a logo do app são lidos da página, então o app precisa
+                  estar no ar. Sai em{" "}
+                  <W>.sentry/manual/manual-&lt;idioma&gt;.pdf</W>.
                 </>
               ) : (
                 <>
                   Want the flow in writing only, with no video? The same script
-                  produces a PDF manual with <W>sentry manual</W>: no images,
-                  no agent and no tokens spent. The PDF opens with the title
-                  USER MANUAL and shows each step on a numbered card, with a
-                  header and a footer on every page. The app's name, color and
-                  logo are read from the page, so the app must be running.
-                  Saved to{" "}
-                  <W>.sentry/manual/&lt;module&gt;-&lt;lang&gt;.pdf</W>.
+                  becomes a section of the user manual with{" "}
+                  <W>sentry manual</W>: no images, no agent and no tokens
+                  spent. The manual is a single PDF with one section per
+                  module, and the section is a Markdown file in{" "}
+                  <W>.sentry/manual/secoes/&lt;module&gt;.md</W> that the dev
+                  keeps updating: the Sentry only rewrites the steps, and the
+                  introduction, notices and cards stay as written. The app's
+                  name, color and logo are read from the page, so the app must
+                  be running. Saved to{" "}
+                  <W>.sentry/manual/manual-&lt;lang&gt;.pdf</W>.
                 </>
               )}
             </p>
@@ -2570,16 +2592,18 @@ function VideosContent({
                   Quem quiser versionar os vídeos escreve{" "}
                   <W>!.sentry/video/</W> no <W>.gitignore</W>, e o <W>init</W>{" "}
                   respeita essa escolha. O roteiro do <W>training</W> em{" "}
-                  <W>.sentry/training/</W> já é versionado. O{" "}
-                  <W>sentry clear</W> não toca na pasta de vídeos.
+                  <W>.sentry/training/</W> também fica fora do Git por padrão, e
+                  o mesmo vale para ele. O <W>sentry clear</W> não toca na pasta
+                  de vídeos.
                 </>
               ) : (
                 <>
                   Whoever wants to version the videos writes{" "}
                   <W>!.sentry/video/</W> in <W>.gitignore</W>, and <W>init</W>{" "}
                   respects that choice. The <W>training</W> script in{" "}
-                  <W>.sentry/training/</W> is already versioned.{" "}
-                  <W>sentry clear</W> doesn't touch the videos folder.
+                  <W>.sentry/training/</W> also stays out of Git by default, and
+                  the same goes for it. <W>sentry clear</W> doesn't touch the
+                  videos folder.
                 </>
               )}
             </p>

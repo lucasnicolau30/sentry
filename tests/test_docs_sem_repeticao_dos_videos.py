@@ -35,7 +35,7 @@ def _entradas(comando: str) -> tuple[str, str]:
 # cenario: o setup diz em poucas palavras onde ficam os videos e remete a aba de videos
 def test_o_setup_diz_em_poucas_palavras_onde_ficam_os_videos_e_remete_a_aba_de_videos():
     texto = _versionamento()
-    assert "Os roteiros de vídeo em .sentry/training/ também são versionados" in texto
+    assert "Os roteiros de vídeo em .sentry/training/ e as seções do manual em .sentry/manual/secoes/ também ficam fora do Git por padrão" in texto
     assert "para versionar, veja a aba Vídeos" in texto
     assert "to version them, see the Videos tab" in texto
     # o detalhe mora na aba Vídeos: não se repete aqui

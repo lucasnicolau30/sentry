@@ -75,8 +75,14 @@ export function Hero() {
             }}
           />
           <Particles count={30} />
-          <div className="relative z-10 -translate-y-4">
+          <div className="relative z-10 flex -translate-y-4 flex-col items-center gap-3">
             <InstallCommand />
+            <p className="px-6 text-center text-sm text-[var(--text)]/60">
+              {t(
+                "Recomendado: instale dentro de uma venv (python -m venv .venv).",
+                "Recommended: install inside a venv (python -m venv .venv).",
+              )}
+            </p>
           </div>
         </div>
       </div>
