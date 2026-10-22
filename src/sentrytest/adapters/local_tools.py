@@ -177,7 +177,7 @@ def _is_untouched_init_file(root: Path, name: str, added: list[str]) -> bool:
     usuario os arquivos que o `init` acabara de escrever. Quem decide e' o
     conteudo, nao o nome.
     """
-    from ..init_project import GITIGNORE_ENTRIES, OBSOLETE_GITIGNORE_ENTRIES, default_config
+    from ..init_project import GITIGNORE_COMMENTS, GITIGNORE_ENTRIES, OBSOLETE_GITIGNORE_ENTRIES, default_config
 
     try:
         if name == "sentry.toml":
@@ -187,7 +187,7 @@ def _is_untouched_init_file(root: Path, name: str, added: list[str]) -> bool:
             # Aqui a comparacao e' por linha, nao pelo arquivo: o `init` acrescenta
             # entradas a um arquivo que ja era do usuario. Excluir do diff so
             # quando nenhuma linha alterada e' dele.
-            known = set(GITIGNORE_ENTRIES) | OBSOLETE_GITIGNORE_ENTRIES
+            known = set(GITIGNORE_ENTRIES) | GITIGNORE_COMMENTS | OBSOLETE_GITIGNORE_ENTRIES
             # Arquivo novo e ainda nao rastreado nao tem hunk no diff; ai o
             # conteudo inteiro e' a alteracao.
             lines = added or (root / name).read_text(encoding="utf-8").splitlines()

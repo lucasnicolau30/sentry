@@ -1,12 +1,16 @@
-.draun/
+# Ferramentas de agente: pastas de trabalho locais
 .claude/
 
+# Python: bytecode, pacote instalado em modo editavel, build e cobertura
 __pycache__/
 *.py[cod]
 *.egg-info/
 dist/
 build/
 .coverage
+
+# Estado local do Sentry: banco, execucoes, planos de teste e relatorios.
+# Do relatorio, so o latest-*.md fica no Git.
 .sentry/sentry.db
 .sentry/runs/
 .sentry/test-plans/
@@ -17,7 +21,11 @@ build/
 frontend/test-results/
 frontend/reports/
 frontend/playwright-report/
+
 # os videos de apresentacao do Sentry ficam no Git: o init respeita a negacao
 !.sentry/video/
 brag-output/
-demo/demo.db
+
+# roteiros do training e secoes escritas a mao do manual: do projeto que usa o Sentry, nao precisam ir ao Git
+.sentry/training/
+.sentry/manual/secoes/

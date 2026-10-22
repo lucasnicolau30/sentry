@@ -38,9 +38,23 @@ def default_config(project_name: str) -> str:
 # dev. O Sentry leva o conteudo dela para `.sentry/video/` depois de cada `promo` e
 # `training`; quem precisar versionar os videos escreve `!.sentry/video/` no
 # .gitignore e o init respeita.
-GITIGNORE_ENTRIES = ('.sentry/sentry.db', '.sentry/reports/*',
-                     '!.sentry/reports/latest-*.md', '.sentry/runs/', '.sentry/test-plans/',
-                     '.sentry/video/', 'brag-output/')
+# Os roteiros do `training` e as secoes do manual sao escritos a mao e servem a quem os escreveu:
+# ficam so na maquina. Quem quiser versiona-los escreve `!.sentry/training/` ou
+# `!.sentry/manual/secoes/` e o init respeita, como com os videos.
+# Cada bloco vai para o .gitignore com o comentario que o explica, separado dos demais por uma
+# linha em branco; um bloco que ja esta la, todo ou em parte, so recebe as linhas que faltam.
+GITIGNORE_BLOCKS = (
+    ('# Estado local do Sentry: banco, execucoes e planos de teste; do relatorio, so o latest-*.md fica no Git',
+     ('.sentry/sentry.db', '.sentry/reports/*', '!.sentry/reports/latest-*.md',
+      '.sentry/runs/', '.sentry/test-plans/')),
+    ('# Videos do promo e do training, e a pasta de trabalho do brag',
+     ('.sentry/video/', 'brag-output/')),
+    ('# Roteiros do training e secoes do manual: escritos a mao, nao precisam ir ao Git '
+     '(para versionar, escreva !.sentry/training/ ou !.sentry/manual/secoes/)',
+     ('.sentry/training/', '.sentry/manual/secoes/')),
+)
+GITIGNORE_ENTRIES = tuple(entry for _, entries in GITIGNORE_BLOCKS for entry in entries)
+GITIGNORE_COMMENTS = frozenset(comment for comment, _ in GITIGNORE_BLOCKS)
 # Removidas do .gitignore na proxima inicializacao. A comparacao e' por linha
 # inteira: `.sentry/specs/rascunhos/`, escrita pelo usuario, nao casa com
 # `.sentry/specs/` e permanece onde esta. `.sentry/media/` era o pool intermediario
@@ -120,9 +134,15 @@ def initialize_project(root: Path, skills_dirs: list[str] | None = None) -> list
     # Quem versiona a pasta de proposito (ex.: os videos de apresentacao do proprio Sentry)
     # escreve a negacao (`!.sentry/video/`): o init respeita a escolha em vez de
     # ignorar de novo uma pasta que o dev quer no Git.
-    missing=[entry for entry in GITIGNORE_ENTRIES if entry not in filtered and f'!{entry}' not in filtered]
-    if missing or filtered!=existing:
-        gitignore.write_text('\n'.join(filtered+missing)+'\n',encoding='utf-8'); created.append('.gitignore')
+    lines=list(filtered)
+    for comment, entries in GITIGNORE_BLOCKS:
+        missing=[entry for entry in entries if entry not in filtered and f'!{entry}' not in filtered]
+        if not missing: continue
+        if lines and lines[-1].strip(): lines.append('')
+        if len(missing)==len(entries) and comment not in lines: lines.append(comment)
+        lines.extend(missing)
+    if lines!=existing:
+        gitignore.write_text('\n'.join(lines)+'\n',encoding='utf-8'); created.append('.gitignore')
     created += install_skills(root, pastas)
     created += install_agent_guide(root)
     return created
