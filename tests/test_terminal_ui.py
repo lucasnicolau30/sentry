@@ -675,7 +675,7 @@ def test_detalhe_do_ambiente_mostra_a_versao_real_de_cada_dependencia(tmp_path: 
 
 # cenario: linha de git aparece com branch e status quando ha repositorio
 def test_linha_de_git_aparece_com_branch_e_status_quando_ha_repositorio(tmp_path: Path, monkeypatch, capsys):
-    """`init` recem-rodado sempre mostra `sujo` -- ele proprio acabou de
+    """`init` recem-rodado sempre mostra `com alteracoes` -- ele proprio acabou de
     escrever `.sentry/specs`, `sentry.toml`, `AGENT-SENTRY.md`, que ninguem
     commitou ainda. A arvore so fica `limpo` depois que esses artefatos
     entram no commit; uma segunda chamada (idempotente, sem nada novo)
@@ -690,13 +690,26 @@ def test_linha_de_git_aparece_com_branch_e_status_quando_ha_repositorio(tmp_path
     cli.main(["init"])
     saida = capsys.readouterr().out
     assert "git repo" in saida
-    assert "sujo" in saida
+    assert "com alterações" in saida and "sujo" not in saida and "✗ git repo" not in saida
 
     _git(tmp_path, "add", "-A")
     _git(tmp_path, "commit", "-qm", "sentry scaffolding")
     cli.main(["init"])
     saida = capsys.readouterr().out
     assert "limpo" in saida
+
+
+# cenario: linha de git com alteracoes sai neutra e nao como erro
+def test_linha_de_git_com_alteracoes_sai_neutra_e_nao_como_erro():
+    from sentrytest.adapters.terminal import render_git_row
+
+    sujo = render_git_row("dev", False, enabled=True)
+    assert "git repo branch dev com alterações" in sujo
+    assert "✗" not in sujo and "\x1b[31m" not in sujo               # nem o símbolo nem o vermelho de falha
+    assert "\x1b[90m" in sujo                                         # cinza, de informação
+    limpo = render_git_row("dev", True, enabled=True)
+    assert "✓ git repo branch dev limpo" in limpo and "\x1b[31m" not in limpo
+    assert render_git_row("dev", False, enabled=False) == "○ git repo branch dev com alterações"      # sem cor, só o texto
 
 
 # cenario: linha de git some fora de repositorio Git

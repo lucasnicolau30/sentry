@@ -467,8 +467,8 @@ perde a entrada `check`, já sem uso.
 - **conteudo_do_dashboard**: texto — um dos elementos que `render_dashboard`
   precisa trazer (testes, cobertura, achados por severidade).
 - **status_do_git**: texto — o que a linha `git repo` da tabela de
-  dependências mostra: `limpo` (árvore sem alterações), `sujo` (árvore com
-  alterações) ou ausente (fora de repositório Git).
+  dependências mostra: `limpo` (árvore sem alterações), `com alterações`
+  (árvore com alterações, em cinza, sem `✗`: não é erro) ou ausente (fora de repositório Git).
 - **delta_do_historico**: texto — se um delta de `sentry history` favorece o
   projeto (verde), desfavorece (vermelho) ou é neutro (zero/indisponível,
   sem cor).
@@ -915,6 +915,18 @@ perde a entrada `check`, já sem uso.
 - **Quando:** a saída é impressa
 - **Então:** a linha `git repo` aparece com o nome do branch e `limpo`
 - **Entrada:** `status_do_git = "limpo"`
+
+## Caso: linha de git com alteracoes sai neutra e nao como erro
+
+- **Requisito:** "nao quero que apareça como um erro": o `init` acabou de criar arquivos que ninguém commitou, então a árvore com alterações é o estado normal logo depois dele
+- **Camada:** integração
+- **Tipo:** unitário
+- **Prioridade:** média
+- **Classe:** status_do_git/valido
+- **Dado:** `sentry init` dentro de um repositório Git com a árvore com alterações
+- **Quando:** a linha `git repo` é impressa
+- **Então:** ela diz o branch e `com alterações`, em cinza, com `○`; não usa o `✗` nem o vermelho de falha; sem cor, sai só o texto
+- **Entrada:** `status_do_git = "com alterações"`
 
 ## Caso: linha de git some fora de repositorio Git
 

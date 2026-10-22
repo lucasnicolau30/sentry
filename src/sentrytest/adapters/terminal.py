@@ -289,6 +289,15 @@ def render_dependency_row(name: str, version: str | None, status_label: str, ok:
     return paint(text, color, enabled=enabled)
 
 
+def render_git_row(branch: str, clean: bool, *, enabled: bool | None = None) -> str:
+    """A linha `git repo` do `init`: informa o branch e se a árvore tem alterações. Árvore com
+    alterações não é erro -- o próprio `init` acabou de criar arquivos que ninguém commitou --,
+    então ela sai neutra (`○` cinza, "com alterações"), nunca com o `✗` vermelho de uma falha."""
+    if clean:
+        return paint(f"{VERDICT_SYMBOL['aprovado']} git repo branch {branch} limpo", "green", enabled=enabled)
+    return paint(f"{VERDICT_SYMBOL['inconclusivo']} git repo branch {branch} com alterações", "gray", enabled=enabled)
+
+
 def render_masthead(payload: dict, *, enabled: bool | None = None) -> str:
     """Caixa curta no topo do relatório impresso no terminal: projeto, commit e
     veredito com símbolo e cor. Recebe o mesmo formato de payload que

@@ -20,7 +20,7 @@ from .adapters.local_tools import LocalGitAdapter
 from .adapters.terminal import (
     COMMAND_ICON, SEVERITY_SYMBOL, VERDICT_COLOR, VERDICT_SYMBOL,
     Spinner, colorize_report, paint, render_checklist_item, render_dashboard,
-    render_dependency_row, render_masthead, render_section,
+    render_dependency_row, render_git_row, render_masthead, render_section,
     render_wordmark,
 )
 from .domain.models import to_json
@@ -763,7 +763,7 @@ def main(argv=None):
                                         detail_color=item.get("detail_color", "blue")))
         branch, clean = LocalGitAdapter(root).status_summary()
         if branch is not None:
-            print(render_dependency_row("git repo", f"branch {branch}", "limpo" if clean else "sujo", bool(clean)))
+            print(render_git_row(branch, bool(clean)))
         print(f"{paint(VERDICT_SYMBOL['aprovado'], 'green')} Projeto Sentry inicializado.")
         missing = [name for name, info in deps.items() if not info["installed"]]
         if missing and args.install:
