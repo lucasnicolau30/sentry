@@ -95,6 +95,8 @@ def validar_roteiro(dados) -> list[str]:
         for campo in ("titulo", "fala"):
             if not _texto(passo.get(campo)):
                 erros.append(f"passo {n}: campo '{campo}' ausente ou vazio")
+        if "manual" in passo and not isinstance(passo["manual"], bool):
+            erros.append(f"passo {n}: campo 'manual' deve ser true ou false")
         erros.extend(_validar_acao(n, passo.get("acao")))
     return erros
 

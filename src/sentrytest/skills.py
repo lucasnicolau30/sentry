@@ -304,9 +304,10 @@ genérico: roda, mas não mede.
   vídeo o usuário não precisa rodar o comando de novo: ele pede ao agente que mude o
   script (o projeto do brag em `.sentry/video/`) até chegar no resultado desejado.
 - `sentry training <modulo> [--lang pt|en]` — grava o vídeo de treinamento de um
-  módulo. Lê o roteiro declarativo `.sentry/training/<modulo>.json` (versionado):
+  módulo. Lê o roteiro declarativo `.sentry/training/<modulo>.json` (fora do Git por padrão, o `init` o ignora):
   `base`, `titulo` e `passos`, cada passo com `titulo`, `fala` e uma `acao` que é
-  dado, nunca código (`ir`, `digitar` com `valor`, `clicar` ou `apontar`). Grava
+  dado, nunca código (`ir`, `digitar` com `valor`, `clicar` ou `apontar`); um passo pode levar
+  `"manual": false` para ficar só no vídeo e fora do manual (veja `sentry manual`). Grava
   com o Playwright do Python (já no Sentry), marcando o tempo de cada passo, e a skill brag (pelo
   agente configurado, como no `promo`) monta o vídeo com as legendas em
   `.sentry/video/training-<modulo>-<idioma>.mp4`. Para com erro claro e código 3
@@ -320,17 +321,32 @@ genérico: roda, mas não mede.
   novo: ele pede ao agente que ajuste o roteiro (`.sentry/training/<modulo>.json`)
   até chegar no resultado desejado. O training não certifica nada: só grava e não dá
   veredito; só o veredito certifica.
-- `sentry manual <modulo> [--lang pt|en]` — gera o manual em PDF de um módulo, só texto: sem
-  vídeo, sem imagem de tela e sem agente (não gasta token, não precisa de `ffmpeg`). Usa o mesmo
-  roteiro do `training` e grava `.sentry/manual/<modulo>-<idioma>.pdf` com `fpdf2`. Abre com o título
-  grande "MANUAL DO USUÁRIO" centralizado numa faixa na cor do app (com a logo como marca d'água) e segue com o "Passo a passo": cada passo é um
-  cartão numa linha do tempo (selo numerado, título e fala). Toda página tem cabeçalho (logo e nome
-  do app) e rodapé (página e nome do app). Nome, cor e logo vêm da página de `base`, lida no
-  Playwright: nome (`application-name`, `og:site_name` ou `<title>`), cor (`theme-color` ou o fundo do
-  primeiro botão colorido) e logo (o ícone, só PNG ou JPEG); por isso o app de `base` precisa estar
-  no ar. O fluxo do roteiro não é executado. Para com erro claro e código 3 se o nome do módulo for
-  inseguro, o roteiro faltar ou for inválido, o idioma for desconhecido ou o app não responder.
-  `--lang en` traduz só os textos fixos. Para alterar o manual, peça ao agente que ajuste o roteiro.
+- `sentry manual [<modulo>] [--lang pt|en]` — mantém o manual do usuário do projeto: um PDF só,
+  `.sentry/manual/manual-<idioma>.pdf`, com uma seção por módulo, só texto (sem vídeo, sem imagem de
+  tela e sem agente: não gasta token, não precisa de `ffmpeg`). `sentry manual <modulo>` cria a seção do
+  módulo em `.sentry/manual/secoes/<modulo>.md`, com os passos do roteiro do `training`, ou, se ela já
+  existe, atualiza só os passos; `sentry manual` sem módulo atualiza os passos de todas as seções.
+  O Markdown é do dev: o Sentry só reescreve o bloco `:::passos` e nunca toca no resto. O `init` põe `.sentry/manual/secoes/` no `.gitignore`; para versionar as seções, escreva `!.sentry/manual/secoes/`.
+  Para escrever o manual, peça ao agente que edite `.sentry/manual/secoes/<modulo>.md`, que só entende:
+  o bloco do topo (`modulo: nome` e `ordem: número`, que define a ordem das seções), `# Título` (um só),
+  parágrafos, `## Subtítulo`, `**negrito**` (use nos nomes de botões e campos), avisos (`> [!INFO] Título`
+  e o texto nas linhas seguintes, também com `>`; os tipos são `INFO`, `SUCESSO` e `ATENCAO`), cartões
+  lado a lado (`:::cartoes`, cada um com `### Título` e o texto, fechado por `:::`) e o bloco
+  `:::passos` (`1. Título` e a fala recuada, fechado por `:::`), que vem do roteiro: para mudar um
+  passo, mude o roteiro em `.sentry/training/<modulo>.json` e rode o comando de novo. Ao montar o roteiro,
+  marque com `"manual": false` os passos de preparo que se repetem em todo módulo (entrar no sistema,
+  abrir o menu): o vídeo continua gravando, mas o manual os pula e recomeça a numeração; se o acesso
+  merece uma explicação, ela vai uma vez só, na introdução da primeira seção. Mantenha o manual enxuto:
+  um passo por decisão de quem lê, e o nome do botão ou campo em `**negrito**`. Qualquer outra
+  coisa vira parágrafo. Linha `<!-- ... -->` é comentário. O PDF abre com a faixa "MANUAL DO USUÁRIO" na
+  cor do app, a data de geração e, com duas seções ou mais, o sumário; cada seção começa em página nova, com os passos em cartões
+  (selo numerado dentro de cada um). Toda página tem cabeçalho (logo e nome do app, "Seção N")
+  e rodapé ("App · Manual do usuário", a página e, da segunda em diante, "Voltar ao sumário"). Uma seção sem roteiro é só texto, escrita à mão: `sentry manual` não mexe nela e a inclui no PDF. Nome, cor e logo vêm da página de `base` do primeiro módulo com roteiro, lida no Playwright: nome
+  (`application-name`, `og:site_name` ou `<title>`), cor (`theme-color` ou o fundo do primeiro botão
+  colorido) e logo (o ícone, só PNG ou JPEG); por isso o app de `base` precisa estar no ar. O fluxo do
+  roteiro não é executado. Para com erro claro e código 3 se o nome do módulo for inseguro, o roteiro
+  faltar ou for inválido, o Markdown estiver torto (a mensagem traz `arquivo:linha`), o manual não tiver
+  nenhuma seção ou nenhuma delas tiver roteiro, o idioma for desconhecido ou o app não responder. `--lang en` traduz só os textos fixos.
 
 ## Limites
 

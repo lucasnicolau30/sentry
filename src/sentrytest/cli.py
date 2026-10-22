@@ -382,8 +382,8 @@ def build_parser():
     training.add_argument("--lang", default=IDIOMA_PADRAO, metavar="IDIOMA",
                           help=f"idioma do vídeo: {', '.join(IDIOMAS)} (padrão: {IDIOMA_PADRAO}); en roda o brag de novo em inglês")
 
-    manual = sub.add_parser("manual", help="gera o manual em PDF de um módulo a partir do roteiro, só texto, sem vídeo e sem agente")
-    manual.add_argument("module", help="nome do módulo; o roteiro é .sentry/training/<modulo>.json")
+    manual = sub.add_parser("manual", help="mantém o manual do usuário (um PDF só, uma seção por módulo) a partir dos roteiros, só texto, sem vídeo e sem agente")
+    manual.add_argument("module", nargs="?", help="nome do módulo a criar ou atualizar no manual (roteiro .sentry/training/<modulo>.json); sem ele, atualiza os passos de todas as seções e refaz o PDF")
     manual.add_argument("--lang", default=IDIOMA_PADRAO, metavar="IDIOMA",
                         help=f"idioma dos títulos do manual: {', '.join(IDIOMAS)} (padrão: {IDIOMA_PADRAO}); as falas saem como no roteiro")
     return parser
@@ -651,15 +651,18 @@ def _training(root: Path, args, *, parser: argparse.ArgumentParser | None = None
     return EXIT_OK
 
 def _manual(root: Path, args, *, parser: argparse.ArgumentParser | None = None) -> int:
-    """Grava o manual em PDF do módulo: só texto, sem agente."""
+    """Cria ou atualiza a seção do módulo e grava o manual em PDF: só texto, sem agente."""
     try:
         with Spinner("Gerando o manual"):
-            destino = gerar_manual(root, args.module, args.lang)
+            resultado = gerar_manual(root, args.module, args.lang)
     except ValueError as error:
         _print_app_error(str(error), parser=parser)
         return EXIT_INFRA
-    print(f"{paint(VERDICT_SYMBOL['aprovado'], 'green')} manual de {args.module} ({args.lang}) em "
-          f"{destino.relative_to(root).as_posix()}")
+    ok = paint(VERDICT_SYMBOL["aprovado"], "green")
+    if resultado.secao is not None:
+        print(f"{ok} seção {args.module} {'criada' if resultado.criada else 'atualizada'} em "
+              f"{resultado.secao.relative_to(root).as_posix()}")
+    print(f"{ok} manual ({args.lang}) em {resultado.pdf.relative_to(root).as_posix()}")
     return EXIT_OK
 
 def _archive_rotas(root: Path, args, config: dict, modulo_config: dict, *,
